@@ -9,7 +9,7 @@ from abc import ABC
 from src.DAO.DAO import DAO
 
 # Firebase inicializálása
-cred = credentials.Certificate(os.path.join(os.path.dirname(__file__), '..', 'Conn', 'conninfo.json'))
+cred = credentials.Certificate(os.path.join(os.path.dirname(__file__), '..', 'conn', 'conninfo.json'))
 firebase_admin.initialize_app(cred)
 
 # Firestore referencia
