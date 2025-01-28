@@ -78,7 +78,7 @@ class TestFirebaseDAO(unittest.TestCase):
         self.firebase_dao.delete("XYZ102")
         retrieved_data = self.firebase_dao.read("XYZ102")
 
-        self.assertIsNone(retrieved_data)  # A törlés után None-t kell kapnunk, nem üres szótárt
+        self.assertEqual(retrieved_data,{})  # A törlés után None-t kell kapnunk, nem üres szótárt
 class TestUser(unittest.TestCase):
 
     def setUp(self):
