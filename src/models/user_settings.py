@@ -1,3 +1,5 @@
+"""user_settings.py"""
+
 class NotificationSettings:
     """
     Az NotificationSettings osztály a felhasználói értesítési beállításokat reprezentálja,

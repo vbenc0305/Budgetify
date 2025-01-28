@@ -1,3 +1,6 @@
+"""DAOImpl.py"""
+import os
+
 import firebase_admin
 from firebase_admin import credentials, firestore
 from typing import List, Dict, Any
@@ -6,7 +9,7 @@ from abc import ABC
 from src.DAO.DAO import DAO
 
 # Firebase inicializálása
-cred = credentials.Certificate("path/to/your/firebase/credentials.json")
+cred = credentials.Certificate(os.path.join(os.path.dirname(__file__), '..', 'Conn', 'conninfo.json'))
 firebase_admin.initialize_app(cred)
 
 # Firestore referencia
@@ -39,7 +42,14 @@ class FirebaseDAO(DAO, ABC):
             bool: Ha a rekord sikeresen létrejött, akkor True, egyébként False.
         """
         try:
-            self.collection.add(data)
+            # A név lesz a dokumentum azonosítója
+            name = data.get("company_id")
+
+            if not name:
+                raise ValueError("A rekordnak tartalmaznia kell egy nevet!")
+
+            # A dokumentum azonosítója most a név
+            doc_ref = self.collection.document(name).set(data)
             return True
         except Exception as e:
             print(f"Error creating record: {e}")

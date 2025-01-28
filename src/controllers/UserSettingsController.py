@@ -1,3 +1,5 @@
+"""userSettingsController.py"""
+
 from src.DAO.DAOimpl import FirebaseDAO
 from src.models.user_settings import UserSettings, NotificationSettings
 
@@ -31,11 +33,12 @@ class UserSettingsController:
             return UserSettings(**data)
         raise ValueError(f"User settings not found for user_id: {self.user_id}")  # Hibát dobunk, ha nem találunk adatot
 
-    def create_user_settings(self, currency: str, graph_color: str, lang: str, priv_data: bool, theme: str, notif:NotificationSettings) -> bool:
+    def create_user_settings(self, currency: str, graph_color: str, lang: str, priv_data: bool, theme: str, user_id:str, notif:NotificationSettings) -> bool:
         """
         Creates a new set of user settings for the given user_id.
 
-        :param notif:
+        :param user_id: userhez tartozó settingek
+        :param notif: notifikációk beállításai
         :param currency: The user's preferred currency.
         :param graph_color: The user's preferred color scheme for graphs.
         :param lang: The user's preferred language.
@@ -43,7 +46,7 @@ class UserSettingsController:
         :param theme: The user's preferred UI theme (e.g., light, dark).
         :return: True if the user settings were successfully created, False otherwise.
         """
-        user_settings = UserSettings(currency, graph_color, lang, priv_data, theme, notif)
+        user_settings = UserSettings(currency, graph_color, lang, priv_data, theme, user_id, notif)
 
         # Rekord hozzáadása az adatbázishoz
         success = self.dao.create(user_settings.to_dict())  # Visszatérési érték: True vagy False
