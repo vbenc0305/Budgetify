@@ -1,1 +1,2 @@
 firebase-admin~=6.6.0
+PyQt5~=5.15.11
