@@ -2,12 +2,19 @@ import os
 import sys
 import time
 
+import bcrypt
+
+from src.DAO.DAOimpl import FirebaseDAO
+from src.views import *
 from PyQt5.QtCore import QTimer, Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QLineEdit, QCheckBox, QFrame
 )
+
+from src.views.register_view import RegisterWindow
+
 
 # ----------------------------------------------------------------
 # 1) A folyamatos időfrissítést végző szál
@@ -127,9 +134,32 @@ class LeftSide(QWidget):
 class RightSide(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.on_register_click = None
-        self.register_label = None
+        self.firebase_dao = FirebaseDAO("user")
+        email=""
         self.init_ui()
+        print("anyad")
+
+    def on_login_click(self):
+        email = self.email_field.text()
+        password = self.password_field.text()
+        self.check_user_password(email,password)  # Kiírjuk az üzenetet
+
+    def on_register_click(self, event):
+        print("Regisztrációs linkre kattintva!")
+        self.register_window = RegisterWindow()
+        self.register_window.show()
+
+    # Bejelentkezéskor: jelszó ellenőrzése
+    def check_user_password(self, email, input_password):
+        # Lekérdezzük a tárolt hashelt jelszót az adatbázisból
+        stored_hashed_password = self.firebase_dao.get_user_password(email)
+
+        # Ellenőrizzük, hogy a megadott jelszó megegyezik-e a hashelt jelszóval
+        if bcrypt.checkpw(input_password.encode('utf-8'), stored_hashed_password.encode('utf-8')):
+            print("bejelentkeztel")
+            return True  # Jelszó helyes
+        else:
+            return False  # Jelszó helytelen
 
     def init_ui(self):
         # A RightSide teljes felületét kitöltő layout
@@ -218,23 +248,32 @@ class RightSide(QWidget):
 
         self.login_button.setCursor(Qt.PointingHandCursor)
 
-        # -------------------------------
-        # 4) Regisztrációs link
-        # -------------------------------
-        self.register_label = QLabel("Nincs fiókja? Hozzon létre egyet")
-        self.register_label.setAlignment(Qt.AlignCenter)
-        self.register_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
-        self.register_label.setOpenExternalLinks(False)
-        self.register_label.mousePressEvent = self.on_register_click  #TODO: megirni a metódust.
-        self.register_label.setCursor(Qt.PointingHandCursor)
-        welcome_layout.addWidget(self.register_label)
 
+
+        # Gomb kattintás eseményének kezelése
+        self.login_button.clicked.connect(self.on_login_click)
+
+
+
+
+        # Regisztrációs link
+        self.register_button = QPushButton('Nincs fiókja? Hozzon létre egyet')
+        self.register_button.setStyleSheet("color: white;")
+        self.register_button.setCursor(Qt.PointingHandCursor)
+
+
+        # MousePressEvent kezelés beállítása
+        self.register_button.clicked.connect(self.on_register_click)
+
+        # Gomb hozzáadása a layouthoz
+        welcome_layout.addWidget(self.register_button)
         # -------------------------------
         # Layoutok összerakása
         # -------------------------------
         main_layout.addWidget(welcome_frame)       # Üdvözlő doboz
         main_layout.addLayout(fields_layout)       # Mezők
         main_layout.addWidget(self.login_button)   # Gomb
+
 
 # ----------------------------------------------------------------
 # 4) A főablak, ami összeilleszti a bal és jobb oldalt

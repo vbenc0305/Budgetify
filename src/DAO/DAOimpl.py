@@ -42,14 +42,15 @@ class FirebaseDAO(DAO, ABC):
             bool: Ha a rekord sikeresen létrejött, akkor True, egyébként False.
         """
         try:
-            # A név lesz a dokumentum azonosítója
-            name = data.get("company_id")
+            # Először próbáljuk meg a company_id-t, ha nem létezik, akkor egy másik egyedi azonosítót használunk
+            identifier = data.get("company_id") or data.get("email") or data.get("uid")
 
-            if not name:
-                raise ValueError("A rekordnak tartalmaznia kell egy nevet!")
+            if not identifier:
+                raise ValueError(
+                    "A rekordnak tartalmaznia kell egy egyedi azonosítót (pl. company_id, email vagy uid)!")
 
-            # A dokumentum azonosítója most a név
-            doc_ref = self.collection.document(name).set(data)
+            # A dokumentum azonosítója az azonosító, legyen az company_id, email vagy uid
+            doc_ref = self.collection.document(identifier).set(data)
             return True
         except Exception as e:
             print(f"Error creating record: {e}")
@@ -140,3 +141,32 @@ class FirebaseDAO(DAO, ABC):
         except Exception as e:
             print(f"Error counting records: {e}")
             return 0
+
+    def user_exists(self, email: str) -> bool:
+        """Ellenőrzi, hogy a felhasználó létezik-e az email alapján"""
+        try:
+            # A 'users' gyűjteményből lekérjük az adott emaillel rendelkező dokumentumot
+            user_ref = self.collection.document(email)  # Itt már nem db-t használunk, hanem a self.collection-t
+            doc = user_ref.get()
+
+            # Ha a dokumentum létezik, visszatérünk True-val, különben False
+            return doc.exists
+        except Exception as e:
+            print(f"Hiba történt a felhasználó ellenőrzése során: {e}")
+            return False
+
+    def get_user_password(self, email):
+        """Lekérdezi a felhasználó jelszavának hashelt változatát az email alapján"""
+        try:
+            # Lekérdezzük a felhasználót az email alapján
+            user_query = self.collection.where("email", "==", email).limit(1).stream()
+
+            for user in user_query:
+                return user.to_dict().get("password")  # Visszaadjuk a hashelt jelszót
+
+            return None  # Ha nincs ilyen email cím, None-t adunk vissza
+
+        except Exception as e:
+            print(f"Hiba történt a jelszó lekérdezése közben: {e}")
+            return None
+
