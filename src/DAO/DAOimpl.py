@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 from abc import ABC
 
 from src.DAO.DAO import DAO
+from src.models.usr_info import UsrInfo
 
 # Firebase inicializálása
 cred = credentials.Certificate(os.path.join(os.path.dirname(__file__), '..', 'conn', 'conninfo.json'))
@@ -42,16 +43,24 @@ class FirebaseDAO(DAO, ABC):
             bool: Ha a rekord sikeresen létrejött, akkor True, egyébként False.
         """
         try:
-            # Először próbáljuk meg a company_id-t, ha nem létezik, akkor egy másik egyedi azonosítót használunk
-            identifier = data.get("company_id") or data.get("email") or data.get("uid")
+            if self.collection.id=="user":
+                # Az email cím a rekord azonosítója
+                identifier = data.get("email")
 
-            if not identifier:
-                raise ValueError(
-                    "A rekordnak tartalmaznia kell egy egyedi azonosítót (pl. company_id, email vagy uid)!")
+                if not identifier:
+                    raise ValueError("A rekordnak tartalmaznia kell egy email című azonosítót!")
 
-            # A dokumentum azonosítója az azonosító, legyen az company_id, email vagy uid
-            doc_ref = self.collection.document(identifier).set(data)
-            return True
+                # A dokumentum azonosítója az email cím lesz
+                doc_ref = self.collection.document(identifier).set(data)
+
+                # Alapértelmezett UsrInfo létrehozása az új felhasználóhoz
+                usr_info = UsrInfo(user_id=identifier)  # Alap adatokat hozunk létre
+                self.collection=db.collection("usr_info")
+                usr_info_ref = self.collection.document(identifier).set(usr_info.to_dict())
+
+                return True
+            else:
+                return False
         except Exception as e:
             print(f"Error creating record: {e}")
             return False
@@ -155,18 +164,39 @@ class FirebaseDAO(DAO, ABC):
             print(f"Hiba történt a felhasználó ellenőrzése során: {e}")
             return False
 
-    def get_user_password(self, email):
-        """Lekérdezi a felhasználó jelszavának hashelt változatát az email alapján"""
+    def get_user_info_by_email(self, email):
+        """
+        Lekérdezi a felhasználó adatokat az email alapján.
+
+        :param email: A felhasználó email címe.
+        :return: Dict[str, Any] - A felhasználó adatait tartalmazó szótár.
+        """
         try:
-            # Lekérdezzük a felhasználót az email alapján
-            user_query = self.collection.where("email", "==", email).limit(1).stream()
+            self.collection=db.collection('usr_info')
+            user_ref = self.collection.document(email)  # Az email azonosítja a felhasználót
+            user_doc = user_ref.get()  # Lekérdezzük a dokumentumot
 
-            for user in user_query:
-                return user.to_dict().get("password")  # Visszaadjuk a hashelt jelszót
-
-            return None  # Ha nincs ilyen email cím, None-t adunk vissza
-
+            if user_doc.exists:
+                # Ha létezik a dokumentum, visszaadjuk az adatokat
+                return user_doc.to_dict()  # A dokumentumból szótárt adunk vissza
+            else:
+                print("A felhasználó nem található.")
+                return {}  # Ha a felhasználó nem található, üres szótárat adunk vissza
         except Exception as e:
-            print(f"Hiba történt a jelszó lekérdezése közben: {e}")
-            return None
+            print(f"Hiba történt a felhasználó adatainak lekérésekor: {e}")
+            return {} #
 
+    def get_user_by_email(self,email):
+        try:
+            self.collection=db.collection('user')
+            user_ref = self.collection.document(email)
+            user_doc = user_ref.get()
+            if user_doc.exists:
+                # Ha létezik a dokumentum, visszaadjuk az adatokat
+                return user_doc.to_dict()  # A dokumentumból szótárt adunk vissza
+            else:
+                print("A felhasználó nem található.")
+                return {}  # Ha a felhasználó nem található, üres szótárat adunk vissza
+        except Exception as e:
+            print(f"Hiba történt a felhasználó adatainak lekérésekor: {e}")
+            return {}  #

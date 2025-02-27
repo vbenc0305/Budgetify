@@ -1,2 +1,4 @@
 firebase-admin~=6.6.0
 PyQt5~=5.15.11
+bcrypt~=4.2.1
+requests~=2.31.0

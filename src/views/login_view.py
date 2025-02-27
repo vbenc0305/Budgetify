@@ -1,19 +1,21 @@
 import os
 import sys
 import time
+from datetime import datetime
 
 import bcrypt
 
 from src.DAO.DAOimpl import FirebaseDAO
-from src.views import *
 from PyQt5.QtCore import QTimer, Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QLineEdit, QCheckBox, QFrame
+    QLabel, QPushButton, QLineEdit, QCheckBox, QFrame, QMessageBox
 )
 
+from src.views.main_view import MainView
 from src.views.register_view import RegisterWindow
+from src.views.usr_info_add import UsrInfoAddView
 
 
 # ----------------------------------------------------------------
@@ -134,8 +136,9 @@ class LeftSide(QWidget):
 class RightSide(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.firebase_dao = FirebaseDAO("user")
-        email=""
+        self.usr_email=""
+        self.firebase_dao_user = FirebaseDAO("user")
+        self.firebase_dao_usr_info=FirebaseDAO("usr_info")
         self.init_ui()
         print("anyad")
 
@@ -144,22 +147,91 @@ class RightSide(QWidget):
         password = self.password_field.text()
         self.check_user_password(email,password)  # Kiírjuk az üzenetet
 
-    def on_register_click(self, event):
+    def on_register_click(self):
         print("Regisztrációs linkre kattintva!")
         self.register_window = RegisterWindow()
         self.register_window.show()
 
-    # Bejelentkezéskor: jelszó ellenőrzése
+        # Bejelentkezéskor: jelszó ellenőrzése
+
     def check_user_password(self, email, input_password):
+        """
+        Ellenőrzi a felhasználó jelszavát a Firestore adatbázisból lekért hashelt jelszóval.
+
+        :param email: A felhasználó email címe.
+        :param input_password: A beírt jelszó.
+        :return: True, ha helyes a jelszó, különben False.
+        """
         # Lekérdezzük a tárolt hashelt jelszót az adatbázisból
-        stored_hashed_password = self.firebase_dao.get_user_password(email)
+        stored_hashed_password = self.firebase_dao_user.get_user_by_email(email).get("password")
+
+        if stored_hashed_password is None:
+            print("Hibás felhasználónév vagy jelszó!")  # Konzolra kiírjuk a hibát
+            self.show_error_screen("Hibás felhasználónév vagy jelszó!")  # Error screen megjelenítése
+            return False  # Sikertelen bejelentkezés
 
         # Ellenőrizzük, hogy a megadott jelszó megegyezik-e a hashelt jelszóval
         if bcrypt.checkpw(input_password.encode('utf-8'), stored_hashed_password.encode('utf-8')):
-            print("bejelentkeztel")
+            print("Bejelentkeztél!")
+            self.check_user_data_and_show_view(email)
             return True  # Jelszó helyes
         else:
+            print("Hibás jelszó!")  # Konzolra kiírjuk
+            self.show_error_screen("Hibás felhasználóvnév vagy jelszó!")  # Error screen megjelenítése
             return False  # Jelszó helytelen
+
+    from datetime import datetime
+
+    def check_user_data_and_show_view(self, email):
+        """
+        Ellenőrzi, hogy a felhasználó adatainak van-e "N/A" értéke.
+        Ha az életkor "N/A", de a születési dátum megvan, kiszámolja az életkort és frissíti az adatbázisban.
+        """
+        # Lekérdezzük a felhasználó adatait
+        user_info = self.firebase_dao_user.get_user_info_by_email(email)
+        user = self.firebase_dao_user.get_user_by_email(email)
+
+        if user_info.get("age") == "N/A":
+            # Születési dátumból életkor számítása
+            birthdate = datetime.strptime(user["birthdate"], "%Y-%m-%d")
+            today = datetime.today()
+            age = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
+
+            # Életkor frissítése az adatbázisban az update() metódussal
+            success = self.firebase_dao_usr_info.update(email, {"age": age})
+
+            if success:
+                print(f"Életkor frissítve az adatbázisban: {age}")
+                user_info["age"] = age  # Frissítjük a lokális user_info dict-et is
+            else:
+                print("Hiba történt az életkor frissítése közben!")
+
+        if "N/A" in user_info.values():
+            self.usr_email=user["email"]
+            self.show_usr_info_add_view(email)  # Adatkitöltő oldal megjelenítése
+        else:
+            self.show_main_window(email)  # Főoldal megjelenítése
+
+
+    def show_main_window(self, email):
+        # A felhasználó nevének lekérése a Firestore-ból
+        user_name = self.firebase_dao_user.get_user_by_email(email).get("name")
+
+        self.main_window= MainView(user_name)
+        self.main_window.show()
+
+    def show_error_screen(self, message):
+        """
+        Megjelenít egy hibaüzenetet egy felugró ablakban.
+
+        :param message: A megjelenítendő hibaüzenet.
+        """
+        error_box = QMessageBox()
+        error_box.setIcon(QMessageBox.Critical)
+        error_box.setWindowTitle("Hiba")
+        error_box.setText(message)
+        error_box.setStandardButtons(QMessageBox.Ok)
+        error_box.exec_()
 
     def init_ui(self):
         # A RightSide teljes felületét kitöltő layout
@@ -273,6 +345,10 @@ class RightSide(QWidget):
         main_layout.addWidget(welcome_frame)       # Üdvözlő doboz
         main_layout.addLayout(fields_layout)       # Mezők
         main_layout.addWidget(self.login_button)   # Gomb
+
+    def show_usr_info_add_view(self, email):
+        self.register_window = UsrInfoAddView(email)
+        self.register_window.show()
 
 
 # ----------------------------------------------------------------
