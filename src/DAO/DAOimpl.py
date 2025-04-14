@@ -1,5 +1,6 @@
 """DAOImpl.py"""
 import os
+import uuid
 
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -57,13 +58,60 @@ class FirebaseDAO(DAO, ABC):
                 usr_info = UsrInfo(user_id=identifier)  # Alap adatokat hozunk létre
                 self.collection=db.collection("usr_info")
                 usr_info_ref = self.collection.document(identifier).set(usr_info.to_dict())
+                self.collection=db.collection("user")
+                return True
+
+
+
+            elif self.collection.id == "transactions":
+
+                # Ellenőrizzük, hogy az 'email' mező jelen van-e az adatokban
+
+                user_email = data.get("email")
+
+                if not user_email:
+                    raise ValueError(
+                        "A tranzakciónak tartalmaznia kell egy 'email' mezőt, amely a felhasználóra mutat!")
+
+                # Létrehozzuk a felhasználóra mutató hivatkozást
+
+                user_ref = db.collection("user").document(user_email)
+
+                # Generálunk egy egyedi azonosítót a tranzakcióhoz
+
+                transaction_id = str(uuid.uuid4())
+
+                # Létrehozzuk a tranzakciót a felhasználó 'transactions' alkollekciójában
+
+                user_ref.collection("transactions").document(transaction_id).set(data)
 
                 return True
+            elif self.collection.id == "usr_info":
+                # Az email cím a rekord azonosítója
+                identifier = data.get("email")
+
+                user_ref = db.collection("usr_info").document(identifier)
+
+                user_ref.collection("usr_info").document(identifier).set(data)
+                return True
+
             else:
-                return False
+                raise ValueError(f"Ismeretlen gyűjtemény: {self.collection.id}")
         except Exception as e:
             print(f"Error creating record: {e}")
             return False
+
+    def read_user_transactions(self, identifier=None) -> List[Dict[str, Any]]:
+        # Ha identifier (pl. email) van, akkor csak azokat a tranzakciókat kérjük le
+        if identifier:
+            # Az email alapján lekérjük az alkollekciót
+            transactions_ref = self.collection.document(identifier).collection("transactions")
+            docs = transactions_ref.stream()
+            return [doc.to_dict() for doc in docs]
+        else:
+            # Ha nincs identifier, akkor az összes tranzakciót visszaadjuk
+            docs = self.collection.stream()
+            return [doc.to_dict() for doc in docs]
 
     def read(self, identifier: str) -> Dict[str, Any]:
         """

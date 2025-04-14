@@ -7,7 +7,7 @@ import bcrypt
 
 from src.DAO.DAOimpl import FirebaseDAO
 from PyQt5.QtCore import QTimer, Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QIcon, QPixmap, QFont
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QLineEdit, QCheckBox, QFrame, QMessageBox
@@ -136,11 +136,52 @@ class LeftSide(QWidget):
 class RightSide(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.usr_email=""
+        self.usr_email = ""
         self.firebase_dao_user = FirebaseDAO("user")
-        self.firebase_dao_usr_info=FirebaseDAO("usr_info")
+        self.firebase_dao_usr_info = FirebaseDAO("usr_info")
         self.init_ui()
-        print("anyad")
+        print("Inicializálás kész")
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #3E88EF;
+            }
+            QLabel {
+                color: white;
+                font-size: 14px;
+            }
+            QLineEdit {
+                background-color: rgba(255, 255, 255, 0.15);
+                color: white;
+                border: none;
+                border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+                padding: 8px;
+                font-size: 14px;
+            }
+            QLineEdit:focus {
+                border-bottom: 2px solid #FFD700;
+            }
+            QLineEdit::placeholder {
+                color: rgba(255, 255, 255, 0.7);
+            }
+            QPushButton {
+                background-color: #FFFFFF;
+                color: #3E88EF;
+                border: none;
+                border-radius: 5px;
+                padding: 12px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #E0E0E0;
+            }
+            QCheckBox {
+                color: white;
+                font-size: 12px;
+            }
+        """)
+
+        self.setAttribute(Qt.WA_StyledBackground)
 
     def on_login_click(self):
         email = self.email_field.text()
@@ -217,134 +258,103 @@ class RightSide(QWidget):
         # A felhasználó nevének lekérése a Firestore-ból
         user_name = self.firebase_dao_user.get_user_by_email(email).get("name")
 
-        self.main_window= MainView(user_name)
+        self.main_window= MainView(user_name, email)
         self.main_window.show()
 
     def show_error_screen(self, message):
-        """
-        Megjelenít egy hibaüzenetet egy felugró ablakban.
-
-        :param message: A megjelenítendő hibaüzenet.
-        """
         error_box = QMessageBox()
         error_box.setIcon(QMessageBox.Critical)
         error_box.setWindowTitle("Hiba")
         error_box.setText(message)
         error_box.setStandardButtons(QMessageBox.Ok)
+        error_box.setStyleSheet("""
+            QLabel {
+                color: #333333;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #3E88EF;
+                color: white;
+                padding: 5px 10px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #357ABD;
+            }
+        """)
         error_box.exec_()
 
     def init_ui(self):
-        # A RightSide teljes felületét kitöltő layout
+        font = QFont("Helvetica Neue", 12)
+        self.setFont(font)
+
         main_layout = QVBoxLayout(self)
-        main_layout.setAlignment(Qt.AlignCenter)  # Minden középre kerüljön
+        main_layout.setAlignment(Qt.AlignCenter)
         main_layout.setSpacing(20)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-
-        # -------------------------------
-        # 1) Üdvözlő doboz
-        # -------------------------------
-        welcome_frame = QFrame()
-        welcome_frame.setStyleSheet("""
-            background-color: #3E88EF;
-            border: 2px solid #cccccc;
-            border-radius: 10px;
-            padding: 15px;
-            color: white;
-        """)
-        welcome_frame.setFrameShape(QFrame.Box)
-        welcome_frame.setFrameShadow(QFrame.Raised)
-        welcome_frame.setLineWidth(5)
-
-
-        # A frame belső layoutja
-        welcome_layout = QVBoxLayout(welcome_frame)
-        welcome_layout.setAlignment(Qt.AlignCenter)
-
+        main_layout.setContentsMargins(40, 30, 40, 30)
 
         # Üdvözlő szöveg
-        welcome_label = QLabel("Üdvözlünk a belépési oldalon!\nKérjük add meg az adataidat.")
+        welcome_label = QLabel("Üdvözlünk a belépési oldalon!\nKérjük, add meg az adataidat.")
         welcome_label.setAlignment(Qt.AlignCenter)
-        welcome_layout.addWidget(welcome_label)
 
-        # -------------------------------
-        # 2) Bejelentkezési mezők
-        # -------------------------------
-        fields_layout = QVBoxLayout()
-        fields_layout.setAlignment(Qt.AlignCenter)
-        fields_layout.setSpacing(10)
-        fields_layout.setContentsMargins(0, 0, 0, 0)
-
-        # E-mail cím
+        # Bejelentkezési mezők
         email_label = QLabel("E-mail cím")
-        email_label.setAlignment(Qt.AlignLeft)
         self.email_field = QLineEdit()
         self.email_field.setPlaceholderText("pl. valami@domain.com")
 
-        # Jelszó
         password_label = QLabel("Jelszó")
-        password_label.setAlignment(Qt.AlignLeft)
         self.password_field = QLineEdit()
         self.password_field.setPlaceholderText("Add meg a jelszót")
         self.password_field.setEchoMode(QLineEdit.Password)
 
-        # Jegyezz meg
         self.remember_checkbox = QCheckBox("Jegyezz meg")
 
-        # Hozzáadjuk a mezőket a fields_layout-hoz
-        fields_layout.addWidget(email_label)
-        fields_layout.addWidget(self.email_field)
-        fields_layout.addWidget(password_label)
-        fields_layout.addWidget(self.password_field)
-        fields_layout.addWidget(self.remember_checkbox)
-
-        # -------------------------------
-        # 3) Bejelentkezés gomb
-        # -------------------------------
+        # Gombok
         self.login_button = QPushButton("Bejelentkezés")
+        self.login_button.setCursor(Qt.PointingHandCursor)
+        self.login_button.clicked.connect(self.on_login_click)
         self.login_button.setStyleSheet("""
             QPushButton {
-                background-color: #2196F3;
-                color: white;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-                font-size: 14px;
+                background-color: #FFFFFF;
+                color: #3E88EF;
+                border: none;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 16px;
+                box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
             }
             QPushButton:hover {
-                background-color: #1976D2;
-            }
-            QPushButton:pressed {
-                background-color: #1565C0;
+                background-color: #E0E0E0;
             }
         """)
 
-        self.login_button.setCursor(Qt.PointingHandCursor)
-
-
-
-        # Gomb kattintás eseményének kezelése
-        self.login_button.clicked.connect(self.on_login_click)
-
-
-
-
-        # Regisztrációs link
         self.register_button = QPushButton('Nincs fiókja? Hozzon létre egyet')
-        self.register_button.setStyleSheet("color: white;")
         self.register_button.setCursor(Qt.PointingHandCursor)
-
-
-        # MousePressEvent kezelés beállítása
+        self.register_button.setStyleSheet("""
+            background-color: transparent;
+            border: none;
+            color: white;
+            text-decoration: underline;
+        """)
         self.register_button.clicked.connect(self.on_register_click)
 
-        # Gomb hozzáadása a layouthoz
-        welcome_layout.addWidget(self.register_button)
-        # -------------------------------
-        # Layoutok összerakása
-        # -------------------------------
-        main_layout.addWidget(welcome_frame)       # Üdvözlő doboz
-        main_layout.addLayout(fields_layout)       # Mezők
-        main_layout.addWidget(self.login_button)   # Gomb
+        # Elrendezés összeállítása
+        main_layout.addWidget(welcome_label)
+        main_layout.addSpacing(10)
+        main_layout.addWidget(email_label)
+        main_layout.addWidget(self.email_field)
+        main_layout.addWidget(password_label)
+        main_layout.addWidget(self.password_field)
+        main_layout.addWidget(self.remember_checkbox)
+        main_layout.addSpacing(20)
+        main_layout.addWidget(self.login_button)
+        main_layout.addWidget(self.register_button)
+
+    def toggle_password_visibility(self, checked):
+        if checked:
+            self.password_field.setEchoMode(QLineEdit.Normal)
+        else:
+            self.password_field.setEchoMode(QLineEdit.Password)
 
     def show_usr_info_add_view(self, email):
         self.register_window = UsrInfoAddView(email)

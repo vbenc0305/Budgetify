@@ -1,6 +1,6 @@
 """dao.py"""
 
-from typing import Protocol, Any
+from typing import Protocol, Any, List, Dict
 
 
 class DAO(Protocol):
@@ -15,6 +15,55 @@ class DAO(Protocol):
     - Update (frissítés)
     - Delete (törlés)
     """
+
+    def get_user_info_by_email(self, email):
+        """
+        Lekérdezi a felhasználó információit az e-mail cím alapján.
+
+        Paraméterek:
+            email (str): A felhasználó e-mail címe.
+
+        Visszatérési érték:
+            dict[str, Any]: A felhasználó információi egy szótárban.
+        """
+        ...
+
+    def get_user_by_email(self, email):
+        """
+        Lekérdezi a felhasználó adatait az e-mail cím alapján.
+
+        Paraméterek:
+            email (str): A felhasználó e-mail címe.
+
+        Visszatérési érték:
+            dict[str, Any]: A felhasználó adatai egy szótárban.
+        """
+        ...
+
+    def user_exists(self, email: str) -> bool:
+        """
+        Ellenőrzi, hogy a felhasználó létezik-e az adatbázisban.
+
+        Paraméterek:
+            email (str): A felhasználó e-mail címe.
+
+        Visszatérési érték:
+            bool: True, ha a felhasználó létezik, egyébként False.
+        """
+        ...
+
+    def read_user_transactions(self, identifier=None) -> List[Dict[str, Any]]:
+        """
+        Felhasználói tranzakciók lekérdezése.
+
+        Paraméterek:
+            identifier (str, opcional): Az azonosító (pl. felhasználó ID), amely alapján lekérdezzük a tranzakciókat.
+                                        Ha None, akkor az összes tranzakciót visszaadja.
+
+        Visszatérési érték:
+            list[dict[str, Any]]: A lekérdezett tranzakciók adatai egy listában, ahol minden tranzakció egy szótár.
+        """
+        ...
 
     def create(self, data: dict[str, Any]) -> bool:
         """

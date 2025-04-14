@@ -1,0 +1,487 @@
+﻿Date,Description,Debit,Credit,Sub-category,Category,Category Type,Month Number,Weekday,Amount
+1/4/21,Data With Decision,,5000,Data with Decision,Salary,Income,1,Mon,5000
+1/4/21,Drink,5,,Coffee,Dining Out,Expense,1,Mon,-5
+1/5/21,Estate Mangement,900,,Rent,Living Expenses,Expense,1,Tue,-900
+1/5/21,Financail upgrade,150,,Cash loan,Transport,Expense,1,Tue,-150
+1/5/21,Drink,5,,Coffee,Dining Out,Expense,1,Tue,-5
+1/6/21,Drink,5,,Coffee,Dining Out,Expense,1,Wed,-5
+1/7/21,Drink,5,,Coffee,Dining Out,Expense,1,Thu,-5
+1/8/21,Drink,5,,Coffee,Dining Out,Expense,1,Fri,-5
+1/8/21,Green's,155,,Groceries,Living Expenses,Expense,1,Fri,-155
+1/11/21,Power source,50,,Gas/Electrics,Living Expenses,Expense,1,Mon,-50
+1/11/21,Drink,5,,Coffee,Dining Out,Expense,1,Mon,-5
+1/12/21,Drink,5,,Coffee,Dining Out,Expense,1,Tue,-5
+1/13/21,Fuel,77,,Coffee,Dining Out,Expense,1,Wed,-77
+1/13/21,Drink,5,,Coffee,Dining Out,Expense,1,Wed,-5
+1/14/21,Drink,5,,Coffee,Dining Out,Expense,1,Thu,-5
+1/15/21,Green's,135,,Groceries,Living Expenses,Expense,1,Fri,-135
+1/15/21,Drink,5,,Coffee,Dining Out,Expense,1,Fri,-5
+1/16/21,Drink,5,,Coffee,Dining Out,Expense,1,Sat,-5
+1/16/21,Cinemas,40,,Entertainment,Discretionary,Expense,1,Sat,-40
+1/16/21,Fashionistas,98,,Clothes,Discretionary,Expense,1,Sat,-98
+1/16/21,Burger,52,,Restaurant,Dining Out,Expense,1,Sat,-52
+1/17/21,Uba,28,,Taxi,Transport,Expense,1,Sun,-28
+1/18/21,Onlne earning,,4500,YouTube,Passive,Income,1,Mon,4500
+1/18/21,Drink,5,,Coffee,Dining Out,Expense,1,Mon,-5
+1/19/21,Drink,5,,Coffee,Dining Out,Expense,1,Tue,-5
+1/19/21,Onlne earning,,4500,Teachable,Passive,Income,1,Tue,4500
+1/19/21,Phone,40,,Phone,Living Expenses,Expense,1,Tue,-40
+1/20/21,Sallah give away,45,,Gifts,Discretionary,Expense,1,Wed,-45
+1/20/21,Online streaming,32,,Entertainment,Discretionary,Expense,1,Wed,-32
+1/20/21,Drink,5,,Coffee,Dining Out,Expense,1,Wed,-5
+1/21/21,Drink,5,,Coffee,Dining Out,Expense,1,Thu,-5
+1/22/21,Drink,5,,Coffee,Dining Out,Expense,1,Fri,-5
+1/22/21,Green's,170,,Groceries,Living Expenses,Expense,1,Fri,-170
+1/23/21,Suya,37,,Restaurant,Dining Out,Expense,1,Sat,-37
+1/24/21,Oha soup/White soup,12,,Restaurant,Dining Out,Expense,1,Sun,-12
+1/25/21,Orphanage,55,,Donation,Charity,Expense,1,Mon,-55
+1/25/21,Fuel,63,,Fueling,Transport,Expense,1,Mon,-63
+1/25/21,Drink,5,,Coffee,Dining Out,Expense,1,Mon,-5
+1/26/21,Drink,5,,Coffee,Dining Out,Expense,1,Tue,-5
+1/27/21,Drink,5,,Coffee,Dining Out,Expense,1,Wed,-5
+1/28/21,Drink,5,,Coffee,Dining Out,Expense,1,Thu,-5
+1/29/21,Drink,5,,Coffee,Dining Out,Expense,1,Fri,-5
+1/29/21,Green's,162,,Groceries,Living Expenses,Expense,1,Fri,-162
+1/30/21,Trainers,125,,Clothes,Discretionary,Expense,1,Sat,-125
+1/30/21,Hangingout/Ticket,175,,Entertainment,Discretionary,Expense,1,Sat,-175
+1/31/21,Fashionistas,145,,Clothes,Discretionary,Expense,1,Sun,-145
+1/31/21,Uba,23,,Taxi,Transport,Expense,1,Sun,-23
+2/1/21,Data With Decision,,5000,Data with Decision,Salary,Income,2,Mon,5000
+2/1/21,Drink,5,,Coffee,Dining Out,Expense,2,Mon,-5
+2/2/21,Estate Mangement,900,,Rent,Living Expenses,Expense,2,Tue,-900
+2/2/21,Financail upgrade,150,,Cash loan,Transport,Expense,2,Tue,-150
+2/2/21,Drink,5,,Coffee,Dining Out,Expense,2,Tue,-5
+2/3/21,Drink,5,,Coffee,Dining Out,Expense,2,Wed,-5
+2/4/21,Drink,5,,Coffee,Dining Out,Expense,2,Thu,-5
+2/5/21,Drink,5,,Coffee,Dining Out,Expense,2,Fri,-5
+2/5/21,Green's,205,,Groceries,Living Expenses,Expense,2,Fri,-205
+2/8/21,Power source,51.1,,Gas/Electrics,Living Expenses,Expense,2,Mon,-51.1
+2/8/21,Drink,5,,Coffee,Dining Out,Expense,2,Mon,-5
+2/9/21,Drink,5,,Coffee,Dining Out,Expense,2,Tue,-5
+2/10/21,Fuel,78,,Fueling,Transport,Expense,2,Wed,-78
+2/10/21,Drink,5,,Coffee,Dining Out,Expense,2,Wed,-5
+2/11/21,Drink,5,,Coffee,Dining Out,Expense,2,Thu,-5
+2/12/21,Green's,135.9,,Groceries,Living Expenses,Expense,2,Fri,-135.9
+2/12/21,Drink,5,,Coffee,Dining Out,Expense,2,Fri,-5
+2/13/21,Drink,5,,Coffee,Dining Out,Expense,2,Sat,-5
+2/13/21,Cinemas,40.9,,Entertainment,Discretionary,Expense,2,Sat,-40.9
+2/13/21,Fashionistas,99,,Clothes,Discretionary,Expense,2,Sat,-99
+2/13/21,Burger,53,,Restaurant,Dining Out,Expense,2,Sat,-53
+2/14/21,Uba,28.9,,Taxi,Transport,Expense,2,Sun,-28.9
+2/15/21,Onlne earning,,800,YouTube,Passive,Income,2,Mon,800
+2/15/21,Drink,5,,Coffee,Dining Out,Expense,2,Mon,-5
+2/16/21,Drink,5,,Coffee,Dining Out,Expense,2,Tue,-5
+2/16/21,Phone,40,,Phone,Living Expenses,Expense,2,Tue,-40
+2/17/21,Sallah give away,45.9,,Gifts,Discretionary,Expense,2,Wed,-45.9
+2/17/21,Online streaming,35,,Entertainment,Discretionary,Expense,2,Wed,-35
+2/17/21,Drink,5,,Coffee,Dining Out,Expense,2,Wed,-5
+2/18/21,Drink,5,,Coffee,Dining Out,Expense,2,Thu,-5
+2/19/21,Drink,5,,Coffee,Dining Out,Expense,2,Fri,-5
+2/19/21,Green's,171,,Groceries,Living Expenses,Expense,2,Fri,-171
+2/20/21,Suya,37.9,,Restaurant,Dining Out,Expense,2,Sat,-37.9
+2/21/21,Oha soup/White soup,12.9,,Restaurant,Dining Out,Expense,2,Sun,-12.9
+2/22/21,Orphanage,55,,Donation,Charity,Expense,2,Mon,-55
+2/22/21,Fuel,64.1,,Fueling,Transport,Expense,2,Mon,-64.1
+2/22/21,Drink,5,,Coffee,Dining Out,Expense,2,Mon,-5
+2/23/21,Drink,5,,Coffee,Dining Out,Expense,2,Tue,-5
+2/24/21,Drink,5,,Coffee,Dining Out,Expense,2,Wed,-5
+2/25/21,Drink,5,,Coffee,Dining Out,Expense,2,Thu,-5
+2/26/21,Drink,5,,Coffee,Dining Out,Expense,2,Fri,-5
+2/26/21,Green's,162.9,,Groceries,Living Expenses,Expense,2,Fri,-162.9
+2/27/21,Trainers,125.9,,Clothes,Discretionary,Expense,2,Sat,-125.9
+2/27/21,Global Fashion,137,,Clothes,Discretionary,Expense,2,Sat,-137
+2/28/21,Fashionistas,146.1,,Clothes,Discretionary,Expense,2,Sun,-146.1
+2/28/21,Uba,24.1,,Taxi,Transport,Expense,2,Sun,-24.1
+3/1/21,Data With Decision,,5000,Data with Decision,Salary,Income,3,Mon,5000
+3/1/21,Drink,5,,Coffee,Dining Out,Expense,3,Mon,-5
+3/2/21,Estate Mangement,900,,Rent,Living Expenses,Expense,3,Tue,-900
+3/2/21,Financail upgrade,150,,Cash loan,Transport,Expense,3,Tue,-150
+3/2/21,Drink,5,,Coffee,Dining Out,Expense,3,Tue,-5
+3/3/21,Drink,5,,Coffee,Dining Out,Expense,3,Wed,-5
+3/4/21,Drink,5,,Coffee,Dining Out,Expense,3,Thu,-5
+3/5/21,Drink,5,,Coffee,Dining Out,Expense,3,Fri,-5
+3/5/21,Green's,149,,Groceries,Living Expenses,Expense,3,Fri,-149
+3/8/21,Power source,52.1,,Gas/Electrics,Living Expenses,Expense,3,Mon,-52.1
+3/8/21,Drink,5,,Coffee,Dining Out,Expense,3,Mon,-5
+3/9/21,Drink,5,,Coffee,Dining Out,Expense,3,Tue,-5
+3/10/21,Fuel,78.9,,Fueling,Transport,Expense,3,Wed,-78.9
+3/10/21,Drink,5,,Coffee,Dining Out,Expense,3,Wed,-5
+3/11/21,Drink,5,,Coffee,Dining Out,Expense,3,Thu,-5
+3/12/21,Green's,137,,Groceries,Living Expenses,Expense,3,Fri,-137
+3/12/21,Drink,5,,Coffee,Dining Out,Expense,3,Fri,-5
+3/13/21,Drink,5,,Coffee,Dining Out,Expense,3,Sat,-5
+3/13/21,Cinemas,41.8,,Entertainment,Discretionary,Expense,3,Sat,-41.8
+3/13/21,Fashionistas,99.9,,Clothes,Discretionary,Expense,3,Sat,-99.9
+3/13/21,Burger,54,,Restaurant,Dining Out,Expense,3,Sat,-54
+3/14/21,Uba,30,,Taxi,Transport,Expense,3,Sun,-30
+3/15/21,Onlne earning,,1000,YouTube,Passive,Income,3,Mon,1000
+3/15/21,Drink,5,,Coffee,Dining Out,Expense,3,Mon,-5
+3/16/21,Drink,5,,Coffee,Dining Out,Expense,3,Tue,-5
+3/16/21,Taken medication,75,,Doctor,Medical,Expense,3,Tue,-75
+3/16/21,Phone,40,,Phone,Living Expenses,Expense,3,Tue,-40
+3/17/21,Sallah give away,46.8,,Gifts,Discretionary,Expense,3,Wed,-46.8
+3/17/21,Online streaming,35,,Entertainment,Discretionary,Expense,3,Wed,-35
+3/17/21,Drink,5,,Coffee,Dining Out,Expense,3,Wed,-5
+3/18/21,Drink,5,,Coffee,Dining Out,Expense,3,Thu,-5
+3/19/21,Drink,5,,Coffee,Dining Out,Expense,3,Fri,-5
+3/19/21,Green's,171.9,,Groceries,Living Expenses,Expense,3,Fri,-171.9
+3/20/21,Suya,39,,Restaurant,Dining Out,Expense,3,Sat,-39
+3/21/21,Oha soup/White soup,14,,Restaurant,Dining Out,Expense,3,Sun,-14
+3/22/21,Orphanage,55,,Donation,Charity,Expense,3,Mon,-55
+3/22/21,Fuel,65,,Fueling,Transport,Expense,3,Mon,-65
+3/22/21,Drink,5,,Coffee,Dining Out,Expense,3,Mon,-5
+3/23/21,Drink,5,,Coffee,Dining Out,Expense,3,Tue,-5
+3/24/21,Drink,5,,Coffee,Dining Out,Expense,3,Wed,-5
+3/25/21,Drink,5,,Coffee,Dining Out,Expense,3,Thu,-5
+3/26/21,Drink,5,,Coffee,Dining Out,Expense,3,Fri,-5
+3/26/21,Green's,209,,Groceries,Living Expenses,Expense,3,Fri,-209
+3/27/21,Trainers,127,,Clothes,Discretionary,Expense,3,Sat,-127
+3/27/21,Sport ware,177.2,,Clothes,Discretionary,Expense,3,Sat,-177.2
+3/28/21,Fashionistas,147.1,,Clothes,Discretionary,Expense,3,Sun,-147.1
+3/28/21,Uba,25,,Taxi,Transport,Expense,3,Sun,-25
+3/29/21,Foodary,15,,Restaurant,Dining Out,Expense,3,Mon,-15
+3/30/21,Drink,5,,Coffee,Dining Out,Expense,3,Tue,-5
+3/31/21,Drink,5,,Coffee,Dining Out,Expense,3,Wed,-5
+4/1/21,Data With Decision,,5000,Data with Decision,Salary,Income,4,Thu,5000
+4/1/21,Drink,5,,Coffee,Dining Out,Expense,4,Thu,-5
+4/2/21,Estate Mangement,900,,Rent,Living Expenses,Expense,4,Fri,-900
+4/2/21,Financail upgrade,150,,Cash loan,Transport,Expense,4,Fri,-150
+4/2/21,Drink,5,,Coffee,Dining Out,Expense,4,Fri,-5
+4/3/21,Drink,5,,Coffee,Dining Out,Expense,4,Sat,-5
+4/4/21,Drink,5,,Coffee,Dining Out,Expense,4,Sun,-5
+4/5/21,Drink,5,,Coffee,Dining Out,Expense,4,Mon,-5
+4/5/21,Green's,158.2,,Groceries,Living Expenses,Expense,4,Mon,-158.2
+4/8/21,Power source,53.2,,Gas/Electrics,Living Expenses,Expense,4,Thu,-53.2
+4/8/21,Drink,5,,Coffee,Dining Out,Expense,4,Thu,-5
+4/9/21,Drink,5,,Coffee,Dining Out,Expense,4,Fri,-5
+4/10/21,Fuel,79.9,,Fueling,Transport,Expense,4,Sat,-79.9
+4/10/21,Drink,5,,Coffee,Dining Out,Expense,4,Sat,-5
+4/11/21,Drink,5,,Coffee,Dining Out,Expense,4,Sun,-5
+4/12/21,Green's,98,,Groceries,Living Expenses,Expense,4,Mon,-98
+4/12/21,Drink,5,,Coffee,Dining Out,Expense,4,Mon,-5
+4/13/21,Drink,5,,Coffee,Dining Out,Expense,4,Tue,-5
+4/13/21,Cinemas,42.8,,Entertainment,Discretionary,Expense,4,Tue,-42.8
+4/13/21,Fashionistas,100.9,,Clothes,Discretionary,Expense,4,Tue,-100.9
+4/13/21,Burger,54.9,,Restaurant,Dining Out,Expense,4,Tue,-54.9
+4/14/21,Uba,31,,Taxi,Transport,Expense,4,Wed,-31
+4/15/21,Onlne earning,,2340,YouTube,Passive,Income,4,Thu,2340
+4/15/21,Drink,5,,Coffee,Dining Out,Expense,4,Thu,-5
+4/16/21,Drink,5,,Coffee,Dining Out,Expense,4,Fri,-5
+4/16/21,Phone,40,,Phone,Living Expenses,Expense,4,Fri,-40
+4/17/21,Sallah give away,47.9,,Gifts,Discretionary,Expense,4,Sat,-47.9
+4/17/21,Online streaming,35,,Entertainment,Discretionary,Expense,4,Sat,-35
+4/17/21,Drink,5,,Coffee,Dining Out,Expense,4,Sat,-5
+4/18/21,Drink,5,,Coffee,Dining Out,Expense,4,Sun,-5
+4/19/21,Drink,5,,Coffee,Dining Out,Expense,4,Mon,-5
+4/19/21,Green's,173,,Groceries,Living Expenses,Expense,4,Mon,-173
+4/20/21,Suya,40.1,,Restaurant,Dining Out,Expense,4,Tue,-40.1
+4/21/21,Oha soup/White soup,15.1,,Restaurant,Dining Out,Expense,4,Wed,-15.1
+4/22/21,Orphanage,55,,Donation,Charity,Expense,4,Thu,-55
+4/22/21,Fuel,66,,Fueling,Transport,Expense,4,Thu,-66
+4/22/21,Drink,5,,Coffee,Dining Out,Expense,4,Thu,-5
+4/23/21,Drink,5,,Coffee,Dining Out,Expense,4,Fri,-5
+4/24/21,Drink,5,,Coffee,Dining Out,Expense,4,Sat,-5
+4/25/21,Drink,5,,Coffee,Dining Out,Expense,4,Sun,-5
+4/26/21,Drink,5,,Coffee,Dining Out,Expense,4,Mon,-5
+4/26/21,Green's,164.9,,Groceries,Living Expenses,Expense,4,Mon,-164.9
+4/27/21,Trainers,127.9,,Clothes,Discretionary,Expense,4,Tue,-127.9
+4/27/21,Clubing,300,,Entertainment,Discretionary,Expense,4,Tue,-300
+4/28/21,Fashionistas,148.1,,Clothes,Discretionary,Expense,4,Wed,-148.1
+4/28/21,Uba,26.1,,Taxi,Transport,Expense,4,Wed,-26.1
+4/29/21,Foodary,15,,Restaurant,Dining Out,Expense,4,Thu,-15
+4/29/21,Drink,5,,Coffee,Dining Out,Expense,4,Thu,-5
+4/30/21,Drink,5,,Coffee,Dining Out,Expense,4,Fri,-5
+5/2/21,Drink,5,,Coffee,Dining Out,Expense,5,Sun,-5
+5/3/21,Data With Decision,,5000,Data with Decision,Salary,Income,5,Mon,5000
+5/3/21,Estate Mangement,900,,Rent,Living Expenses,Expense,5,Mon,-900
+5/3/21,Financail upgrade,150,,Cash loan,Transport,Expense,5,Mon,-150
+5/3/21,Drink,5,,Coffee,Dining Out,Expense,5,Mon,-5
+5/4/21,Drink,5,,Coffee,Dining Out,Expense,5,Tue,-5
+5/5/21,Drink,5,,Coffee,Dining Out,Expense,5,Wed,-5
+5/6/21,Drink,5,,Coffee,Dining Out,Expense,5,Thu,-5
+5/6/21,Green's,170,,Groceries,Living Expenses,Expense,5,Thu,-170
+5/9/21,Power source,54.1,,Gas/Electrics,Living Expenses,Expense,5,Sun,-54.1
+5/9/21,Drink,5,,Coffee,Dining Out,Expense,5,Sun,-5
+5/10/21,Drink,5,,Coffee,Dining Out,Expense,5,Mon,-5
+5/11/21,Fuel,81,,Fueling,Transport,Expense,5,Tue,-81
+5/11/21,Drink,5,,Coffee,Dining Out,Expense,5,Tue,-5
+5/12/21,Drink,5,,Coffee,Dining Out,Expense,5,Wed,-5
+5/13/21,Green's,139.1,,Groceries,Living Expenses,Expense,5,Thu,-139.1
+5/13/21,Drink,5,,Coffee,Dining Out,Expense,5,Thu,-5
+5/14/21,Drink,5,,Coffee,Dining Out,Expense,5,Fri,-5
+5/14/21,Cinemas,43.9,,Entertainment,Discretionary,Expense,5,Fri,-43.9
+5/14/21,Fashionistas,101.8,,Clothes,Discretionary,Expense,5,Fri,-101.8
+5/14/21,Burger,55.9,,Restaurant,Dining Out,Expense,5,Fri,-55.9
+5/15/21,Uba,32,,Taxi,Transport,Expense,5,Sat,-32
+5/16/21,Onlne earning,,1000,YouTube,Passive,Income,5,Sun,1000
+5/16/21,Drink,5,,Coffee,Dining Out,Expense,5,Sun,-5
+5/17/21,Drink,5,,Coffee,Dining Out,Expense,5,Mon,-5
+5/17/21,Taken medication,75,,Doctor,Medical,Expense,5,Mon,-75
+5/17/21,Phone,40,,Phone,Living Expenses,Expense,5,Mon,-40
+5/18/21,Sallah give away,49,,Gifts,Discretionary,Expense,5,Tue,-49
+5/18/21,Online streaming,35,,Entertainment,Discretionary,Expense,5,Tue,-35
+5/18/21,Drink,5,,Coffee,Dining Out,Expense,5,Tue,-5
+5/19/21,Drink,5,,Coffee,Dining Out,Expense,5,Wed,-5
+5/20/21,Drink,5,,Coffee,Dining Out,Expense,5,Thu,-5
+5/20/21,Green's,174,,Groceries,Living Expenses,Expense,5,Thu,-174
+5/21/21,Suya,41.1,,Restaurant,Dining Out,Expense,5,Fri,-41.1
+5/22/21,Oha soup/White soup,16.2,,Restaurant,Dining Out,Expense,5,Sat,-16.2
+5/23/21,Orphanage,55,,Donation,Charity,Expense,5,Sun,-55
+5/23/21,Fuel,67,,Fueling,Transport,Expense,5,Sun,-67
+5/23/21,Drink,5,,Coffee,Dining Out,Expense,5,Sun,-5
+5/24/21,Drink,5,,Coffee,Dining Out,Expense,5,Mon,-5
+5/25/21,Drink,5,,Coffee,Dining Out,Expense,5,Tue,-5
+5/26/21,Drink,5,,Coffee,Dining Out,Expense,5,Wed,-5
+5/27/21,Drink,5,,Coffee,Dining Out,Expense,5,Thu,-5
+5/27/21,Green's,165.8,,Groceries,Living Expenses,Expense,5,Thu,-165.8
+5/28/21,Trainers,128.8,,Clothes,Discretionary,Expense,5,Fri,-128.8
+5/28/21,Home décor,235,,Furnishings,Discretionary,Expense,5,Fri,-235
+5/29/21,Fashionistas,149.2,,Clothes,Discretionary,Expense,5,Sat,-149.2
+5/29/21,Uba,27.2,,Taxi,Transport,Expense,5,Sat,-27.2
+5/31/21,Foodary,15,,Restaurant,Dining Out,Expense,5,Mon,-15
+5/30/21,Drink,5,,Coffee,Dining Out,Expense,5,Sun,-5
+5/31/21,Drink,5,,Coffee,Dining Out,Expense,5,Mon,-5
+6/1/21,Data With Decision,,5000,Data with Decision,Salary,Income,6,Tue,5000
+6/3/21,Drink,5,,Coffee,Dining Out,Expense,6,Thu,-5
+6/3/21,Estate Mangement,900,,Rent,Living Expenses,Expense,6,Thu,-900
+6/3/21,Financail upgrade,150,,Cash loan,Transport,Expense,6,Thu,-150
+6/3/21,Drink,5,,Coffee,Dining Out,Expense,6,Thu,-5
+6/4/21,Drink,5,,Coffee,Dining Out,Expense,6,Fri,-5
+6/5/21,Drink,5,,Coffee,Dining Out,Expense,6,Sat,-5
+6/6/21,Drink,5,,Coffee,Dining Out,Expense,6,Sun,-5
+6/6/21,Green's,119,,Groceries,Living Expenses,Expense,6,Sun,-119
+6/9/21,Power source,55,,Gas/Electrics,Living Expenses,Expense,6,Wed,-55
+6/9/21,Drink,5,,Coffee,Dining Out,Expense,6,Wed,-5
+6/10/21,Drink,5,,Coffee,Dining Out,Expense,6,Thu,-5
+6/11/21,Fuel,82.1,,Fueling,Transport,Expense,6,Fri,-82.1
+6/11/21,Drink,5,,Coffee,Dining Out,Expense,6,Fri,-5
+6/12/21,Drink,5,,Coffee,Dining Out,Expense,6,Sat,-5
+6/13/21,Green's,140.2,,Groceries,Living Expenses,Expense,6,Sun,-140.2
+6/13/21,Drink,5,,Coffee,Dining Out,Expense,6,Sun,-5
+6/14/21,Drink,5,,Coffee,Dining Out,Expense,6,Mon,-5
+6/14/21,Cinemas,44.9,,Entertainment,Discretionary,Expense,6,Mon,-44.9
+6/14/21,Fashionistas,102.9,,Clothes,Discretionary,Expense,6,Mon,-102.9
+6/14/21,Burger,56.9,,Restaurant,Dining Out,Expense,6,Mon,-56.9
+6/15/21,Uba,33.1,,Taxi,Transport,Expense,6,Tue,-33.1
+6/16/21,Onlne earning,,100,YouTube,Passive,Income,6,Wed,100
+6/16/21,Drink,5,,Coffee,Dining Out,Expense,6,Wed,-5
+6/17/21,Drink,5,,Coffee,Dining Out,Expense,6,Thu,-5
+6/17/21,Phone,40,,Phone,Living Expenses,Expense,6,Thu,-40
+6/18/21,Sallah give away,50.1,,Gifts,Discretionary,Expense,6,Fri,-50.1
+6/18/21,Online streaming,35,,Entertainment,Discretionary,Expense,6,Fri,-35
+6/18/21,Drink,5,,Coffee,Dining Out,Expense,6,Fri,-5
+6/19/21,Drink,5,,Coffee,Dining Out,Expense,6,Sat,-5
+6/20/21,Drink,5,,Coffee,Dining Out,Expense,6,Sun,-5
+6/20/21,Green's,234,,Groceries,Living Expenses,Expense,6,Sun,-234
+6/21/21,Suya,42.1,,Restaurant,Dining Out,Expense,6,Mon,-42.1
+6/22/21,Oha soup/White soup,17.1,,Restaurant,Dining Out,Expense,6,Tue,-17.1
+6/23/21,Orphanage,55,,Donation,Charity,Expense,6,Wed,-55
+6/23/21,Fuel,67.9,,Fueling,Transport,Expense,6,Wed,-67.9
+6/23/21,Drink,5,,Coffee,Dining Out,Expense,6,Wed,-5
+6/24/21,Drink,5,,Coffee,Dining Out,Expense,6,Thu,-5
+6/25/21,Drink,5,,Coffee,Dining Out,Expense,6,Fri,-5
+6/26/21,Drink,5,,Coffee,Dining Out,Expense,6,Sat,-5
+6/27/21,Drink,5,,Coffee,Dining Out,Expense,6,Sun,-5
+6/27/21,Green's,166.9,,Groceries,Living Expenses,Expense,6,Sun,-166.9
+6/28/21,Trainers,129.9,,Clothes,Discretionary,Expense,6,Mon,-129.9
+6/28/21,Hangingout/Ticket,180.3,,Entertainment,Discretionary,Expense,6,Mon,-180.3
+6/29/21,Fashionistas,150.1,,Clothes,Discretionary,Expense,6,Tue,-150.1
+6/29/21,Uba,28.2,,Taxi,Transport,Expense,6,Tue,-28.2
+6/29/21,Foodary,15,,Restaurant,Dining Out,Expense,6,Tue,-15
+6/30/21,Drink,5,,Coffee,Dining Out,Expense,6,Wed,-5
+7/1/21,Drink,5,,Coffee,Dining Out,Expense,7,Thu,-5
+7/2/21,Data With Decision,,5000,Data with Decision,Salary,Income,7,Fri,5000
+7/3/21,Drink,5,,Coffee,Dining Out,Expense,7,Sat,-5
+7/5/21,Estate Mangement,900,,Rent,Living Expenses,Expense,7,Mon,-900
+7/5/21,Financail upgrade,150,,Cash loan,Transport,Expense,7,Mon,-150
+7/5/21,Feedings,15,,Restaurant,Dining Out,Expense,7,Mon,-15
+7/5/21,Drink,5,,Coffee,Dining Out,Expense,7,Mon,-5
+7/6/21,Drink,5,,Coffee,Dining Out,Expense,7,Tue,-5
+7/7/21,Drink,5,,Coffee,Dining Out,Expense,7,Wed,-5
+7/7/21,Green's,180,,Groceries,Living Expenses,Expense,7,Wed,-180
+7/10/21,Power source,56.1,,Gas/Electrics,Living Expenses,Expense,7,Sat,-56.1
+7/10/21,Drink,5,,Coffee,Dining Out,Expense,7,Sat,-5
+7/11/21,Drink,5,,Coffee,Dining Out,Expense,7,Sun,-5
+7/12/21,Fuel,83.1,,Fueling,Transport,Expense,7,Mon,-83.1
+7/12/21,Drink,5,,Coffee,Dining Out,Expense,7,Mon,-5
+7/13/21,Drink,5,,Coffee,Dining Out,Expense,7,Tue,-5
+7/14/21,Green's,141.1,,Groceries,Living Expenses,Expense,7,Wed,-141.1
+7/14/21,Drink,5,,Coffee,Dining Out,Expense,7,Wed,-5
+7/15/21,Drink,5,,Coffee,Dining Out,Expense,7,Thu,-5
+7/15/21,Cinemas,45.8,,Entertainment,Discretionary,Expense,7,Thu,-45.8
+7/15/21,Fashionistas,103.8,,Clothes,Discretionary,Expense,7,Thu,-103.8
+7/15/21,Burger,58,,Restaurant,Dining Out,Expense,7,Thu,-58
+7/16/21,Uba,34.2,,Taxi,Transport,Expense,7,Fri,-34.2
+7/17/21,Onlne earning,,200,YouTube,Passive,Income,7,Sat,200
+7/17/21,Drink,5,,Coffee,Dining Out,Expense,7,Sat,-5
+7/18/21,Drink,5,,Coffee,Dining Out,Expense,7,Sun,-5
+7/18/21,Phone,40,,Phone,Living Expenses,Expense,7,Sun,-40
+7/19/21,Sallah give away,51.1,,Gifts,Discretionary,Expense,7,Mon,-51.1
+7/19/21,Online streaming,35,,Entertainment,Discretionary,Expense,7,Mon,-35
+7/19/21,Drink,5,,Coffee,Dining Out,Expense,7,Mon,-5
+7/20/21,Drink,5,,Coffee,Dining Out,Expense,7,Tue,-5
+7/21/21,Drink,5,,Coffee,Dining Out,Expense,7,Wed,-5
+7/21/21,Green's,176,,Groceries,Living Expenses,Expense,7,Wed,-176
+7/22/21,Suya,43.1,,Restaurant,Dining Out,Expense,7,Thu,-43.1
+7/23/21,Oha soup/White soup,18.2,,Restaurant,Dining Out,Expense,7,Fri,-18.2
+7/24/21,Orphanage,55,,Donation,Charity,Expense,7,Sat,-55
+7/24/21,Fuel,68.8,,Fueling,Transport,Expense,7,Sat,-68.8
+7/24/21,Drink,5,,Coffee,Dining Out,Expense,7,Sat,-5
+7/25/21,Drink,5,,Coffee,Dining Out,Expense,7,Sun,-5
+7/26/21,Drink,5,,Coffee,Dining Out,Expense,7,Mon,-5
+7/27/21,Drink,5,,Coffee,Dining Out,Expense,7,Tue,-5
+7/28/21,Drink,5,,Coffee,Dining Out,Expense,7,Wed,-5
+7/28/21,Green's,193,,Groceries,Living Expenses,Expense,7,Wed,-193
+7/29/21,Trainers,130.8,,Clothes,Discretionary,Expense,7,Thu,-130.8
+7/29/21,Home décor,181.4,,Furnishings,Discretionary,Expense,7,Thu,-181.4
+7/30/21,Fashionistas,151.2,,Clothes,Discretionary,Expense,7,Fri,-151.2
+7/30/21,Uba,29.3,,Taxi,Transport,Expense,7,Fri,-29.3
+7/30/21,Foodary,15,,Restaurant,Dining Out,Expense,7,Fri,-15
+7/31/21,Drink,5,,Coffee,Dining Out,Expense,7,Sat,-5
+8/2/21,Drink,5,,Coffee,Dining Out,Expense,8,Mon,-5
+8/2/21,Data With Decision,,5000,Data with Decision,Salary,Income,8,Mon,5000
+8/3/21,Drink,5,,Coffee,Dining Out,Expense,8,Tue,-5
+8/5/21,Estate Mangement,900,,Rent,Living Expenses,Expense,8,Thu,-900
+8/5/21,Financail upgrade,150,,Cash loan,Transport,Expense,8,Thu,-150
+8/5/21,Drink,5,,Coffee,Dining Out,Expense,8,Thu,-5
+8/5/21,Drink,5,,Coffee,Dining Out,Expense,8,Thu,-5
+8/6/21,Drink,5,,Coffee,Dining Out,Expense,8,Fri,-5
+8/7/21,Drink,5,,Coffee,Dining Out,Expense,8,Sat,-5
+8/7/21,Green's,137,,Groceries,Living Expenses,Expense,8,Sat,-137
+8/10/21,Power source,57,,Gas/Electrics,Living Expenses,Expense,8,Tue,-57
+8/10/21,Drink,5,,Coffee,Dining Out,Expense,8,Tue,-5
+8/11/21,Drink,5,,Coffee,Dining Out,Expense,8,Wed,-5
+8/12/21,Fuel,84.2,,Fueling,Transport,Expense,8,Thu,-84.2
+8/12/21,Drink,5,,Coffee,Dining Out,Expense,8,Thu,-5
+8/13/21,Drink,5,,Coffee,Dining Out,Expense,8,Fri,-5
+8/14/21,Green's,142.1,,Groceries,Living Expenses,Expense,8,Sat,-142.1
+8/14/21,Drink,5,,Coffee,Dining Out,Expense,8,Sat,-5
+8/15/21,Drink,5,,Coffee,Dining Out,Expense,8,Sun,-5
+8/15/21,Cinemas,46.8,,Entertainment,Discretionary,Expense,8,Sun,-46.8
+8/15/21,Fashionistas,104.7,,Clothes,Discretionary,Expense,8,Sun,-104.7
+8/15/21,Burger,59.1,,Restaurant,Dining Out,Expense,8,Sun,-59.1
+8/16/21,Uba,35.1,,Taxi,Transport,Expense,8,Mon,-35.1
+8/17/21,Onlne earning,,800,YouTube,Passive,Income,8,Tue,800
+8/17/21,Drink,5,,Coffee,Dining Out,Expense,8,Tue,-5
+8/18/21,Drink,5,,Coffee,Dining Out,Expense,8,Wed,-5
+8/18/21,Phone,40,,Phone,Living Expenses,Expense,8,Wed,-40
+8/19/21,Sallah give away,52.1,,Gifts,Discretionary,Expense,8,Thu,-52.1
+8/19/21,Online streaming,35,,Entertainment,Discretionary,Expense,8,Thu,-35
+8/19/21,Drink,5,,Coffee,Dining Out,Expense,8,Thu,-5
+8/20/21,Drink,5,,Coffee,Dining Out,Expense,8,Fri,-5
+8/21/21,Drink,5,,Coffee,Dining Out,Expense,8,Sat,-5
+8/21/21,Green's,177,,Groceries,Living Expenses,Expense,8,Sat,-177
+8/22/21,Suya,44.2,,Restaurant,Dining Out,Expense,8,Sun,-44.2
+8/23/21,Oha soup/White soup,19.2,,Restaurant,Dining Out,Expense,8,Mon,-19.2
+8/24/21,Orphanage,55,,Donation,Charity,Expense,8,Tue,-55
+8/24/21,Fuel,69.7,,Fueling,Transport,Expense,8,Tue,-69.7
+8/24/21,Drink,5,,Coffee,Dining Out,Expense,8,Tue,-5
+8/25/21,Drink,5,,Coffee,Dining Out,Expense,8,Wed,-5
+8/26/21,Drink,5,,Coffee,Dining Out,Expense,8,Thu,-5
+8/27/21,Drink,5,,Coffee,Dining Out,Expense,8,Fri,-5
+8/28/21,Drink,5,,Coffee,Dining Out,Expense,8,Sat,-5
+8/28/21,Green's,117,,Groceries,Living Expenses,Expense,8,Sat,-117
+8/29/21,Trainers,131.9,,Clothes,Discretionary,Expense,8,Sun,-131.9
+8/29/21,Hangingout/Ticket,182.4,,Entertainment,Discretionary,Expense,8,Sun,-182.4
+8/30/21,Fashionistas,152.3,,Clothes,Discretionary,Expense,8,Mon,-152.3
+8/30/21,Uba,30.3,,Taxi,Transport,Expense,8,Mon,-30.3
+8/30/21,Foodary,15,,Restaurant,Dining Out,Expense,8,Mon,-15
+8/31/21,Drink,5,,Coffee,Dining Out,Expense,8,Tue,-5
+9/2/21,Drink,5,,Coffee,Dining Out,Expense,9,Thu,-5
+9/2/21,Data With Decision,,5000,Data with Decision,Salary,Income,9,Thu,5000
+9/3/21,Drink,5,,Coffee,Dining Out,Expense,9,Fri,-5
+9/5/21,Estate Mangement,900,,Rent,Living Expenses,Expense,9,Sun,-900
+9/5/21,Financail upgrade,150,,Cash loan,Transport,Expense,9,Sun,-150
+9/5/21,Drink,5,,Coffee,Dining Out,Expense,9,Sun,-5
+9/5/21,Drink,5,,Coffee,Dining Out,Expense,9,Sun,-5
+9/6/21,Drink,5,,Coffee,Dining Out,Expense,9,Mon,-5
+9/7/21,Drink,5,,Coffee,Dining Out,Expense,9,Tue,-5
+9/7/21,Green's,163.4,,Groceries,Living Expenses,Expense,9,Tue,-163.4
+9/10/21,Power source,58.1,,Gas/Electrics,Living Expenses,Expense,9,Fri,-58.1
+9/10/21,Drink,5,,Coffee,Dining Out,Expense,9,Fri,-5
+9/11/21,Drink,5,,Coffee,Dining Out,Expense,9,Sat,-5
+9/12/21,Fuel,85.3,,Fueling,Transport,Expense,9,Sun,-85.3
+9/12/21,Drink,5,,Coffee,Dining Out,Expense,9,Sun,-5
+9/13/21,Drink,5,,Coffee,Dining Out,Expense,9,Mon,-5
+9/14/21,Green's,143,,Groceries,Living Expenses,Expense,9,Tue,-143
+9/14/21,Drink,5,,Coffee,Dining Out,Expense,9,Tue,-5
+9/15/21,Drink,5,,Coffee,Dining Out,Expense,9,Wed,-5
+9/15/21,Cinemas,47.8,,Entertainment,Discretionary,Expense,9,Wed,-47.8
+9/15/21,Fashionistas,105.8,,Clothes,Discretionary,Expense,9,Wed,-105.8
+9/15/21,Burger,60.1,,Restaurant,Dining Out,Expense,9,Wed,-60.1
+9/16/21,Uba,36.2,,Taxi,Transport,Expense,9,Thu,-36.2
+9/17/21,Onlne earning,,100,YouTube,Passive,Income,9,Fri,100
+9/17/21,Drink,5,,Coffee,Dining Out,Expense,9,Fri,-5
+9/18/21,Drink,5,,Coffee,Dining Out,Expense,9,Sat,-5
+9/18/21,Phone,40,,Phone,Living Expenses,Expense,9,Sat,-40
+9/19/21,Sallah give away,53,,Gifts,Discretionary,Expense,9,Sun,-53
+9/19/21,Online streaming,35,,Entertainment,Discretionary,Expense,9,Sun,-35
+9/19/21,Drink,5,,Coffee,Dining Out,Expense,9,Sun,-5
+9/20/21,Drink,5,,Coffee,Dining Out,Expense,9,Mon,-5
+9/21/21,Drink,5,,Coffee,Dining Out,Expense,9,Tue,-5
+9/21/21,Green's,177.9,,Groceries,Living Expenses,Expense,9,Tue,-177.9
+9/22/21,Suya,45.3,,Restaurant,Dining Out,Expense,9,Wed,-45.3
+9/23/21,Oha soup/White soup,20.1,,Restaurant,Dining Out,Expense,9,Thu,-20.1
+9/24/21,Orphanage,55,,Donation,Charity,Expense,9,Fri,-55
+9/24/21,Fuel,70.6,,Fueling,Transport,Expense,9,Fri,-70.6
+9/24/21,Drink,5,,Coffee,Dining Out,Expense,9,Fri,-5
+9/25/21,Drink,5,,Coffee,Dining Out,Expense,9,Sat,-5
+9/26/21,Drink,5,,Coffee,Dining Out,Expense,9,Sun,-5
+9/27/21,Drink,5,,Coffee,Dining Out,Expense,9,Mon,-5
+9/28/21,Drink,5,,Coffee,Dining Out,Expense,9,Tue,-5
+9/28/21,Green's,223,,Groceries,Living Expenses,Expense,9,Tue,-223
+9/29/21,Trainers,132.9,,Clothes,Discretionary,Expense,9,Wed,-132.9
+9/29/21,Global Fashion,175,,Clothes,Discretionary,Expense,9,Wed,-175
+9/30/21,Fashionistas,153.4,,Clothes,Discretionary,Expense,9,Thu,-153.4
+9/30/21,Uba,31.2,,Taxi,Transport,Expense,9,Thu,-31.2
+9/30/21,Foodary,15,,Restaurant,Dining Out,Expense,9,Thu,-15
+10/1/21,Drink,5,,Coffee,Dining Out,Expense,10,Fri,-5
+10/3/21,Drink,5,,Coffee,Dining Out,Expense,10,Sun,-5
+10/3/21,Data With Decision,,5000,Data with Decision,Salary,Income,10,Sun,5000
+10/4/21,Drink,5,,Coffee,Dining Out,Expense,10,Mon,-5
+10/6/21,Estate Mangement,900,,Rent,Living Expenses,Expense,10,Wed,-900
+10/6/21,Financail upgrade,150,,Cash loan,Transport,Expense,10,Wed,-150
+10/6/21,Drink,5,,Coffee,Dining Out,Expense,10,Wed,-5
+10/6/21,Drink,5,,Coffee,Dining Out,Expense,10,Wed,-5
+10/7/21,Drink,5,,Coffee,Dining Out,Expense,10,Thu,-5
+10/8/21,Drink,5,,Coffee,Dining Out,Expense,10,Fri,-5
+10/8/21,Green's,105,,Groceries,Living Expenses,Expense,10,Fri,-105
+10/11/21,Power source,59,,Gas/Electrics,Living Expenses,Expense,10,Mon,-59
+10/11/21,Drink,5,,Coffee,Dining Out,Expense,10,Mon,-5
+10/12/21,Drink,5,,Coffee,Dining Out,Expense,10,Tue,-5
+10/13/21,Fuel,86.4,,Fueling,Transport,Expense,10,Wed,-86.4
+10/13/21,Drink,5,,Coffee,Dining Out,Expense,10,Wed,-5
+10/14/21,Drink,5,,Coffee,Dining Out,Expense,10,Thu,-5
+10/15/21,Green's,143.9,,Groceries,Living Expenses,Expense,10,Fri,-143.9
+10/15/21,Drink,5,,Coffee,Dining Out,Expense,10,Fri,-5
+10/16/21,Drink,5,,Coffee,Dining Out,Expense,10,Sat,-5
+10/16/21,Cinemas,48.8,,Entertainment,Discretionary,Expense,10,Sat,-48.8
+10/16/21,Fashionistas,106.7,,Clothes,Discretionary,Expense,10,Sat,-106.7
+10/16/21,Burger,61.1,,Restaurant,Dining Out,Expense,10,Sat,-61.1
+10/17/21,Uba,37.2,,Taxi,Transport,Expense,10,Sun,-37.2
+10/18/21,Onlne earning,,100,YouTube,Passive,Income,10,Mon,100
+10/18/21,Drink,5,,Coffee,Dining Out,Expense,10,Mon,-5
+10/19/21,Drink,5,,Coffee,Dining Out,Expense,10,Tue,-5
+10/19/21,Taken medication,75,,Doctor,Medical,Expense,10,Tue,-75
+10/19/21,Phone,40,,Phone,Living Expenses,Expense,10,Tue,-40
+10/20/21,Sallah give away,54.1,,Gifts,Discretionary,Expense,10,Wed,-54.1
+10/20/21,Online streaming,35,,Entertainment,Discretionary,Expense,10,Wed,-35
+10/20/21,Drink,5,,Coffee,Dining Out,Expense,10,Wed,-5
+10/21/21,Drink,5,,Coffee,Dining Out,Expense,10,Thu,-5
+10/22/21,Drink,5,,Coffee,Dining Out,Expense,10,Fri,-5
+10/22/21,Green's,178.9,,Groceries,Living Expenses,Expense,10,Fri,-178.9
+10/23/21,Suya,46.2,,Restaurant,Dining Out,Expense,10,Sat,-46.2
+10/24/21,Oha soup/White soup,21.1,,Restaurant,Dining Out,Expense,10,Sun,-21.1
+10/25/21,Orphanage,55,,Donation,Charity,Expense,10,Mon,-55
+10/25/21,Fuel,71.5,,Fueling,Transport,Expense,10,Mon,-71.5
+10/25/21,Drink,5,,Coffee,Dining Out,Expense,10,Mon,-5
+10/26/21,Drink,5,,Coffee,Dining Out,Expense,10,Tue,-5
+10/27/21,Drink,5,,Coffee,Dining Out,Expense,10,Wed,-5
+10/28/21,Drink,5,,Coffee,Dining Out,Expense,10,Thu,-5
+10/29/21,Drink,5,,Coffee,Dining Out,Expense,10,Fri,-5
+10/29/21,Green's,189,,Groceries,Living Expenses,Expense,10,Fri,-189
+10/30/21,Trainers,133.8,,Clothes,Discretionary,Expense,10,Sat,-133.8
+10/30/21,Hangingout/Ticket,184.4,,Entertainment,Discretionary,Expense,10,Sat,-184.4
+10/31/21,Fashionistas,154.5,,Clothes,Discretionary,Expense,10,Sun,-154.5
+10/31/21,Uba,32.1,,Taxi,Transport,Expense,10,Sun,-32.1
+10/31/21,Foodary,15,,Restaurant,Dining Out,Expense,10,Sun,-15

@@ -29,7 +29,6 @@ class UsrInfo:
             "gender": self.gender,
             "occupation": self.occupation,
             "education": self.education,
-            "location": self.location,
             "housing_status": self.housing_status,
             "marital_status": self.marital_status
         }
@@ -43,7 +42,6 @@ class UsrInfo:
             gender=data.get("gender", "N/A"),
             occupation=data.get("occupation", "N/A"),
             education=data.get("education", "N/A"),
-            location=data.get("location", "N/A"),
             housing_status=data.get("housing_status", "N/A"),
             marital_status=data.get("marital_status", "N/A")
         )
