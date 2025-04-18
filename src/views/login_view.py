@@ -211,14 +211,18 @@ class RightSide(QWidget):
             self.show_error_screen("Hibás felhasználónév vagy jelszó!")  # Error screen megjelenítése
             return False  # Sikertelen bejelentkezés
 
+        # Először biztosítjuk, hogy a stored_hashed_password bytes típusú legyen
+        if isinstance(stored_hashed_password, str):
+            stored_hashed_password = stored_hashed_password.encode()
+
         # Ellenőrizzük, hogy a megadott jelszó megegyezik-e a hashelt jelszóval
-        if bcrypt.checkpw(input_password.encode('utf-8'), stored_hashed_password.encode('utf-8')):
+        if bcrypt.checkpw(input_password.encode('utf-8'), stored_hashed_password):
             print("Bejelentkeztél!")
             self.check_user_data_and_show_view(email)
             return True  # Jelszó helyes
         else:
             print("Hibás jelszó!")  # Konzolra kiírjuk
-            self.show_error_screen("Hibás felhasználóvnév vagy jelszó!")  # Error screen megjelenítése
+            self.show_error_screen("Hibás felhasználónév vagy jelszó!")  # Error screen megjelenítése
             return False  # Jelszó helytelen
 
     from datetime import datetime
@@ -253,13 +257,14 @@ class RightSide(QWidget):
         else:
             self.show_main_window(email)  # Főoldal megjelenítése
 
-
     def show_main_window(self, email):
         # A felhasználó nevének lekérése a Firestore-ból
         user_name = self.firebase_dao_user.get_user_by_email(email).get("name")
-
-        self.main_window= MainView(user_name, email)
+        self.main_window = MainView(user_name, email)
         self.main_window.show()
+
+        # Bezárjuk a bejelentkezési ablakot (a legfelső szintű ablakot)
+        self.window().close()
 
     def show_error_screen(self, message):
         error_box = QMessageBox()

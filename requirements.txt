@@ -6,5 +6,6 @@ Faker~=37.0.2
 pandas~=2.2.3
 numpy~=2.1.1
 scikit-learn~=1.6.1
-scipy~=1.15.2
 matplotlib~=3.9.2
+joblib~=1.4.2
+statsmodels~=0.14.4

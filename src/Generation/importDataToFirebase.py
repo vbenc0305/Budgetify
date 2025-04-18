@@ -51,7 +51,7 @@ def process_row(datarow):
         "amount": amount_value,
         "category": category,
         "tran_type": category_type,  # income vagy expense
-        "email": "aliciacantu@example.com"  # Új felhasználó azonosítója
+        "email": "aliciacantu@gmail.com"  # Új felhasználó azonosítója
     }
     return transaction_data
 

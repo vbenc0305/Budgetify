@@ -66,7 +66,7 @@ class MainView(QWidget):
         self.setWindowTitle("Budgetify - Főoldal")
         self.setStyleSheet(self.MAIN_VIEW_STYLESHEET)
 
-        self.setFixedSize(800,400)
+        self.setFixedSize(1200,800)
 
         # Dinamikusan méretezhető container
         self.central_container = QWidget(self)
@@ -117,7 +117,7 @@ class MainView(QWidget):
         self.home_view = label
         self.transactions_view = TransactionsView(self.email, self.central_container)
         self.analysis_view = AnalysisView(self.stacked_widget)
-        self.predictions_view = PredictionsView(self.stacked_widget)
+        self.predictions_view = PredictionsView(self.email, self.stacked_widget)
         self.settings_view = SettingsView(self.stacked_widget)
         self.faq_view = FAQView(self.stacked_widget)
 

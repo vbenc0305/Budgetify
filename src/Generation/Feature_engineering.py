@@ -44,30 +44,71 @@ def add_user_monthly_stats(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def add_salary_related_features(df: pd.DataFrame) -> pd.DataFrame:
-    df['date'] = pd.to_datetime(df['date'])
-    df = df.sort_values(by=['email', 'date'])  # fontos a sorrend!
+import pandas as pd
 
-    # Új oszlop: salary-like tranzakció
-    df['is_salary'] = (df['tran_type'] == 'income') & (df['amount'] == 5000)
+def add_salary_related_features(
+    df: pd.DataFrame,
+    salary_amount: float = 5000,
+    salary_cycle: int = 30
+) -> pd.DataFrame:
+    """
+    A salary-hez kapcsolódó jellemzők dinamikus kiszámítása:
+      - salary_amount: a fix összeg, amely salary tranzakciónak minősül.
+      - salary_cycle: a fizetés ciklusának hossza napokban.
 
-    # Segédoszlop: utolsó salary dátum
-    df['last_salary_date'] = (
-        df[df['is_salary']]
-        .groupby('email')['date']
-        .transform(lambda x: x.ffill())
+    Frissített oszlopok:
+      - is_salary: Bool, hogy a tranzakció salary-e.
+      - salary_date: csak a salary soroknál tartalmaz dátumot.
+      - last_salary_date: az előző salary dátum email-csoporton belül (ffill).
+      - days_since_last_salary: napok száma aktuális tranzakció és utolsó fizetés között.
+      - days_until_next_salary: mennyi nap van még a következő fizetésig.
+    """
+    # 1) Biztonsági másolat
+    df = df.copy()
+
+    # 2) Dátum konvertálás
+    df['date'] = pd.to_datetime(df['date'])  # Pandas datetime konverzió :contentReference[oaicite:0]{index=0}
+
+    # 3) Helyes rendezés email és dátum szerint
+    df = df.sort_values(by=['email', 'date'], ignore_index=True)  # Rendezés email→dátum :contentReference[oaicite:1]{index=1}
+
+    # 4) Salary tranzakciók jelölése
+    df['is_salary'] = (
+        (df['tran_type'] == 'income') &
+        (df['amount'] == salary_amount)
     )
 
-    # Eltérés napokban
-    df['days_since_last_salary'] = (df['date'] - df['last_salary_date']).dt.days
+    # 5) Salary dátumok elkülönítése
+    df['salary_date'] = df['date'].where(df['is_salary'])  # csak salary soroknál marad dátum :contentReference[oaicite:2]{index=2}
 
-    # Lehetőség: következő salary nap becslése (ha érdekel)
-    # Tipp: a salaryk közt eltelt napok átlagát megnézhetjük:
-    # --> ehelyett most csak dummy 30 nappal számolunk
-    df['days_until_next_salary'] = 30 - df['days_since_last_salary']
-    df['days_until_next_salary'] = df['days_until_next_salary'].clip(lower=0)
+    # 6) Utolsó fizetés dátuma csoporton belül
+    df['last_salary_date'] = (
+        df.groupby('email')['salary_date']
+          .ffill()  # előrefill (forward fill) csoporton belül :contentReference[oaicite:3]{index=3}
+    )
+
+    # 7) Napok száma az utolsó fizetés óta
+    df['days_since_last_salary'] = (
+        (df['date'] - df['last_salary_date'])
+          .dt.days  # timedelta → napok :contentReference[oaicite:4]{index=4}
+
+    )
+    print(df['days_since_last_salary'])
+
+
+    # 8) Hiányzó napok pótlása (első fizetés előtt)
+    df['days_since_last_salary'] = df['days_since_last_salary'] \
+        .fillna(salary_cycle)  # NaN → ciklushossz :contentReference[oaicite:5]{index=5}
+
+    # 9) Napok a következő fizetésig (negatív értékeket 0-ra kerekítve)
+    df['days_until_next_salary'] = (
+        salary_cycle - df['days_since_last_salary']
+    )
+    df['days_until_next_salary'] = df['days_until_next_salary'] \
+        .clip(lower=0)  # negatív → 0 :contentReference[oaicite:6]{index=6}
 
     return df
+
 
 
 def clip_outliers_zscore(df: pd.DataFrame, columns: list = None, threshold: float = 3.0) -> pd.DataFrame:
@@ -93,4 +134,5 @@ def engineer_all_features(df: pd.DataFrame) -> pd.DataFrame:
     df = add_user_monthly_stats(df)
     df = add_salary_related_features(df)
     df = clip_outliers_zscore(df)
+    df.to_csv("transactions_with_features.csv", index=False)
     return df

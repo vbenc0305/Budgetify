@@ -6,6 +6,26 @@ import requests
 from src.DAO.DAOimpl import FirebaseDAO
 
 
+def get_countries():
+    url = "https://restcountries.com/v3.1/all"
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        countries = response.json()
+
+        country_names = []
+        for country in countries:
+            if "nativeName" in country["name"] and "hun" in country["name"]["nativeName"]:
+                country_names.append(country["name"]["nativeName"]["hun"]["common"])
+            else:
+                country_names.append(country["name"]["common"])  # Ha nincs magyar név, marad angol
+
+        return sorted(country_names)
+    except requests.exceptions.RequestException as e:
+        print(f"Hiba történt az API-lekérdezés során: {e}")
+        return []
+
+
 class UsrInfoAddView(QWidget):
     def __init__(self, usr_email,parent=None):
         super().__init__(parent)
@@ -69,7 +89,7 @@ class UsrInfoAddView(QWidget):
         return page
 
     def setup_completers(self):
-        country_list = self.get_countries()
+        country_list = get_countries()
 
         country_completer = QCompleter(country_list)
 
@@ -174,7 +194,8 @@ class UsrInfoAddView(QWidget):
             self.next_button.setVisible(True)
             self.save_button.setVisible(False)
 
-    def save_data(self,usr_email):
+    def save_data(self):
+        # Gyűjtsük össze a felhasználó által megadott adatokat egy dictionary-be:
         self.user_data = {
             "country": self.country_input.text(),
             "education": self.education_input.currentText(),
@@ -184,24 +205,20 @@ class UsrInfoAddView(QWidget):
             "occupation": self.occupation_input.currentText(),
         }
         print("Mentett adatok:", self.user_data)
-        self.firebase_dao_user_info.update(self.usr_email,self.user_data)
 
-    def get_countries(self):
-        url = "https://restcountries.com/v3.1/all"
-        try:
-            response = requests.get(url, timeout=5)
-            response.raise_for_status()
-            countries = response.json()
+        # Adatok mentése a Firebase-be:
+        self.firebase_dao_user_info.update(self.usr_email, self.user_data)
 
-            country_names = []
-            for country in countries:
-                if "nativeName" in country["name"] and "hun" in country["name"]["nativeName"]:
-                    country_names.append(country["name"]["nativeName"]["hun"]["common"])
-                else:
-                    country_names.append(country["name"]["common"])  # Ha nincs magyar név, marad angol
+        # **Itt jön a lényeg:** sikeres mentés után a MainView betöltése.
+        # Például, ha a MainView konstruktor paraméterként várja a felhasználó nevét és email címét:
+        from src.views.main_view import MainView
 
-            return sorted(country_names)
-        except requests.exceptions.RequestException as e:
-            print(f"Hiba történt az API-lekérdezés során: {e}")
-            return []
+        # Érdemes a felhasználói nevet megszerezni pl. a mentett adatokból vagy a user profile-ból,
+        # itt feltételezzük, hogy "Felhasználó" az alapértelmezett név, de ezt cseréld le, ha mást vársz.
+        user_name = self.user_data.get("name", "Felhasználó")
+        self.main_window = MainView(user_name, self.usr_email)
+        self.main_window.show()
+
+        # Bezárjuk az adatfelvételi ablakot
+        self.close()
 
