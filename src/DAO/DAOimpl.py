@@ -1,6 +1,7 @@
 """DAOImpl.py"""
 import os
 import uuid
+from pathlib import Path
 
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -10,9 +11,15 @@ from abc import ABC
 from src.DAO.DAO import DAO
 from src.models.usr_info import UsrInfo
 
+
+conn_path = Path(__file__).resolve().parents[2] / "conninfo.json"
+cred = credentials.Certificate(str(conn_path))
+
 # Firebase inicializálása
-cred = credentials.Certificate(os.path.join(os.path.dirname(__file__), '..', 'conn', 'conninfo.json'))
-firebase_admin.initialize_app(cred)
+try:
+    firebase_admin.get_app()
+except ValueError:
+    firebase_admin.initialize_app(cred)
 
 # Firestore referencia
 db = firestore.client()
@@ -67,15 +74,15 @@ class FirebaseDAO(DAO, ABC):
 
                 # Ellenőrizzük, hogy az 'email' mező jelen van-e az adatokban
 
-                user_email = data.get("email")
+                user_id = data.get("user_id")
 
-                if not user_email:
+                if not user_id:
                     raise ValueError(
-                        "A tranzakciónak tartalmaznia kell egy 'email' mezőt, amely a felhasználóra mutat!")
+                        "A tranzakciónak tartalmaznia kell egy 'user_id' mezőt, amely a felhasználóra mutat!")
 
                 # Létrehozzuk a felhasználóra mutató hivatkozást
 
-                user_ref = db.collection("user").document(user_email)
+                user_ref = db.collection("users").document(user_id)
 
                 # Generálunk egy egyedi azonosítót a tranzakcióhoz
 
@@ -101,17 +108,15 @@ class FirebaseDAO(DAO, ABC):
             print(f"Error creating record: {e}")
             return False
 
-    def read_user_transactions(self, identifier=None) -> List[Dict[str, Any]]:
+    def read_user_transactions(self, uid:str | None=None) -> list[dict[str, Any] | None] | None:
         # Ha identifier (pl. email) van, akkor csak azokat a tranzakciókat kérjük le
-        if identifier:
+        if uid:
             # Az email alapján lekérjük az alkollekciót
-            transactions_ref = self.collection.document(identifier).collection("transactions")
+            transactions_ref = self.collection.document(uid).collection("transactions")
             docs = transactions_ref.stream()
             return [doc.to_dict() for doc in docs]
         else:
-            # Ha nincs identifier, akkor az összes tranzakciót visszaadjuk
-            docs = self.collection.stream()
-            return [doc.to_dict() for doc in docs]
+           return None
 
     def read(self, identifier: str) -> Dict[str, Any]:
         """
@@ -248,3 +253,65 @@ class FirebaseDAO(DAO, ABC):
         except Exception as e:
             print(f"Hiba történt a felhasználó adatainak lekérésekor: {e}")
             return {}  #
+
+    def upload_transactions(self,
+                            transactions: List[Dict[str, Any]],
+                            user_id: str = None) -> int:
+        """
+        Tranzakciók listájának feltöltése a Firestore-ba a meglévő create metódus használatával.
+
+        Paraméterek:
+            transactions (List[Dict[str, Any]]): A feltöltendő tranzakciók listája.
+            user_id (str, optional): Opcionális felhasználói azonosító.
+                                     Ha meg van adva, felülírja a tranzakciókban lévő user_id-t.
+        """
+        if self.collection.id != "transactions":
+            print("Hiba: Az upload_transactions metódus csak a 'transactions' kollekcióval működik.")
+            return 0
+
+        uploaded_count = 0
+        for data in transactions:
+            # 1. Ha a metódus paraméterként kapott user_id-t,
+            # akkor ezt használjuk a beágyazott adat helyett.
+            if user_id:
+                data['user_id'] = user_id
+
+            # 2. Ellenőrizzük, hogy az adatok tartalmaznak-e user_id-t.
+            if 'user_id' not in data:
+                print("FIGYELEM: Egy tranzakció kihagyva, mert hiányzik a user_id.")
+                continue
+
+            # 3. Feltöltés (az eredeti create metódus már elvégzi a mentést az alkollekcióba).
+            if self.create(data):
+                uploaded_count += 1
+
+        return uploaded_count
+
+    def delete_all_user_transactions(self, user_id: str) -> int:
+        """
+        Egy adott felhasználó (user_id alapján) összes tranzakciójának törlése az alkollekcióból.
+        """
+        if self.collection.id != "transactions":
+            # Bár logikailag a 'users' kollekciót érinti, a DAO 'transactions' kontextusban fut.
+            print("Hiba: A delete_all_user_transactions metódus csak a 'transactions' kollekcióval működik.")
+            return 0
+
+        try:
+            # A tranzakciók elérési útvonala: /users/{user_id}/transactions
+            user_ref = db.collection("users").document(user_id)
+            transactions_ref = user_ref.collection("transactions")
+
+            # Lekérjük az összes dokumentum referenciáját
+            docs = transactions_ref.stream()
+
+            deleted_count = 0
+            # Töröljük az összes tranzakciót egyesével
+            for doc in docs:
+                doc.reference.delete()
+                deleted_count += 1
+
+            return deleted_count
+
+        except Exception as e:
+            print(f"Hiba történt a törlés során a(z) {user_id} felhasználónál: {e}")
+            return 0

@@ -1,9 +1,14 @@
 """Transactions.py"""
 
+from typing import Optional
+
+
 class Transaction:
     """
     A Transaction osztály egy pénzügyi tranzakció adatait reprezentálja.
     """
+
+    ALLOWED_INTERNAL_TRANSFER_VALUES = {None, "none", "jar_in", "jar_out", "rounding"}
 
     def __init__(self,
                  amount: float,
@@ -12,18 +17,20 @@ class Transaction:
                  description: str,
                  for_who: str,
                  tran_type: str,
-                 user_id: str):
+                 user_id: str,
+                 internal_transfer: Optional[str] = None):
         """
         Inicializálja a tranzakció attribútumait.
 
         Args:
-            amount (float): A tranzakció összege.
+            amount (float): A tranzakció összege (negatív vagy pozitív is lehet, a banki export szerint).
             category (str): A tranzakció kategóriája (pl. 'food').
-            date (str): A tranzakció dátuma (ISO 8601 formátumban).
+            date (str): A tranzakció dátuma (ISO 8601 formátumban, pl. "2025-06-02 01:48:16").
             description (str): A tranzakció leírása.
             for_who (str): Kinek vagy mire vonatkozik a tranzakció.
-            tran_type (str): A tranzakció típusa ('incoming' vagy 'outgoing').
+            tran_type (str): A tranzakció típusa (banki leírás/pl. 'VÁSÁRLÁS KÁRTYÁVAL').
             user_id (str): A tranzakcióhoz tartozó felhasználó azonosítója.
+            internal_transfer (Optional[str]): Belső átvezetés jelölése: None/'none'/'jar_in'/'jar_out'/'rounding'
         """
         self._amount = amount
         self._category = category
@@ -32,22 +39,24 @@ class Transaction:
         self._for_who = for_who
         self._tran_type = tran_type
         self._user_id = user_id
+        self._internal_transfer = internal_transfer if internal_transfer in self.ALLOWED_INTERNAL_TRANSFER_VALUES else None
 
     # Getterek és setterek az egyes attribútumokhoz
     @property
-    def amount(self):
-        """Visszaadja a tranzakció összegét."""
+    def amount(self) -> float:
+        """Visszaadja a tranzakció összegét (negatív vagy pozitív)."""
         return self._amount
 
     @amount.setter
     def amount(self, value: float):
-        """Beállítja a tranzakció összegét."""
-        if value < 0:
-            raise ValueError("A tranzakció összege nem lehet negatív.")
-        self._amount = value
+        """Beállítja a tranzakció összegét. Negatív érték engedélyezett (banki kiadások)."""
+        try:
+            self._amount = float(value)
+        except (TypeError, ValueError):
+            raise ValueError("Az összegnek számnak kell lennie.")
 
     @property
-    def category(self):
+    def category(self) -> str:
         """Visszaadja a tranzakció kategóriáját."""
         return self._category
 
@@ -59,7 +68,7 @@ class Transaction:
         self._category = value
 
     @property
-    def date(self):
+    def date(self) -> str:
         """Visszaadja a tranzakció dátumát."""
         return self._date
 
@@ -71,7 +80,7 @@ class Transaction:
         self._date = value
 
     @property
-    def description(self):
+    def description(self) -> str:
         """Visszaadja a tranzakció leírását."""
         return self._description
 
@@ -81,7 +90,7 @@ class Transaction:
         self._description = value
 
     @property
-    def for_who(self):
+    def for_who(self) -> str:
         """Visszaadja, hogy a tranzakció kinek vagy mire vonatkozik."""
         return self._for_who
 
@@ -91,19 +100,19 @@ class Transaction:
         self._for_who = value
 
     @property
-    def tran_type(self):
-        """Visszaadja a tranzakció típusát."""
+    def tran_type(self) -> str:
+        """Visszaadja a tranzakció típusát (banki leírás)."""
         return self._tran_type
 
     @tran_type.setter
     def tran_type(self, value: str):
-        """Beállítja a tranzakció típusát."""
-        if value not in ["incoming", "outgoing"]:
-            raise ValueError("A tranzakció típusa 'incoming' vagy 'outgoing' lehet.")
+        """Beállítja a tranzakció típusát. Elfogadunk tetszőleges nem üres stringet (banki Típus mező)."""
+        if value is None or str(value).strip() == "":
+            raise ValueError("A tranzakció típusa nem lehet üres.")
         self._tran_type = value
 
     @property
-    def user_id(self):
+    def user_id(self) -> str:
         """Visszaadja a felhasználó azonosítóját."""
         return self._user_id
 
@@ -114,6 +123,20 @@ class Transaction:
             raise ValueError("A felhasználó azonosítója nem lehet üres.")
         self._user_id = value
 
+    @property
+    def internal_transfer(self) -> Optional[str]:
+        """
+        Visszaadja az internal transfer jelölést:
+        None / 'none' / 'jar_in' / 'jar_out' / 'rounding'
+        """
+        return self._internal_transfer
+
+    @internal_transfer.setter
+    def internal_transfer(self, value: Optional[str]):
+        """Beállítja az internal_transfer mezőt, validálva az értéket."""
+        if value not in self.ALLOWED_INTERNAL_TRANSFER_VALUES:
+            raise ValueError(f"internal_transfer értéke csak a következők lehetnek: {self.ALLOWED_INTERNAL_TRANSFER_VALUES}")
+        self._internal_transfer = value
 
     def to_dict(self) -> dict:
         """
@@ -129,5 +152,6 @@ class Transaction:
             'description': self._description,
             'for_who': self._for_who,
             'tran_type': self._tran_type,
-            'user_id': self._user_id
+            'user_id': self._user_id,
+            'internal_transfer': self._internal_transfer
         }

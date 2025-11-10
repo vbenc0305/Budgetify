@@ -22,15 +22,14 @@ def load_global_data(email: str) -> pd.DataFrame:
     return df  # Pandas DataFrame, később újrahasznosítható :contentReference[oaicite:4]{index=4}
 
 
-def get_all_transactions(email):
-    user_dao = FirebaseDAO("user")
+def get_all_transactions(uid: str):
+    user_dao = FirebaseDAO("users")
     all_transactions = []
-    if not email:
+    if not uid:
         return []
 
-    transactions = user_dao.read_user_transactions(identifier=email)
+    transactions = user_dao.read_user_transactions(uid)
     for t in transactions:
-        t["user_email"] = email
         all_transactions.append(t)
 
     return all_transactions

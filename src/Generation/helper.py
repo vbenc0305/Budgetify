@@ -27,7 +27,7 @@ def random_date(start, end):
 
 # **Felhasználó adatai**
 user = {
-  "email" : "whitneynelson@example.org"
+  "email" : "aliciacantu@gmail.com"
 }
 
 

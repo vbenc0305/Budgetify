@@ -1,2 +1,8 @@
+scikit-learn
+statsmodels
+matplotlib
+numpy
+pandas
+firebase-admin
 fastapi~=0.115.11
 uvicorn[standard]
