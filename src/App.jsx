@@ -10,7 +10,7 @@ import ProfilePage from "./pages/Profile.jsx";
 import { useUser } from "./stores/useUser";
 import { useTransaction } from "./stores/useTransaction.js";
 import Transactions from "./pages/Transactions.jsx"; // <-- zustand store import
-import Prediction from "./pages/Prediction.jsx";
+import Statistics from "./pages/Statistics.jsx";
 import ToastContainer from "./components/ToastContainer";
 
 function App() {
@@ -37,7 +37,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/transactions" element={<Transactions />} />
-            <Route path="/predict" element={<Prediction />} />
+            <Route path="/predict" element={<Statistics />} />
           </Routes>
         </main>
       </AuthProvider>

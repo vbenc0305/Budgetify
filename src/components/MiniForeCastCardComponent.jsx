@@ -1,4 +1,4 @@
-// Prediction.jsx
+// MiniForecastCard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
@@ -14,9 +14,7 @@ import {
 } from "recharts";
 import { getAuth } from "firebase/auth";
 
-import "./styles/Prediction.css";
-
-export default function Prediction() {
+export default function MiniForecastCard({ userId }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [history, setHistory] = useState([]);
@@ -31,10 +29,11 @@ export default function Prediction() {
     let isMounted = true;
 
     const fetchPredictions = async () => {
+      // ha szeretnéd használni a userId prop-ot, cserélheted a Firebase auth check-et
       const auth = getAuth();
       const user = auth.currentUser;
 
-      if (!user) {
+      if (!user && !userId) {
         setError("Nincs bejelentkezett felhasználó");
         setLoading(false);
         return;
@@ -56,7 +55,6 @@ export default function Prediction() {
         }
 
         const data = await res.json();
-
         if (!isMounted) return;
 
         setHistory(Array.isArray(data.history) ? data.history : []);
@@ -102,7 +100,7 @@ export default function Prediction() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [userId]);
 
   const merged = useMemo(() => {
     const map = new Map();
@@ -192,16 +190,21 @@ export default function Prediction() {
   };
 
   return (
-    <div className="prediction-container">
-      <header className="prediction-header">
+    <div className="chart-card">
+      <div
+        style={{
+          padding: 12,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <div>
-          <h1 className="prediction-title">Előrejelzés — jövőbeli kiadások</h1>
-          <p className="prediction-subtitle">
-            Vizualizáció az API alapján. Interaktív, reszponzív.
-          </p>
+          <h2 style={{ margin: 0 }}>Előrejelzés — jövőbeli kiadások</h2>
+          <div className="muted">Mini forecast (az Insights fül része)</div>
         </div>
 
-        <div className="controls">
+        <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={() => setShowCI((s) => !s)}
             className="control-btn"
@@ -225,121 +228,75 @@ export default function Prediction() {
             Export CSV
           </button>
         </div>
-      </header>
+      </div>
 
-      <main>
-        <section className="cards-section">
-          <div className="card-grid">
-            <div className="card">
-              <div className="card-label">Status</div>
-              <div className="card-value">
-                {loading ? "loading..." : "ready"}
-              </div>
-            </div>
+      {error && <div className="error-box">Hiba: {error}</div>}
 
-            <div className="card">
-              <div className="card-label">Forrás</div>
-              <div className="card-value">{loading ? "—" : "API"}</div>
-            </div>
+      {loading ? (
+        <div className="loading-skeleton" />
+      ) : (
+        <ResponsiveContainer width="100%" height={360}>
+          <LineChart data={merged}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" minTickGap={10} />
+            <YAxis />
+            <Tooltip
+              formatter={(value, name) => [
+                value,
+                name === "historyValue"
+                  ? "Történet"
+                  : name === "forecastValue"
+                    ? "Előrejelzés"
+                    : name,
+              ]}
+            />
+            <Legend />
 
-            <div className="card">
-              <div className="card-label">Metrikák</div>
-              <div className="card-value small">
-                {Object.keys(metrics).length ? (
-                  Object.entries(metrics)
-                    .slice(0, 3)
-                    .map(([k, v]) => (
-                      <div key={k} className="metric-row">
-                        {k}: {Number(v).toFixed(3)}
-                      </div>
-                    ))
-                ) : (
-                  <div className="muted">—</div>
-                )}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-label">Dátumok</div>
-              <div className="card-value small">
-                {merged.length
-                  ? `${merged[0].date} → ${merged[merged.length - 1].date}`
-                  : "—"}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {error && <div className="error-box">Hiba: {error}</div>}
-
-        {loading ? (
-          <div className="loading-skeleton" />
-        ) : (
-          <div className="chart-card">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={merged}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" minTickGap={10} />
-                <YAxis />
-                <Tooltip
-                  formatter={(value, name) => [
-                    value,
-                    name === "historyValue"
-                      ? "Történet"
-                      : name === "forecastValue"
-                        ? "Előrejelzés"
-                        : name,
-                  ]}
-                />
-                <Legend />
-
-                {showCI &&
-                  merged.some(
-                    (r) =>
-                      typeof r.ciLower === "number" &&
-                      typeof r.ciUpper === "number",
-                  ) && (
-                    <Area
-                      type="monotone"
-                      dataKey="ciUpper"
-                      stroke="transparent"
-                      fillOpacity={0.12}
-                      fill="url(#ciGradient)"
-                      activeDot={false}
-                    />
-                  )}
-
-                <defs>
-                  <linearGradient id="ciGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopOpacity={0.18} />
-                    <stop offset="100%" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-
-                <Line
+            {showCI &&
+              merged.some(
+                (r) =>
+                  typeof r.ciLower === "number" &&
+                  typeof r.ciUpper === "number",
+              ) && (
+                <Area
                   type="monotone"
-                  dataKey="historyValue"
-                  name="Történet"
-                  stroke="#1f2937"
-                  dot={false}
-                  strokeWidth={2}
+                  dataKey="ciUpper"
+                  stroke="transparent"
+                  fillOpacity={0.12}
+                  fill="url(#ciGradient)"
+                  activeDot={false}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="forecastValue"
-                  name="Előrejelzés"
-                  stroke="#e11d48"
-                  dot={false}
-                  strokeDasharray="5 5"
-                  strokeWidth={2}
-                />
+              )}
 
-                <Brush dataKey="date" height={30} stroke="#8884d8" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </main>
+            <defs>
+              <linearGradient id="ciGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopOpacity={0.18} />
+                <stop offset="100%" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+
+            <Line
+              type="monotone"
+              dataKey="historyValue"
+              name="Történet"
+              stroke="#1f2937"
+              dot={false}
+              strokeWidth={2}
+            />
+            <Line
+              type="monotone"
+              dataKey="forecastValue"
+              name="Előrejelzés"
+              stroke="#e11d48"
+              dot={false}
+              strokeDasharray="5 5"
+              strokeWidth={2}
+            />
+
+            <Brush dataKey="date" height={30} stroke="#8884d8" />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }
