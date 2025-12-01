@@ -1,0 +1,79 @@
+/* Preview szekció konténer */
+.previewSection {
+    margin: 1.5rem 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    overflow-x: auto; /* ha túl széles a táblázat mobilon */
+}
+
+/* Táblázat wrapper biztosítja az overflow-t mobilon */
+.tableWrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* Táblázat alapstílus */
+.previewTable {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+/* Fejléc sor (thead) stílus */
+.previewTable thead th {
+    background-color: #f4f6f8;
+    color: #444;
+    text-align: left;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* Adat sorok (tbody) */
+.previewTable tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+/* Zebra-sorok: minden páratlan sor világosabb háttérrel */
+.previewTable tbody tr:nth-child(odd) {
+    background-color: #fafafb;
+}
+
+/* Hover effekt soronként */
+.previewTable tbody tr:hover {
+    background-color: #eef2f5;
+}
+
+/* Cellák (td) stílus */
+.previewTable tbody td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid #e6e8eb;
+    vertical-align: top;
+}
+
+/* Kis képernyőn: ha sok oszlop, scroll-elhető marad */
+@media (max-width: 600px) {
+    .previewTable thead {
+        display: none;
+    }
+
+    .previewTable tbody td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .previewTable tbody tr {
+        margin-bottom: 1rem;
+        display: block;
+        background-color: #fff;
+        border: 1px solid #e6e8eb;
+        border-radius: 6px;
+        padding: 0.75rem;
+    }
+}

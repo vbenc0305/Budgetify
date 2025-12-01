@@ -1,0 +1,143 @@
+/* src/components/Navbar.css */
+
+/* A teljes nav sáv */
+.navbar-root {
+    background: linear-gradient(90deg, #2563eb, #a21caf);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    position: static;
+    top: 0;
+    z-index: 50;
+    margin-bottom: 2rem;
+}
+
+.navbar-icon {
+    font-size: 1.5rem;
+    color: #ffffff;
+    vertical-align: middle;
+}
+
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+
+/* A tartalom középre rendezése és padding */
+.navbar-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+/* Ensure the nav menu and its items are aligned horizontally */
+.navbar-menu {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+    align-items: center; /* vertical centering for menu items */
+    flex-wrap: nowrap; /* prevent wrapping to next line */
+}
+
+/* Make list items use flex so different children (links/buttons) align */
+.navbar-menu > li {
+    display: flex;
+    align-items: center;
+    white-space: nowrap; /* prevent menu item text from breaking */
+}
+
+/* Logó / márka stílus */
+.navbar-logo .navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffffff;
+    text-decoration: none;
+}
+.navbar-logo .navbar-brand:hover {
+    text-decoration: underline;
+}
+
+/* Menülista alapstílus */
+/* .navbar-menu {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+} */
+
+/* Egy-egy menüpont linkje */
+.nav-link {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e0e7ff;
+    text-decoration: none;
+    position: relative;
+    padding: 0.25rem 0;
+    transition: color 0.2s ease;
+}
+
+/* Hover állapot: világosabb szín */
+.nav-link:hover {
+    color: #ffffff;
+}
+
+/* Aktív menüelem: alsó borderrel jelölés */
+.nav-link.active::after {
+    content: "";
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #f3e8ff;
+    border-radius: 2px;
+}
+
+
+
+
+.logout-button {
+    /* Make logout look like a compact pill button and sit inline with menu links */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: none;
+    /* ensure dark background matches nav-cta */
+    background: linear-gradient(90deg, #0f172a, #111827) !important;
+    background-color: #0b0b0b !important;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 10px;
+    line-height: 1;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.logout-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37,99,235,0.16);
+}
+
+/* Ensure nav links that use .nav-cta don't get overridden by .nav-link default padding */
+.nav-link.nav-cta {
+    /* enforce CTA visuals on anchors that also have .nav-link */
+    background: linear-gradient(90deg, #0f172a, #111827) !important;
+    color: #fff !important;
+    padding: 6px 12px !important; /* same as .nav-cta */
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    text-decoration: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background-color: #0b0b0b !important; /* solid fallback */
+}

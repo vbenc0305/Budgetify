@@ -1,0 +1,235 @@
+/* --- Frissített src/components/styles/Transactions.css --- */
+
+/* wrapper az egészhez (középre igazít, responsive) */
+.transactionsWrapper {
+    width: 70%;
+    max-width: 1100px;
+    margin: 18px auto;
+    padding: 6px;
+    box-sizing: border-box;
+    /* Biztosítjuk, hogy a wrapper világos hátterű legyen (felülírja a dark mode-t) */
+    background-color: transparent;
+}
+
+/* container ami a border-radius-ot és a border-t kezeli */
+.tableContainer {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    background: #ffffff; /* FEHÉR háttér: így nem lesz fekete alapon fekete szöveg */
+    color: lightblue; /* alapértelmezett szöveg sötét */
+    /* javaslat: enyhe árnyék, ha szeretnéd (törölhető) */
+    box-shadow: 0 1px 4px rgba(16, 24, 40, 0.03);
+    /* Segít a böngésző színrendszerének kezelésében */
+    color-scheme: light;
+}
+
+/* maga a tábla */
+.transactionsTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    font-family: inherit;
+    background: transparent; /* a konténer adja a fehér hátteret */
+    color: inherit; /* örökli a .tableContainer színét */
+}
+
+/* fejlécek - világos fejlécek, sötét betű */
+.transactionsTable th {
+    background-color: #999DA0; /* páratlan sorok: fehér */
+    color: #111111; /* sötét, jól látható */
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.98rem;
+    line-height: 1.2;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* sejtszintű stílusok */
+.transactionsTable td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* alternáló sorok (lágy, olvasható) */
+.transactionsTable tbody tr:nth-child(odd) {
+    background-color: #222021;
+    color: white;
+}
+
+.transactionsTable tbody tr:nth-child(even) {
+    background-color: #999DA0; /* páratlan sorok: fehér */
+    color: black;
+}
+
+/* Szűrő doboz (kártya) */
+.filterBox {
+    border: 1px solid #e3e7ee;
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
+    margin-bottom: 14px;
+    background-color: #999DA0; /* páratlan sorok: fehér */
+    color: black;
+}
+
+/* Eddigi .filterRow marad, de hozzáadunk gombokat */
+.filterRow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Alkalmaz gomb */
+.filterApplyButton {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #3b82f6; /* kék, figyelemfelkeltő */
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 80ms ease;
+}
+
+.filterApplyButton:active {
+    transform: translateY(1px);
+}
+
+/* Töröl gomb (kisebb, semleges) */
+.filterClearButton {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #111;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* Alkalmazott szűrő infó (kis text) */
+.appliedInfo {
+    margin-top: 8px;
+    color: #444;
+    font-size: 0.95rem;
+}
+
+
+/* Hover ELTÁVOLÍTVA (kérésed szerint) */
+/* korábbi: .transactionsTable tbody tr:hover { background-color: #f1f7ff; } */
+/* Nincs hover szabály többé */
+
+/* --- Szűrősáv stílusok --- */
+.filterRow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+    width: 100%;
+
+
+}
+
+.filterLabel {
+    min-width: 110px;
+    font-weight: 600;
+    color: #111;
+}
+
+.filterSelect {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #fff;
+    font-size: 0.95rem;
+    color: #111;
+}
+
+.filterClearButton {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #111;
+}
+
+.resultCount {
+    margin-left: auto;
+    color: #555;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* kis reszponzivitás mobilra */
+@media (max-width: 880px) {
+    .transactionsWrapper {
+        width: 92%;
+    }
+
+    .filterLabel {
+        min-width: 90px;
+        font-size: 0.9rem;
+    }
+
+    .transactionsTable th, .transactionsTable td {
+        padding: 8px 10px;
+        font-size: 0.9rem;
+    }
+}
+
+.noTransactionsCard {
+    display: flex;
+    flex-direction: column; /* ez a kulcs! */
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    background-color: #f9f9f9;
+    color: #555;
+    font-size: 1.1rem;
+    min-height: 200px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    padding: 20px;
+    transition: all 0.2s ease-in-out;
+}
+
+.noTransactionsCard p {
+    margin: 0;
+}
+
+/* Gomb stílusa a noTransactionsCard alatt */
+.importButton {
+    margin-top: 20px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    background-color: #3b82f6; /* kék */
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.importButton:hover {
+    background-color: #2563eb; /* sötétebb kék hover */
+    transform: translateY(-2px);
+}
+
+.importButton:active {
+    transform: translateY(1px);
+}
+

@@ -1,0 +1,98 @@
+:root {
+    --toast-bg: #111827;
+    --toast-success: #10b981;
+    --toast-text: #ffffff;
+    --toast-error: #ef4444;
+    --toast-muted: #94a3b8;
+}
+
+.toastRoot {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 99999;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    min-width: 220px;
+    max-width: 420px;
+    background: var(--toast-bg);
+    color: var(--toast-text);
+    padding: 12px 14px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(2, 6, 23, 0.16);
+    font-weight: 600;
+    font-size: 0.95rem;
+    opacity: 0;
+    transform: translateY(6px) scale(.98);
+    animation: toastIn 260ms cubic-bezier(.2, .9, .2, 1) forwards;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 40px; /* room for close button */
+    transition: opacity 260ms ease, transform 260ms ease;
+}
+
+/* removal state triggers fade-out / slide-down */
+.toast.removing {
+    opacity: 0 !important;
+    transform: translateY(6px) scale(.98) !important;
+}
+
+.toast.success {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.06));
+    color: #064e3b;
+    border: 1px solid rgba(16, 185, 129, 0.14);
+}
+
+.toast.info {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.02));
+    color: #0f172a;
+    border: 1px solid rgba(59, 130, 246, 0.06);
+}
+
+.toast.error {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.06), rgba(239, 68, 68, 0.03));
+    color: #7f1d1d;
+    border: 1px solid rgba(239, 68, 68, 0.12);
+}
+
+.toastMessage {
+    flex: 1 1 auto;
+    line-height: 1.2;
+}
+
+.toastClose {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    background: transparent;
+    border: none;
+    color: var(--toast-muted);
+    font-size: 1.02rem;
+    line-height: 1;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toastClose:hover {
+    background: rgba(15, 23, 42, 0.04);
+    color: #0b1220;
+}
+
+@keyframes toastIn {
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

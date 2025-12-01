@@ -1,0 +1,224 @@
+
+
+.profile-json details summary {
+    cursor: pointer;
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.profile-json pre {
+    font-size: 0.92rem;
+    color: #fff;
+    background: none;
+    margin: 0;
+    padding: 0.5rem 0 0 0;
+    border: none;
+}
+
+.profile-container h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.04em;
+    text-shadow: 0 2px 8px rgba(100, 108, 255, 0.18);
+}
+
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    margin: 4rem auto;
+    padding: 2.5rem;
+    background: rgba(30, 32, 40, 0.85);
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(60, 80, 255, 0.15), 0 2px 8px rgba(0,0,0,0.12);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(100, 108, 255, 0.18);
+    box-sizing: border-box;
+}
+
+.profile-card {
+    width: 100%;
+    background: rgba(40, 44, 60, 0.7);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(100, 108, 255, 0.10);
+    padding: 2rem 1.5rem;
+    margin-bottom: 2rem;
+    border: 1.5px solid rgba(100, 108, 255, 0.18);
+    backdrop-filter: blur(4px);
+    transition: box-shadow 0.3s;
+}
+
+.profile-card:hover {
+    box-shadow: 0 8px 32px rgba(100, 108, 255, 0.18);
+    border-color: #646cff;
+}
+
+.profile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+    box-shadow: 0 1px 4px rgba(100, 108, 255, 0.04);
+    border: 1px solid rgba(100, 108, 255, 0.08);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.profile-row:hover {
+    background: rgba(100, 108, 255, 0.08);
+    box-shadow: 0 2px 8px rgba(100, 108, 255, 0.10);
+}
+
+.profile-label {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #646cff;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 2px rgba(100, 108, 255, 0.10);
+}
+
+.profile-value {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: #fff;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.profile-json {
+    width: 100%;
+    margin-top: 1.5rem;
+    background: rgba(40, 44, 60, 0.6);
+    border-radius: 12px;
+    padding: 1rem;
+    color: #fff;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 8px rgba(100, 108, 255, 0.08);
+    border: 1px solid rgba(100, 108, 255, 0.10);
+.profile-container h1 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.profile-welcome {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 2rem;
+}
+
+.profile-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.87);
+}
+        padding: 1.2rem;
+    }
+    .profile-card {
+        padding: 1.2rem 0.7rem;
+
+        .profile-form input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            background-color: #2b2b2b;
+            border: 1px solid #3d3d3d;
+            border-radius: 8px;
+            color: #fff;
+            transition: border-color 0.25s, box-shadow 0.25s;
+            outline: none;
+        }
+
+        .profile-form input:focus {
+            border-color: #646cff;
+            box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+        }
+
+        .profile-form input.disabled-input {
+            background-color: #1a1a1a;
+            color: rgba(255, 255, 255, 0.5);
+            border-color: #2b2b2b;
+            cursor: not-allowed;
+        }
+
+        .save-button {
+            background: linear-gradient(90deg, #646cff, #535bf2);
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 1rem;
+        }
+
+        .save-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(100, 108, 255, 0.4);
+        }
+
+        .save-button:disabled {
+            background: #3d3d3d;
+            cursor: not-allowed;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .message {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            width: 100%;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .message.error {
+            background-color: #fca5a5;
+            color: #b91c1c;
+        }
+
+        .message.success {
+            background-color: #bbf7d0;
+            color: #15803d;
+        }
+
+        .profile-meta {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #2b2b2b;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Kisebb képernyőkre optimalizálás */
+        @media (max-width: 768px) {
+            .profile-container {
+                margin: 2rem auto;
+                padding: 1.5rem;
+            }
+        }
+    }

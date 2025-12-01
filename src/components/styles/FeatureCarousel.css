@@ -1,0 +1,108 @@
+/* FeatureCarousel.css */
+
+/* A teljes körülvevő konténer, illeszkedik a Home.css stílusához */
+.carousel-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+/* A doboz, ahol a slide-ok váltakoznak */
+/* Harmonizál a .home-root háttérével és árnyékával */
+.carousel-box {
+    position: relative;
+    background: #ffffff;
+    border-radius: 2rem;
+    padding: 2rem 1rem;
+    min-height: 160px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: black;
+}
+
+/* A slide tartalma */
+/* Extra paddingmal, hogy ne lógjon alá a nyíl */
+.carousel-content {
+    text-align: center;
+    max-width: 600px;
+    padding: 0 2.5rem; /* bal és jobb oldali hely a nyilaknak */
+}
+
+/* Slide címe */
+/* Megfelel a .home-section-title stílusának, de kicsit nagyobb kiemeléssel */
+.carousel-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #3730a3; /* egyezik a home-section-title színével */
+}
+
+/* Slide leírása */
+/* Harmonizál a .home-paragraph színével és sorközével */
+.carousel-description {
+    font-size: 1.125rem;
+    color: #374151; /* egyezik a home-paragraph színével */
+    line-height: 1.7;
+}
+
+/* Nyilak (balra/jobbra) */
+/* Egyszerű, letisztult, a Home.css árnyékához és palettájához igazítva */
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #2563eb; /* a home-title gradientjéből az egyik szín */
+    cursor: pointer;
+    padding: 0 0.75rem;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+
+.carousel-arrow:focus {
+    outline: none;        /* teljesen eltünteti a fókusz körvonalat */
+    box-shadow: none;     /* ha esetleg a böngésző shadow-val is kiemeli */
+}
+
+
+.carousel-arrow:hover {
+    color: #a21caf; /* a home-title gradient másik színe */
+}
+
+/* Bal oldali nyíl */
+.left-arrow {
+    left: 0.5rem;
+}
+
+/* Jobb oldali nyíl */
+.right-arrow {
+    right: 0.5rem;
+}
+
+/* A pöttyök („dots”) konténere */
+.carousel-dots {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+/* Egy-egy pötty (alapállapot) */
+/* Illeszkedik a Home.css által használt színekkel */
+.carousel-dot {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    margin: 0 0.3rem;
+    background-color: #d1d5db; /* világosszürke, passzol a Home.css elemeihez */
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* Aktív pötty: a Home.css címsor színével harmonizál */
+.carousel-dot.active {
+    background-color: #3730a3;
+}

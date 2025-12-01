@@ -1,0 +1,88 @@
+/* Harmonized NoUserHomePage.css - match dark site visual language */
+.no-user-home-container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 2rem;
+  /* Lighter translucent card so it stands out on the dark page */
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  /* softer, more elevated shadow but lighter so the card reads lighter than the page */
+  box-shadow: 0 8px 24px rgba(11,11,11,0.6), inset 0 1px 0 rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px) saturate(120%);
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  color: rgba(255,255,255,0.92);
+}
+
+.no-user-home-container h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  text-align: center;
+  /* keep vibrant gradient headline for emphasis */
+  background: linear-gradient(90deg, #7dd3fc, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 1rem 0;
+}
+
+.no-user-home-container p {
+  font-size: 1.125rem;
+  color: rgba(255,255,255,0.82);
+  text-align: center;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+  max-width: 560px;
+}
+
+/* Optional call-to-action button style to keep consistent with the UI */
+.no-user-home-cta {
+  display: inline-flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.button-primary {
+  background: linear-gradient(90deg, #2563eb, #a21caf);
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.18);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.22);
+}
+
+.button-ghost {
+  background: transparent;
+  border: 2px solid rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .no-user-home-container {
+    padding: 1.5rem;
+    max-width: 96vw;
+    border-radius: 1rem;
+  }
+  .no-user-home-container h1 {
+    font-size: 1.6rem;
+  }
+  .no-user-home-container p {
+    font-size: 1rem;
+  }
+}

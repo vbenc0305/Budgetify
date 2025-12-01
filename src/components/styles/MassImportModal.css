@@ -1,0 +1,244 @@
+/* Modern MassImportModal styles - glassy right panel with soft backdrop */
+:root {
+    --accent: #3b82f6; /* project blue */
+    --accent-600: #2563eb;
+    --bg: #ffffff;
+    --muted: #6b7280;
+    --glass: rgba(255, 255, 255, 0.72);
+    --shadow: 0 10px 30px rgba(2, 6, 23, 0.12);
+}
+
+/* Overlay */
+.modalOverlay {
+    position: fixed;
+    inset: 0; /* top:0;left:0;right:0;bottom:0 */
+    display: flex;
+    justify-content: flex-end; /* keep modal on the right */
+    align-items: stretch;
+    background: rgba(7, 10, 17, 0.45);
+    backdrop-filter: blur(6px) saturate(120%);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 280ms cubic-bezier(.2, .9, .2, 1);
+}
+
+.modalOverlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Modal panel */
+.modalContent {
+    width: 460px;
+    max-width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 250, 251, 0.96) 100%);
+    box-shadow: var(--shadow);
+    transform: translateX(100%);
+    transition: transform 340ms cubic-bezier(.2, .9, .2, 1);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(16, 24, 40, 0.04);
+    padding: 18px 18px 22px 18px;
+    gap: 12px;
+    overflow: hidden;
+    /* slightly rounded on the left so it looks modern */
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.modalOverlay.open .modalContent {
+    transform: translateX(0);
+}
+
+/* Header */
+.modalContent .modalHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modalContent h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #0f172a;
+    flex: 1 1 auto;
+}
+
+.modalCloseButton {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modalCloseButton:hover {
+    background: rgba(16, 24, 40, 0.04);
+    color: #111827;
+}
+
+/* Body area with scroll */
+.modalBody {
+    overflow-y: auto;
+    padding-right: 6px; /* provide gap for scrollbar */
+    flex: 1 1 auto;
+}
+
+.modalContent p {
+    margin: 4px 0 12px 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
+/* File input - modern style */
+.fileInputWrapper {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: rgba(14, 165, 233, 0.03);
+    border: 1px dashed rgba(99, 102, 241, 0.12);
+    padding: 12px;
+    border-radius: 10px;
+}
+
+input[type="file"] {
+    display: inline-block;
+    font-size: 0.95rem;
+    color: var(--muted);
+}
+
+/* If you want to hide native input and style a label: works with current markup too */
+.fileInputLabel {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--accent), rgba(59, 130, 246, 0.85));
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+}
+
+.fileName {
+    color: #0b1220;
+    font-size: 0.95rem;
+    margin-left: auto;
+}
+
+/* Error text */
+.error {
+    color: #b91c1c;
+    background: rgba(185, 28, 28, 0.04);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+/* Preview section (PreviewTable uses .previewSection) */
+.previewSection {
+    margin-top: 12px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.03);
+    padding: 10px;
+    font-size: 0.93rem;
+}
+
+.previewSection h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.98rem;
+    color: #0f172a;
+}
+
+.previewSection .tableWrapper {
+    max-height: 180px;
+    overflow: auto;
+}
+
+.previewTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.previewTable th {
+    text-align: left;
+    font-weight: 700;
+    color: #111827;
+    padding: 8px 10px;
+    background: transparent;
+}
+
+.previewTable td {
+    padding: 8px 10px;
+    color: #374151;
+    border-top: 1px dashed rgba(15, 23, 42, 0.06);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Actions */
+.modalActions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    align-items: center;
+    padding-top: 8px;
+}
+
+.modalActions button {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.modalActions button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.modalActions button:nth-child(1) { /* cancel */
+    background: transparent;
+    color: #374151;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.modalActions button:nth-child(2) { /* primary */
+    background: linear-gradient(90deg, var(--accent), var(--accent-600));
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.14);
+}
+
+/* Responsive tweaks */
+@media (max-width: 720px) {
+    .modalContent {
+        width: 100%;
+        border-radius: 0;
+    }
+
+    .modalOverlay {
+        justify-content: center;
+        align-items: center;
+    }
+}
+
+/* small accessibility focus states */
+.modalCloseButton:focus,
+.modalActions button:focus,
+.fileInputLabel:focus {
+    outline: 3px solid rgba(59, 130, 246, 0.16);
+    outline-offset: 2px;
+}
