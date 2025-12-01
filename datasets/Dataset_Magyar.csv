@@ -1,0 +1,487 @@
+Date,Leírás,Terhelés,Jóváírás,Al-kategória,Kategória,Kategória Típus,Hónap Száma,Hét napja,Összeg
+1/4/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,1,Mon,5000.0
+1/4/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Mon,-5.0
+1/5/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,1,Tue,-900.0
+1/5/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,1,Tue,-150.0
+1/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Tue,-5.0
+1/6/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Wed,-5.0
+1/7/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Thu,-5.0
+1/8/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Fri,-5.0
+1/8/21,Green's,155.0,,Konyhai alap,Háztartás,Kiadás,1,Fri,-155.0
+1/11/21,Power source,50.0,,Rezsi,Háztartás,Kiadás,1,Mon,-50.0
+1/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Mon,-5.0
+1/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Tue,-5.0
+1/13/21,Fuel,77.0,,Kávé,Élelmiszer,Kiadás,1,Wed,-77.0
+1/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Wed,-5.0
+1/14/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Thu,-5.0
+1/15/21,Green's,135.0,,Konyhai alap,Háztartás,Kiadás,1,Fri,-135.0
+1/15/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Fri,-5.0
+1/16/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Sat,-5.0
+1/16/21,Cinemas,40.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,1,Sat,-40.0
+1/16/21,Fashionistas,98.0,,Ruházat,Egyéb / Diszkrét,Kiadás,1,Sat,-98.0
+1/16/21,Burger,52.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,1,Sat,-52.0
+1/17/21,Uba,28.0,,Taxi,Közlekedés,Kiadás,1,Sun,-28.0
+1/18/21,Onlne earning,,4500.0,Egyéb Bevétel,Jövedelem,Bevétel,1,Mon,4500.0
+1/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Mon,-5.0
+1/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Tue,-5.0
+1/19/21,Onlne earning,,4500.0,Egyéb Bevétel,Jövedelem,Bevétel,1,Tue,4500.0
+1/19/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,1,Tue,-40.0
+1/20/21,Sallah give away,45.0,,Ajándékok,Egyéb / Diszkrét,Kiadás,1,Wed,-45.0
+1/20/21,Online streaming,32.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,1,Wed,-32.0
+1/20/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Wed,-5.0
+1/21/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Thu,-5.0
+1/22/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Fri,-5.0
+1/22/21,Green's,170.0,,Konyhai alap,Háztartás,Kiadás,1,Fri,-170.0
+1/23/21,Suya,37.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,1,Sat,-37.0
+1/24/21,Oha soup/White soup,12.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,1,Sun,-12.0
+1/25/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,1,Mon,-55.0
+1/25/21,Fuel,63.0,,Üzemanyag,Közlekedés,Kiadás,1,Mon,-63.0
+1/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Mon,-5.0
+1/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Tue,-5.0
+1/27/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Wed,-5.0
+1/28/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Thu,-5.0
+1/29/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,1,Fri,-5.0
+1/29/21,Green's,162.0,,Konyhai alap,Háztartás,Kiadás,1,Fri,-162.0
+1/30/21,Trainers,125.0,,Ruházat,Egyéb / Diszkrét,Kiadás,1,Sat,-125.0
+1/30/21,Hangingout/Ticket,175.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,1,Sat,-175.0
+1/31/21,Fashionistas,145.0,,Ruházat,Egyéb / Diszkrét,Kiadás,1,Sun,-145.0
+1/31/21,Uba,23.0,,Taxi,Közlekedés,Kiadás,1,Sun,-23.0
+2/1/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,2,Mon,5000.0
+2/1/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Mon,-5.0
+2/2/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,2,Tue,-900.0
+2/2/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,2,Tue,-150.0
+2/2/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Tue,-5.0
+2/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Wed,-5.0
+2/4/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Thu,-5.0
+2/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Fri,-5.0
+2/5/21,Green's,205.0,,Konyhai alap,Háztartás,Kiadás,2,Fri,-205.0
+2/8/21,Power source,51.1,,Rezsi,Háztartás,Kiadás,2,Mon,-51.1
+2/8/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Mon,-5.0
+2/9/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Tue,-5.0
+2/10/21,Fuel,78.0,,Üzemanyag,Közlekedés,Kiadás,2,Wed,-78.0
+2/10/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Wed,-5.0
+2/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Thu,-5.0
+2/12/21,Green's,135.9,,Konyhai alap,Háztartás,Kiadás,2,Fri,-135.9
+2/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Fri,-5.0
+2/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Sat,-5.0
+2/13/21,Cinemas,40.9,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,2,Sat,-40.9
+2/13/21,Fashionistas,99.0,,Ruházat,Egyéb / Diszkrét,Kiadás,2,Sat,-99.0
+2/13/21,Burger,53.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,2,Sat,-53.0
+2/14/21,Uba,28.9,,Taxi,Közlekedés,Kiadás,2,Sun,-28.9
+2/15/21,Onlne earning,,800.0,Egyéb Bevétel,Jövedelem,Bevétel,2,Mon,800.0
+2/15/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Mon,-5.0
+2/16/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Tue,-5.0
+2/16/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,2,Tue,-40.0
+2/17/21,Sallah give away,45.9,,Ajándékok,Egyéb / Diszkrét,Kiadás,2,Wed,-45.9
+2/17/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,2,Wed,-35.0
+2/17/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Wed,-5.0
+2/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Thu,-5.0
+2/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Fri,-5.0
+2/19/21,Green's,171.0,,Konyhai alap,Háztartás,Kiadás,2,Fri,-171.0
+2/20/21,Suya,37.9,,Gyorsétel / Étterem,Élelmiszer,Kiadás,2,Sat,-37.9
+2/21/21,Oha soup/White soup,12.9,,Gyorsétel / Étterem,Élelmiszer,Kiadás,2,Sun,-12.9
+2/22/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,2,Mon,-55.0
+2/22/21,Fuel,64.1,,Üzemanyag,Közlekedés,Kiadás,2,Mon,-64.1
+2/22/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Mon,-5.0
+2/23/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Tue,-5.0
+2/24/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Wed,-5.0
+2/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Thu,-5.0
+2/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,2,Fri,-5.0
+2/26/21,Green's,162.9,,Konyhai alap,Háztartás,Kiadás,2,Fri,-162.9
+2/27/21,Trainers,125.9,,Ruházat,Egyéb / Diszkrét,Kiadás,2,Sat,-125.9
+2/27/21,Global Fashion,137.0,,Ruházat,Egyéb / Diszkrét,Kiadás,2,Sat,-137.0
+2/28/21,Fashionistas,146.1,,Ruházat,Egyéb / Diszkrét,Kiadás,2,Sun,-146.1
+2/28/21,Uba,24.1,,Taxi,Közlekedés,Kiadás,2,Sun,-24.1
+3/1/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,3,Mon,5000.0
+3/1/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Mon,-5.0
+3/2/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,3,Tue,-900.0
+3/2/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,3,Tue,-150.0
+3/2/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Tue,-5.0
+3/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Wed,-5.0
+3/4/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Thu,-5.0
+3/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Fri,-5.0
+3/5/21,Green's,149.0,,Konyhai alap,Háztartás,Kiadás,3,Fri,-149.0
+3/8/21,Power source,52.1,,Rezsi,Háztartás,Kiadás,3,Mon,-52.1
+3/8/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Mon,-5.0
+3/9/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Tue,-5.0
+3/10/21,Fuel,78.9,,Üzemanyag,Közlekedés,Kiadás,3,Wed,-78.9
+3/10/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Wed,-5.0
+3/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Thu,-5.0
+3/12/21,Green's,137.0,,Konyhai alap,Háztartás,Kiadás,3,Fri,-137.0
+3/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Fri,-5.0
+3/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Sat,-5.0
+3/13/21,Cinemas,41.8,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,3,Sat,-41.8
+3/13/21,Fashionistas,99.9,,Ruházat,Egyéb / Diszkrét,Kiadás,3,Sat,-99.9
+3/13/21,Burger,54.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,3,Sat,-54.0
+3/14/21,Uba,30.0,,Taxi,Közlekedés,Kiadás,3,Sun,-30.0
+3/15/21,Onlne earning,,1000.0,Egyéb Bevétel,Jövedelem,Bevétel,3,Mon,1000.0
+3/15/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Mon,-5.0
+3/16/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Tue,-5.0
+3/16/21,Taken medication,75.0,,Orvosi szolgáltatás,Egészség,Kiadás,3,Tue,-75.0
+3/16/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,3,Tue,-40.0
+3/17/21,Sallah give away,46.8,,Ajándékok,Egyéb / Diszkrét,Kiadás,3,Wed,-46.8
+3/17/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,3,Wed,-35.0
+3/17/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Wed,-5.0
+3/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Thu,-5.0
+3/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Fri,-5.0
+3/19/21,Green's,171.9,,Konyhai alap,Háztartás,Kiadás,3,Fri,-171.9
+3/20/21,Suya,39.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,3,Sat,-39.0
+3/21/21,Oha soup/White soup,14.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,3,Sun,-14.0
+3/22/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,3,Mon,-55.0
+3/22/21,Fuel,65.0,,Üzemanyag,Közlekedés,Kiadás,3,Mon,-65.0
+3/22/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Mon,-5.0
+3/23/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Tue,-5.0
+3/24/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Wed,-5.0
+3/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Thu,-5.0
+3/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Fri,-5.0
+3/26/21,Green's,209.0,,Konyhai alap,Háztartás,Kiadás,3,Fri,-209.0
+3/27/21,Trainers,127.0,,Ruházat,Egyéb / Diszkrét,Kiadás,3,Sat,-127.0
+3/27/21,Sport ware,177.2,,Ruházat,Egyéb / Diszkrét,Kiadás,3,Sat,-177.2
+3/28/21,Fashionistas,147.1,,Ruházat,Egyéb / Diszkrét,Kiadás,3,Sun,-147.1
+3/28/21,Uba,25.0,,Taxi,Közlekedés,Kiadás,3,Sun,-25.0
+3/29/21,Foodary,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,3,Mon,-15.0
+3/30/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Tue,-5.0
+3/31/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,3,Wed,-5.0
+4/1/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,4,Thu,5000.0
+4/1/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Thu,-5.0
+4/2/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,4,Fri,-900.0
+4/2/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,4,Fri,-150.0
+4/2/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Fri,-5.0
+4/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Sat,-5.0
+4/4/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Sun,-5.0
+4/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Mon,-5.0
+4/5/21,Green's,158.2,,Konyhai alap,Háztartás,Kiadás,4,Mon,-158.2
+4/8/21,Power source,53.2,,Rezsi,Háztartás,Kiadás,4,Thu,-53.2
+4/8/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Thu,-5.0
+4/9/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Fri,-5.0
+4/10/21,Fuel,79.9,,Üzemanyag,Közlekedés,Kiadás,4,Sat,-79.9
+4/10/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Sat,-5.0
+4/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Sun,-5.0
+4/12/21,Green's,98.0,,Konyhai alap,Háztartás,Kiadás,4,Mon,-98.0
+4/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Mon,-5.0
+4/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Tue,-5.0
+4/13/21,Cinemas,42.8,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,4,Tue,-42.8
+4/13/21,Fashionistas,100.9,,Ruházat,Egyéb / Diszkrét,Kiadás,4,Tue,-100.9
+4/13/21,Burger,54.9,,Gyorsétel / Étterem,Élelmiszer,Kiadás,4,Tue,-54.9
+4/14/21,Uba,31.0,,Taxi,Közlekedés,Kiadás,4,Wed,-31.0
+4/15/21,Onlne earning,,2340.0,Egyéb Bevétel,Jövedelem,Bevétel,4,Thu,2340.0
+4/15/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Thu,-5.0
+4/16/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Fri,-5.0
+4/16/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,4,Fri,-40.0
+4/17/21,Sallah give away,47.9,,Ajándékok,Egyéb / Diszkrét,Kiadás,4,Sat,-47.9
+4/17/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,4,Sat,-35.0
+4/17/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Sat,-5.0
+4/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Sun,-5.0
+4/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Mon,-5.0
+4/19/21,Green's,173.0,,Konyhai alap,Háztartás,Kiadás,4,Mon,-173.0
+4/20/21,Suya,40.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,4,Tue,-40.1
+4/21/21,Oha soup/White soup,15.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,4,Wed,-15.1
+4/22/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,4,Thu,-55.0
+4/22/21,Fuel,66.0,,Üzemanyag,Közlekedés,Kiadás,4,Thu,-66.0
+4/22/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Thu,-5.0
+4/23/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Fri,-5.0
+4/24/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Sat,-5.0
+4/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Sun,-5.0
+4/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Mon,-5.0
+4/26/21,Green's,164.9,,Konyhai alap,Háztartás,Kiadás,4,Mon,-164.9
+4/27/21,Trainers,127.9,,Ruházat,Egyéb / Diszkrét,Kiadás,4,Tue,-127.9
+4/27/21,Clubing,300.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,4,Tue,-300.0
+4/28/21,Fashionistas,148.1,,Ruházat,Egyéb / Diszkrét,Kiadás,4,Wed,-148.1
+4/28/21,Uba,26.1,,Taxi,Közlekedés,Kiadás,4,Wed,-26.1
+4/29/21,Foodary,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,4,Thu,-15.0
+4/29/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Thu,-5.0
+4/30/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,4,Fri,-5.0
+5/2/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Sun,-5.0
+5/3/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,5,Mon,5000.0
+5/3/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,5,Mon,-900.0
+5/3/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,5,Mon,-150.0
+5/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Mon,-5.0
+5/4/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Tue,-5.0
+5/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Wed,-5.0
+5/6/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Thu,-5.0
+5/6/21,Green's,170.0,,Konyhai alap,Háztartás,Kiadás,5,Thu,-170.0
+5/9/21,Power source,54.1,,Rezsi,Háztartás,Kiadás,5,Sun,-54.1
+5/9/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Sun,-5.0
+5/10/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Mon,-5.0
+5/11/21,Fuel,81.0,,Üzemanyag,Közlekedés,Kiadás,5,Tue,-81.0
+5/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Tue,-5.0
+5/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Wed,-5.0
+5/13/21,Green's,139.1,,Konyhai alap,Háztartás,Kiadás,5,Thu,-139.1
+5/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Thu,-5.0
+5/14/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Fri,-5.0
+5/14/21,Cinemas,43.9,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,5,Fri,-43.9
+5/14/21,Fashionistas,101.8,,Ruházat,Egyéb / Diszkrét,Kiadás,5,Fri,-101.8
+5/14/21,Burger,55.9,,Gyorsétel / Étterem,Élelmiszer,Kiadás,5,Fri,-55.9
+5/15/21,Uba,32.0,,Taxi,Közlekedés,Kiadás,5,Sat,-32.0
+5/16/21,Onlne earning,,1000.0,Egyéb Bevétel,Jövedelem,Bevétel,5,Sun,1000.0
+5/16/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Sun,-5.0
+5/17/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Mon,-5.0
+5/17/21,Taken medication,75.0,,Orvosi szolgáltatás,Egészség,Kiadás,5,Mon,-75.0
+5/17/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,5,Mon,-40.0
+5/18/21,Sallah give away,49.0,,Ajándékok,Egyéb / Diszkrét,Kiadás,5,Tue,-49.0
+5/18/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,5,Tue,-35.0
+5/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Tue,-5.0
+5/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Wed,-5.0
+5/20/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Thu,-5.0
+5/20/21,Green's,174.0,,Konyhai alap,Háztartás,Kiadás,5,Thu,-174.0
+5/21/21,Suya,41.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,5,Fri,-41.1
+5/22/21,Oha soup/White soup,16.2,,Gyorsétel / Étterem,Élelmiszer,Kiadás,5,Sat,-16.2
+5/23/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,5,Sun,-55.0
+5/23/21,Fuel,67.0,,Üzemanyag,Közlekedés,Kiadás,5,Sun,-67.0
+5/23/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Sun,-5.0
+5/24/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Mon,-5.0
+5/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Tue,-5.0
+5/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Wed,-5.0
+5/27/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Thu,-5.0
+5/27/21,Green's,165.8,,Konyhai alap,Háztartás,Kiadás,5,Thu,-165.8
+5/28/21,Trainers,128.8,,Ruházat,Egyéb / Diszkrét,Kiadás,5,Fri,-128.8
+5/28/21,Home décor,235.0,,Bútor / Lakásfenntartás,Egyéb / Diszkrét,Kiadás,5,Fri,-235.0
+5/29/21,Fashionistas,149.2,,Ruházat,Egyéb / Diszkrét,Kiadás,5,Sat,-149.2
+5/29/21,Uba,27.2,,Taxi,Közlekedés,Kiadás,5,Sat,-27.2
+5/31/21,Foodary,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,5,Mon,-15.0
+5/30/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Sun,-5.0
+5/31/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,5,Mon,-5.0
+6/1/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,6,Tue,5000.0
+6/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Thu,-5.0
+6/3/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,6,Thu,-900.0
+6/3/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,6,Thu,-150.0
+6/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Thu,-5.0
+6/4/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Fri,-5.0
+6/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Sat,-5.0
+6/6/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Sun,-5.0
+6/6/21,Green's,119.0,,Konyhai alap,Háztartás,Kiadás,6,Sun,-119.0
+6/9/21,Power source,55.0,,Rezsi,Háztartás,Kiadás,6,Wed,-55.0
+6/9/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Wed,-5.0
+6/10/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Thu,-5.0
+6/11/21,Fuel,82.1,,Üzemanyag,Közlekedés,Kiadás,6,Fri,-82.1
+6/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Fri,-5.0
+6/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Sat,-5.0
+6/13/21,Green's,140.2,,Konyhai alap,Háztartás,Kiadás,6,Sun,-140.2
+6/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Sun,-5.0
+6/14/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Mon,-5.0
+6/14/21,Cinemas,44.9,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,6,Mon,-44.9
+6/14/21,Fashionistas,102.9,,Ruházat,Egyéb / Diszkrét,Kiadás,6,Mon,-102.9
+6/14/21,Burger,56.9,,Gyorsétel / Étterem,Élelmiszer,Kiadás,6,Mon,-56.9
+6/15/21,Uba,33.1,,Taxi,Közlekedés,Kiadás,6,Tue,-33.1
+6/16/21,Onlne earning,,100.0,Egyéb Bevétel,Jövedelem,Bevétel,6,Wed,100.0
+6/16/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Wed,-5.0
+6/17/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Thu,-5.0
+6/17/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,6,Thu,-40.0
+6/18/21,Sallah give away,50.1,,Ajándékok,Egyéb / Diszkrét,Kiadás,6,Fri,-50.1
+6/18/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,6,Fri,-35.0
+6/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Fri,-5.0
+6/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Sat,-5.0
+6/20/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Sun,-5.0
+6/20/21,Green's,234.0,,Konyhai alap,Háztartás,Kiadás,6,Sun,-234.0
+6/21/21,Suya,42.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,6,Mon,-42.1
+6/22/21,Oha soup/White soup,17.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,6,Tue,-17.1
+6/23/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,6,Wed,-55.0
+6/23/21,Fuel,67.9,,Üzemanyag,Közlekedés,Kiadás,6,Wed,-67.9
+6/23/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Wed,-5.0
+6/24/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Thu,-5.0
+6/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Fri,-5.0
+6/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Sat,-5.0
+6/27/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Sun,-5.0
+6/27/21,Green's,166.9,,Konyhai alap,Háztartás,Kiadás,6,Sun,-166.9
+6/28/21,Trainers,129.9,,Ruházat,Egyéb / Diszkrét,Kiadás,6,Mon,-129.9
+6/28/21,Hangingout/Ticket,180.3,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,6,Mon,-180.3
+6/29/21,Fashionistas,150.1,,Ruházat,Egyéb / Diszkrét,Kiadás,6,Tue,-150.1
+6/29/21,Uba,28.2,,Taxi,Közlekedés,Kiadás,6,Tue,-28.2
+6/29/21,Foodary,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,6,Tue,-15.0
+6/30/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,6,Wed,-5.0
+7/1/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Thu,-5.0
+7/2/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,7,Fri,5000.0
+7/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Sat,-5.0
+7/5/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,7,Mon,-900.0
+7/5/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,7,Mon,-150.0
+7/5/21,Feedings,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,7,Mon,-15.0
+7/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Mon,-5.0
+7/6/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Tue,-5.0
+7/7/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Wed,-5.0
+7/7/21,Green's,180.0,,Konyhai alap,Háztartás,Kiadás,7,Wed,-180.0
+7/10/21,Power source,56.1,,Rezsi,Háztartás,Kiadás,7,Sat,-56.1
+7/10/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Sat,-5.0
+7/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Sun,-5.0
+7/12/21,Fuel,83.1,,Üzemanyag,Közlekedés,Kiadás,7,Mon,-83.1
+7/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Mon,-5.0
+7/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Tue,-5.0
+7/14/21,Green's,141.1,,Konyhai alap,Háztartás,Kiadás,7,Wed,-141.1
+7/14/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Wed,-5.0
+7/15/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Thu,-5.0
+7/15/21,Cinemas,45.8,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,7,Thu,-45.8
+7/15/21,Fashionistas,103.8,,Ruházat,Egyéb / Diszkrét,Kiadás,7,Thu,-103.8
+7/15/21,Burger,58.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,7,Thu,-58.0
+7/16/21,Uba,34.2,,Taxi,Közlekedés,Kiadás,7,Fri,-34.2
+7/17/21,Onlne earning,,200.0,Egyéb Bevétel,Jövedelem,Bevétel,7,Sat,200.0
+7/17/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Sat,-5.0
+7/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Sun,-5.0
+7/18/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,7,Sun,-40.0
+7/19/21,Sallah give away,51.1,,Ajándékok,Egyéb / Diszkrét,Kiadás,7,Mon,-51.1
+7/19/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,7,Mon,-35.0
+7/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Mon,-5.0
+7/20/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Tue,-5.0
+7/21/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Wed,-5.0
+7/21/21,Green's,176.0,,Konyhai alap,Háztartás,Kiadás,7,Wed,-176.0
+7/22/21,Suya,43.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,7,Thu,-43.1
+7/23/21,Oha soup/White soup,18.2,,Gyorsétel / Étterem,Élelmiszer,Kiadás,7,Fri,-18.2
+7/24/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,7,Sat,-55.0
+7/24/21,Fuel,68.8,,Üzemanyag,Közlekedés,Kiadás,7,Sat,-68.8
+7/24/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Sat,-5.0
+7/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Sun,-5.0
+7/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Mon,-5.0
+7/27/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Tue,-5.0
+7/28/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Wed,-5.0
+7/28/21,Green's,193.0,,Konyhai alap,Háztartás,Kiadás,7,Wed,-193.0
+7/29/21,Trainers,130.8,,Ruházat,Egyéb / Diszkrét,Kiadás,7,Thu,-130.8
+7/29/21,Home décor,181.4,,Bútor / Lakásfenntartás,Egyéb / Diszkrét,Kiadás,7,Thu,-181.4
+7/30/21,Fashionistas,151.2,,Ruházat,Egyéb / Diszkrét,Kiadás,7,Fri,-151.2
+7/30/21,Uba,29.3,,Taxi,Közlekedés,Kiadás,7,Fri,-29.3
+7/30/21,Foodary,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,7,Fri,-15.0
+7/31/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,7,Sat,-5.0
+8/2/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Mon,-5.0
+8/2/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,8,Mon,5000.0
+8/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Tue,-5.0
+8/5/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,8,Thu,-900.0
+8/5/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,8,Thu,-150.0
+8/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Thu,-5.0
+8/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Thu,-5.0
+8/6/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Fri,-5.0
+8/7/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Sat,-5.0
+8/7/21,Green's,137.0,,Konyhai alap,Háztartás,Kiadás,8,Sat,-137.0
+8/10/21,Power source,57.0,,Rezsi,Háztartás,Kiadás,8,Tue,-57.0
+8/10/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Tue,-5.0
+8/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Wed,-5.0
+8/12/21,Fuel,84.2,,Üzemanyag,Közlekedés,Kiadás,8,Thu,-84.2
+8/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Thu,-5.0
+8/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Fri,-5.0
+8/14/21,Green's,142.1,,Konyhai alap,Háztartás,Kiadás,8,Sat,-142.1
+8/14/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Sat,-5.0
+8/15/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Sun,-5.0
+8/15/21,Cinemas,46.8,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,8,Sun,-46.8
+8/15/21,Fashionistas,104.7,,Ruházat,Egyéb / Diszkrét,Kiadás,8,Sun,-104.7
+8/15/21,Burger,59.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,8,Sun,-59.1
+8/16/21,Uba,35.1,,Taxi,Közlekedés,Kiadás,8,Mon,-35.1
+8/17/21,Onlne earning,,800.0,Egyéb Bevétel,Jövedelem,Bevétel,8,Tue,800.0
+8/17/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Tue,-5.0
+8/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Wed,-5.0
+8/18/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,8,Wed,-40.0
+8/19/21,Sallah give away,52.1,,Ajándékok,Egyéb / Diszkrét,Kiadás,8,Thu,-52.1
+8/19/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,8,Thu,-35.0
+8/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Thu,-5.0
+8/20/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Fri,-5.0
+8/21/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Sat,-5.0
+8/21/21,Green's,177.0,,Konyhai alap,Háztartás,Kiadás,8,Sat,-177.0
+8/22/21,Suya,44.2,,Gyorsétel / Étterem,Élelmiszer,Kiadás,8,Sun,-44.2
+8/23/21,Oha soup/White soup,19.2,,Gyorsétel / Étterem,Élelmiszer,Kiadás,8,Mon,-19.2
+8/24/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,8,Tue,-55.0
+8/24/21,Fuel,69.7,,Üzemanyag,Közlekedés,Kiadás,8,Tue,-69.7
+8/24/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Tue,-5.0
+8/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Wed,-5.0
+8/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Thu,-5.0
+8/27/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Fri,-5.0
+8/28/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Sat,-5.0
+8/28/21,Green's,117.0,,Konyhai alap,Háztartás,Kiadás,8,Sat,-117.0
+8/29/21,Trainers,131.9,,Ruházat,Egyéb / Diszkrét,Kiadás,8,Sun,-131.9
+8/29/21,Hangingout/Ticket,182.4,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,8,Sun,-182.4
+8/30/21,Fashionistas,152.3,,Ruházat,Egyéb / Diszkrét,Kiadás,8,Mon,-152.3
+8/30/21,Uba,30.3,,Taxi,Közlekedés,Kiadás,8,Mon,-30.3
+8/30/21,Foodary,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,8,Mon,-15.0
+8/31/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,8,Tue,-5.0
+9/2/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Thu,-5.0
+9/2/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,9,Thu,5000.0
+9/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Fri,-5.0
+9/5/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,9,Sun,-900.0
+9/5/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,9,Sun,-150.0
+9/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Sun,-5.0
+9/5/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Sun,-5.0
+9/6/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Mon,-5.0
+9/7/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Tue,-5.0
+9/7/21,Green's,163.4,,Konyhai alap,Háztartás,Kiadás,9,Tue,-163.4
+9/10/21,Power source,58.1,,Rezsi,Háztartás,Kiadás,9,Fri,-58.1
+9/10/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Fri,-5.0
+9/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Sat,-5.0
+9/12/21,Fuel,85.3,,Üzemanyag,Közlekedés,Kiadás,9,Sun,-85.3
+9/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Sun,-5.0
+9/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Mon,-5.0
+9/14/21,Green's,143.0,,Konyhai alap,Háztartás,Kiadás,9,Tue,-143.0
+9/14/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Tue,-5.0
+9/15/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Wed,-5.0
+9/15/21,Cinemas,47.8,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,9,Wed,-47.8
+9/15/21,Fashionistas,105.8,,Ruházat,Egyéb / Diszkrét,Kiadás,9,Wed,-105.8
+9/15/21,Burger,60.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,9,Wed,-60.1
+9/16/21,Uba,36.2,,Taxi,Közlekedés,Kiadás,9,Thu,-36.2
+9/17/21,Onlne earning,,100.0,Egyéb Bevétel,Jövedelem,Bevétel,9,Fri,100.0
+9/17/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Fri,-5.0
+9/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Sat,-5.0
+9/18/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,9,Sat,-40.0
+9/19/21,Sallah give away,53.0,,Ajándékok,Egyéb / Diszkrét,Kiadás,9,Sun,-53.0
+9/19/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,9,Sun,-35.0
+9/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Sun,-5.0
+9/20/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Mon,-5.0
+9/21/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Tue,-5.0
+9/21/21,Green's,177.9,,Konyhai alap,Háztartás,Kiadás,9,Tue,-177.9
+9/22/21,Suya,45.3,,Gyorsétel / Étterem,Élelmiszer,Kiadás,9,Wed,-45.3
+9/23/21,Oha soup/White soup,20.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,9,Thu,-20.1
+9/24/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,9,Fri,-55.0
+9/24/21,Fuel,70.6,,Üzemanyag,Közlekedés,Kiadás,9,Fri,-70.6
+9/24/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Fri,-5.0
+9/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Sat,-5.0
+9/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Sun,-5.0
+9/27/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Mon,-5.0
+9/28/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,9,Tue,-5.0
+9/28/21,Green's,223.0,,Konyhai alap,Háztartás,Kiadás,9,Tue,-223.0
+9/29/21,Trainers,132.9,,Ruházat,Egyéb / Diszkrét,Kiadás,9,Wed,-132.9
+9/29/21,Global Fashion,175.0,,Ruházat,Egyéb / Diszkrét,Kiadás,9,Wed,-175.0
+9/30/21,Fashionistas,153.4,,Ruházat,Egyéb / Diszkrét,Kiadás,9,Thu,-153.4
+9/30/21,Uba,31.2,,Taxi,Közlekedés,Kiadás,9,Thu,-31.2
+9/30/21,Foodary,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,9,Thu,-15.0
+10/1/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Fri,-5.0
+10/3/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Sun,-5.0
+10/3/21,Data With Decision,,5000.0,Fizetés,Jövedelem,Bevétel,10,Sun,5000.0
+10/4/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Mon,-5.0
+10/6/21,Estate Mangement,900.0,,Lakásfenntartás,Háztartás,Kiadás,10,Wed,-900.0
+10/6/21,Financail upgrade,150.0,,Egyéb Közlekedés,Közlekedés,Kiadás,10,Wed,-150.0
+10/6/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Wed,-5.0
+10/6/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Wed,-5.0
+10/7/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Thu,-5.0
+10/8/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Fri,-5.0
+10/8/21,Green's,105.0,,Konyhai alap,Háztartás,Kiadás,10,Fri,-105.0
+10/11/21,Power source,59.0,,Rezsi,Háztartás,Kiadás,10,Mon,-59.0
+10/11/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Mon,-5.0
+10/12/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Tue,-5.0
+10/13/21,Fuel,86.4,,Üzemanyag,Közlekedés,Kiadás,10,Wed,-86.4
+10/13/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Wed,-5.0
+10/14/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Thu,-5.0
+10/15/21,Green's,143.9,,Konyhai alap,Háztartás,Kiadás,10,Fri,-143.9
+10/15/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Fri,-5.0
+10/16/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Sat,-5.0
+10/16/21,Cinemas,48.8,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,10,Sat,-48.8
+10/16/21,Fashionistas,106.7,,Ruházat,Egyéb / Diszkrét,Kiadás,10,Sat,-106.7
+10/16/21,Burger,61.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,10,Sat,-61.1
+10/17/21,Uba,37.2,,Taxi,Közlekedés,Kiadás,10,Sun,-37.2
+10/18/21,Onlne earning,,100.0,Egyéb Bevétel,Jövedelem,Bevétel,10,Mon,100.0
+10/18/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Mon,-5.0
+10/19/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Tue,-5.0
+10/19/21,Taken medication,75.0,,Orvosi szolgáltatás,Egészség,Kiadás,10,Tue,-75.0
+10/19/21,Phone,40.0,,Szolgáltatások / Rezsi,Háztartás,Kiadás,10,Tue,-40.0
+10/20/21,Sallah give away,54.1,,Ajándékok,Egyéb / Diszkrét,Kiadás,10,Wed,-54.1
+10/20/21,Online streaming,35.0,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,10,Wed,-35.0
+10/20/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Wed,-5.0
+10/21/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Thu,-5.0
+10/22/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Fri,-5.0
+10/22/21,Green's,178.9,,Konyhai alap,Háztartás,Kiadás,10,Fri,-178.9
+10/23/21,Suya,46.2,,Gyorsétel / Étterem,Élelmiszer,Kiadás,10,Sat,-46.2
+10/24/21,Oha soup/White soup,21.1,,Gyorsétel / Étterem,Élelmiszer,Kiadás,10,Sun,-21.1
+10/25/21,Orphanage,55.0,,Adomány,Egyéb / Diszkrét,Kiadás,10,Mon,-55.0
+10/25/21,Fuel,71.5,,Üzemanyag,Közlekedés,Kiadás,10,Mon,-71.5
+10/25/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Mon,-5.0
+10/26/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Tue,-5.0
+10/27/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Wed,-5.0
+10/28/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Thu,-5.0
+10/29/21,Drink,5.0,,Kávé,Élelmiszer,Kiadás,10,Fri,-5.0
+10/29/21,Green's,189.0,,Konyhai alap,Háztartás,Kiadás,10,Fri,-189.0
+10/30/21,Trainers,133.8,,Ruházat,Egyéb / Diszkrét,Kiadás,10,Sat,-133.8
+10/30/21,Hangingout/Ticket,184.4,,Mozi / Előadás,Egyéb / Diszkrét,Kiadás,10,Sat,-184.4
+10/31/21,Fashionistas,154.5,,Ruházat,Egyéb / Diszkrét,Kiadás,10,Sun,-154.5
+10/31/21,Uba,32.1,,Taxi,Közlekedés,Kiadás,10,Sun,-32.1
+10/31/21,Foodary,15.0,,Gyorsétel / Étterem,Élelmiszer,Kiadás,10,Sun,-15.0

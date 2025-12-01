@@ -1,10 +1,29 @@
 import os
+import logging
 import uvicorn
 from fastapi import FastAPI
 from api.routes import router, profile, transactions
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+# import FirebaseUnavailable for global handler
+from db.firebase_client import FirebaseUnavailable
+
+# configure logging early
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+logger = logging.getLogger(__name__)
+logger.debug("main module imported")
+
 app = FastAPI()
 
+# global exception handler for FirebaseUnavailable
+@app.exception_handler(FirebaseUnavailable)
+async def firebase_unavailable_handler(request: Request, exc: FirebaseUnavailable):
+    logger.error(f"Firebase unavailable (global handler): {exc}")
+    return JSONResponse(status_code=503, content={"detail": "Firebase unavailable: " + str(exc)})
+
+logger.debug("Including routers")
 app.include_router(profile.router, prefix="/api", tags=["profile"])
 app.include_router(transactions.router, prefix="/api", tags=["transactions"])
 
@@ -23,8 +42,10 @@ app.add_middleware(
 )
 @app.get("/")
 def root():
+    logger.debug("root endpoint called")
     return {"message": "Hello from Budgetify FastAPI!"}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
+    logger.info(f"Starting uvicorn on 0.0.0.0:{port}")
     uvicorn.run(app, host="0.0.0.0", port=port)

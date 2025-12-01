@@ -2,6 +2,10 @@
 import os
 import uuid
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+logger.debug("src.DAO.DAOimpl module imported")
 
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -18,11 +22,24 @@ cred = credentials.Certificate(str(conn_path))
 # Firebase inicializálása
 try:
     firebase_admin.get_app()
+    logger.debug("Firebase app already initialized (DAOimpl)")
 except ValueError:
-    firebase_admin.initialize_app(cred)
+    try:
+        logger.info("Initializing Firebase app (DAOimpl) using conninfo.json")
+        firebase_admin.initialize_app(cred)
+        logger.info("Firebase app initialized (DAOimpl)")
+    except Exception as e:
+        logger.exception("Failed to initialize Firebase in DAOimpl")
+        # re-raise so caller code becomes aware during first DB use
+        raise
 
 # Firestore referencia
-db = firestore.client()
+try:
+    db = firestore.client()
+    logger.debug("Obtained firestore client in DAOimpl")
+except Exception:
+    logger.exception("Failed to get firestore client in DAOimpl")
+    db = None
 
 class FirebaseDAO(DAO, ABC):
     """

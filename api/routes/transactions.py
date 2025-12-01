@@ -5,23 +5,57 @@ import pandas as pd
 from starlette.responses import JSONResponse
 
 from api.dependencies import get_current_user_uid
-from db.firebase_client import get_user_transactions, save_user_transaction, save_user_transactions
-from src.Generation.Case_one_has_enough_Transact_arima import prepare_monthly_series_from_df, ForecastPipeline
+from db.firebase_client import get_user_transactions, save_user_transaction, save_user_transactions, FirebaseUnavailable
 from src.models.transactions import Transaction
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import Body, Depends, HTTPException, APIRouter
 import re
 import asyncio
 from datetime import datetime
+import threading
+import importlib
+import logging
+
+logger = logging.getLogger(__name__)
+logger.debug("api.routes.transactions imported")
 
 router = APIRouter()
-pipeline = ForecastPipeline()
+# Do not initialize pipeline at import time; create lazily on first request
+_pipeline_lock = threading.Lock()
+_pipeline: Optional[object] = None
+
 EXPECTED_KEYS = {"összeg", "tranzakció", "tranzakció dátuma", "közlemény", "típus", "bejövő", "kimenő", "bejövő/kimenő", "költési kategória"}
+
+
+def _get_pipeline() -> object:
+    """Return a cached ForecastPipeline, creating it in a background thread on first call.
+    This performs a lazy import of the Generation module to avoid import-time side-effects.
+    """
+    global _pipeline
+    if _pipeline is not None:
+        return _pipeline
+    with _pipeline_lock:
+        if _pipeline is not None:
+            return _pipeline
+        try:
+            # lazy import the module that defines ForecastPipeline
+            gen_mod = importlib.import_module("src.Generation.Case_one_has_enough_Transact_arima")
+            ForecastPipeline = getattr(gen_mod, "ForecastPipeline")
+            # create pipeline in thread to avoid blocking asyncio event loop
+            _pipeline = asyncio.get_event_loop().run_until_complete(asyncio.to_thread(ForecastPipeline))
+            return _pipeline
+        except Exception as e:
+            logger.exception("Failed to initialize ForecastPipeline")
+            raise HTTPException(status_code=500, detail=f"Failed to initialize ForecastPipeline: {e}")
 
 @router.get("/transactions")
 async def get_transactions(uid: str = Depends(get_current_user_uid)):
-    transaction_doc = get_user_transactions(uid)
-    return transaction_doc or []
+    try:
+        transaction_doc = get_user_transactions(uid)
+        return transaction_doc or []
+    except FirebaseUnavailable as e:
+        logger.error(f"Firebase unavailable in get_transactions: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
 
 # --- PUT egy tranzakcióhoz
 @router.put("/transactions")
@@ -43,6 +77,9 @@ async def put_transaction(
         # Mentés Firebase-be
         save_user_transaction(uid, transaction.to_dict())
         return {"status": "success", "transaction": transaction.to_dict()}
+    except FirebaseUnavailable as e:
+        logger.error(f"Firebase unavailable in put_transaction: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -157,7 +194,7 @@ async def predict_future_transactions(uid: str = Depends(get_current_user_uid)):
 
     # 2) pipeline futtatása háttérszálon, tx_list-tel (így nem duplikáljuk a feature-engineeringet)
     try:
-        result = await asyncio.to_thread(pipeline.run, uid=uid, plot=False, verbose=True)
+        result = await asyncio.to_thread(_get_pipeline().run, uid=uid, plot=False, verbose=True)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
@@ -319,7 +356,7 @@ def classify_internal_transfer(description: str, tran_type: str, for_who: str, a
         return "rounding"
 
     # 3) Ha a JAR_KEYWORDS közül bármi fuzzy megtalálható -> döntés a tran_type alapján vagy amount alapján
-    #    (de mivel amount-ot abs-zárod, ne alapozzunk rá; tran_type jobb)
+    #    (de mivel amount-ot abs-zárod, ne alapozz rá; tran_type jobb)
     jar_kw_list = [kw for kw in JAR_KEYWORDS]  # eredeti kulcsszavak
     found = _fuzzy_search_any(s_norm, jar_kw_list)
     if found:
@@ -366,7 +403,7 @@ def _tx_fingerprint_for_matching(tx: Dict[str, Any]) -> str:
         amount_val = 0.0
     amount_s = f"{amount_val:.2f}"
     # normalizált text mezők
-    desc = _normalize_text(tx.get("description", ""))[:200]  # rövidítsük, hogy ne legyen túl hosszú string
+    desc = _normalize_text(tx.get("description", ""))[:200]  # rövidítsuk, hogy ne legyen túl hosszú string
     cat = _normalize_text(tx.get("category", ""))
     ttype = _normalize_text(tx.get("tran_type", ""))
     internal = _normalize_text(tx.get("internal_transfer", ""))
@@ -467,5 +504,3 @@ def transform_excel_row(row: Dict[str, Any]) -> Dict[str, Any]:
         "tran_type": tran_type,
         "internal_transfer": internal,
     }
-
-
