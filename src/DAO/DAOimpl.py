@@ -1,14 +1,14 @@
 """DAOImpl.py"""
-import os
 import uuid
-from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
 logger.debug("src.DAO.DAOimpl module imported")
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+# Defer Firebase initialization to db.firebase_client to allow fast-fail and backoff behavior
+from db import firebase_client
+from db.firebase_client import FirebaseUnavailable
+
 from typing import List, Dict, Any
 from abc import ABC
 
@@ -16,30 +16,7 @@ from src.DAO.DAO import DAO
 from src.models.usr_info import UsrInfo
 
 
-conn_path = Path(__file__).resolve().parents[2] / "conninfo.json"
-cred = credentials.Certificate(str(conn_path))
-
-# Firebase inicializálása
-try:
-    firebase_admin.get_app()
-    logger.debug("Firebase app already initialized (DAOimpl)")
-except ValueError:
-    try:
-        logger.info("Initializing Firebase app (DAOimpl) using conninfo.json")
-        firebase_admin.initialize_app(cred)
-        logger.info("Firebase app initialized (DAOimpl)")
-    except Exception as e:
-        logger.exception("Failed to initialize Firebase in DAOimpl")
-        # re-raise so caller code becomes aware during first DB use
-        raise
-
-# Firestore referencia
-try:
-    db = firestore.client()
-    logger.debug("Obtained firestore client in DAOimpl")
-except Exception:
-    logger.exception("Failed to get firestore client in DAOimpl")
-    db = None
+# Avoid initializing firebase_admin at import time; use get_db_client() lazily instead
 
 class FirebaseDAO(DAO, ABC):
     """
@@ -55,20 +32,26 @@ class FirebaseDAO(DAO, ABC):
         Paraméterek:
             collection_name (str): Az adatbázis gyűjteménye, amelyben a rekordok tárolódnak.
         """
-        self.collection = db.collection(collection_name)
+        self.collection_name = collection_name
+        # self.collection will be resolved lazily via get_db_client when needed
+
+    def _get_collection(self):
+        try:
+            db = firebase_client.get_db_client()
+        except FirebaseUnavailable:
+            logger.warning("_get_collection: Firebase unavailable; operations will fall back where supported")
+            return None
+        return db.collection(self.collection_name)
 
     def create(self, data: Dict[str, Any]) -> bool:
-        """
-        Új rekord létrehozása az adatbázisban.
-
-        Paraméterek:
-            data (Dict[str, Any]): A rekordot tartalmazó adatokat, amelyek tárolásra kerülnek.
-
-        Visszatérési érték:
-            bool: Ha a rekord sikeresen létrejött, akkor True, egyébként False.
-        """
         try:
-            if self.collection.id=="user":
+            collection = self._get_collection()
+            if collection is None:
+                # When Firebase is unavailable, perform the best-effort local fallback if possible
+                logger.warning("create: Firebase unavailable - cannot create remote document")
+                return False
+
+            if collection.id=="user":
                 # Az email cím a rekord azonosítója
                 identifier = data.get("email")
 
@@ -76,18 +59,17 @@ class FirebaseDAO(DAO, ABC):
                     raise ValueError("A rekordnak tartalmaznia kell egy email című azonosítót!")
 
                 # A dokumentum azonosítója az email cím lesz
-                doc_ref = self.collection.document(identifier).set(data)
+                doc_ref = collection.document(identifier).set(data)
 
                 # Alapértelmezett UsrInfo létrehozása az új felhasználóhoz
                 usr_info = UsrInfo(user_id=identifier)  # Alap adatokat hozunk létre
-                self.collection=db.collection("usr_info")
-                usr_info_ref = self.collection.document(identifier).set(usr_info.to_dict())
-                self.collection=db.collection("user")
+                users_coll = firebase_client.get_db_client().collection("usr_info")
+                usr_info_ref = users_coll.document(identifier).set(usr_info.to_dict())
                 return True
 
 
 
-            elif self.collection.id == "transactions":
+            elif collection.id == "transactions":
 
                 # Ellenőrizzük, hogy az 'email' mező jelen van-e az adatokban
 
@@ -99,7 +81,7 @@ class FirebaseDAO(DAO, ABC):
 
                 # Létrehozzuk a felhasználóra mutató hivatkozást
 
-                user_ref = db.collection("users").document(user_id)
+                user_ref = firebase_client.get_db_client().collection("users").document(user_id)
 
                 # Generálunk egy egyedi azonosítót a tranzakcióhoz
 
@@ -110,113 +92,115 @@ class FirebaseDAO(DAO, ABC):
                 user_ref.collection("transactions").document(transaction_id).set(data)
 
                 return True
-            elif self.collection.id == "usr_info":
+            elif collection.id == "usr_info":
                 # Az email cím a rekord azonosítója
                 identifier = data.get("email")
 
-                user_ref = db.collection("usr_info").document(identifier)
+                user_ref = firebase_client.get_db_client().collection("usr_info").document(identifier)
 
                 user_ref.collection("usr_info").document(identifier).set(data)
                 return True
 
             else:
-                raise ValueError(f"Ismeretlen gyűjtemény: {self.collection.id}")
+                raise ValueError(f"Ismeretlen gyűjtemény: {collection.id}")
+        except FirebaseUnavailable:
+            logger.warning("create: FirebaseUnavailable - falling back or returning failure quickly")
+            return False
         except Exception as e:
             print(f"Error creating record: {e}")
             return False
 
     def read_user_transactions(self, uid:str | None=None) -> list[dict[str, Any] | None] | None:
-        # Ha identifier (pl. email) van, akkor csak azokat a tranzakciókat kérjük le
+        # If uid provided, attempt to read from Firestore; on FirebaseUnavailable return local stash if present
         if uid:
-            # Az email alapján lekérjük az alkollekciót
-            transactions_ref = self.collection.document(uid).collection("transactions")
-            docs = transactions_ref.stream()
-            return [doc.to_dict() for doc in docs]
+            try:
+                collection = self._get_collection()
+                if collection is None:
+                    return None
+                transactions_ref = collection.document(uid).collection("transactions")
+                docs = transactions_ref.stream()
+                return [doc.to_dict() for doc in docs]
+            except FirebaseUnavailable:
+                logger.warning("read_user_transactions: FirebaseUnavailable - returning None so caller can fallback")
+                return None
+            except Exception as e:
+                logger.exception(f"read_user_transactions failed: {e}")
+                return None
         else:
            return None
 
     def read(self, identifier: str) -> Dict[str, Any]:
-        """
-        Egy rekord lekérdezése az adatbázisból.
-
-        Paraméterek:
-            identifier (str): Az azonosító (pl. rekord ID), amely alapján lekérdezzük az adatot.
-
-        Visszatérési érték:
-            Dict[str, Any]: A lekérdezett rekord adatai egy szótár formájában.
-        """
         try:
-            doc_ref = self.collection.document(identifier)
+            collection = self._get_collection()
+            if collection is None:
+                return {}
+            doc_ref = collection.document(identifier)
             doc = doc_ref.get()
             if doc.exists:
                 return doc.to_dict()
             else:
                 return {}
+        except FirebaseUnavailable:
+            logger.warning("read: FirebaseUnavailable - returning empty dict")
+            return {}
         except Exception as e:
             print(f"Error reading record: {e}")
             return {}
 
     def update(self, identifier: str, data: Dict[str, Any]) -> bool:
-        """
-        Egy rekord frissítése az adatbázisban.
-
-        Paraméterek:
-            identifier (str): Az azonosító (pl. rekord ID), amely alapján frissíteni kell a rekordot.
-            data (Dict[str, Any]): Az új adatokat, amelyekkel frissíteni kell a rekordot.
-
-        Visszatérési érték:
-            bool: Ha a rekord sikeresen frissült, akkor True, egyébként False.
-        """
         try:
-            doc_ref = self.collection.document(identifier)
+            collection = self._get_collection()
+            if collection is None:
+                return False
+            doc_ref = collection.document(identifier)
             doc_ref.update(data)
             return True
+        except FirebaseUnavailable:
+            logger.warning("update: FirebaseUnavailable - returning False")
+            return False
         except Exception as e:
             print(f"Error updating record: {e}")
             return False
 
     def delete(self, identifier: str) -> bool:
-        """
-        Egy rekord törlése az adatbázisból.
-
-        Paraméterek:
-            identifier (str): Az azonosító (pl. rekord ID), amely alapján töröljük a rekordot.
-
-        Visszatérési érték:
-            bool: Ha a rekord sikeresen törlődött, akkor True, egyébként False.
-        """
         try:
-            doc_ref = self.collection.document(identifier)
+            collection = self._get_collection()
+            if collection is None:
+                return False
+            doc_ref = collection.document(identifier)
             doc_ref.delete()
             return True
+        except FirebaseUnavailable:
+            logger.warning("delete: FirebaseUnavailable - returning False")
+            return False
         except Exception as e:
             print(f"Error deleting record: {e}")
             return False
 
     def find_all(self) -> List[Dict[str, Any]]:
-        """
-        Az összes rekord lekérdezése az adatbázisból.
-
-        Visszatérési érték:
-            List[Dict[str, Any]]: Az összes rekord adatai egy listában, ahol minden rekord egy szótár.
-        """
         try:
-            docs = self.collection.stream()
+            collection = self._get_collection()
+            if collection is None:
+                return []
+            docs = collection.stream()
             return [doc.to_dict() for doc in docs]
+        except FirebaseUnavailable:
+            logger.warning("find_all: FirebaseUnavailable - returning empty list")
+            return []
         except Exception as e:
             print(f"Error fetching all records: {e}")
             return []
 
     def count(self) -> int:
-        """
-        Az összes rekord számának lekérdezése az adatbázisból.
-
-        Visszatérési érték:
-            int: A rekordok száma.
-        """
         try:
-            docs = self.collection.stream()
+            collection = self._get_collection()
+            if collection is None:
+                return 0
+            docs = collection.stream()
             return len(list(docs))
+        except FirebaseUnavailable:
+            logger.warning("count: FirebaseUnavailable - returning 0")
+            return 0
         except Exception as e:
             print(f"Error counting records: {e}")
             return 0
@@ -224,26 +208,25 @@ class FirebaseDAO(DAO, ABC):
     def user_exists(self, email: str) -> bool:
         """Ellenőrzi, hogy a felhasználó létezik-e az email alapján"""
         try:
-            # A 'users' gyűjteményből lekérjük az adott emaillel rendelkező dokumentumot
-            user_ref = self.collection.document(email)  # Itt már nem db-t használunk, hanem a self.collection-t
+            collection = self._get_collection()
+            if collection is None:
+                return False
+            user_ref = collection.document(email)  # Itt már nem db-t használunk, hanem a self.collection-t
             doc = user_ref.get()
 
             # Ha a dokumentum létezik, visszatérünk True-val, különben False
             return doc.exists
+        except FirebaseUnavailable:
+            logger.warning("user_exists: FirebaseUnavailable - returning False")
+            return False
         except Exception as e:
             print(f"Hiba történt a felhasználó ellenőrzése során: {e}")
             return False
 
     def get_user_info_by_email(self, email):
-        """
-        Lekérdezi a felhasználó adatokat az email alapján.
-
-        :param email: A felhasználó email címe.
-        :return: Dict[str, Any] - A felhasználó adatait tartalmazó szótár.
-        """
         try:
-            self.collection=db.collection('usr_info')
-            user_ref = self.collection.document(email)  # Az email azonosítja a felhasználót
+            users_coll = firebase_client.get_db_client().collection('usr_info')
+            user_ref = users_coll.document(email)  # Az email azonosítja a felhasználót
             user_doc = user_ref.get()  # Lekérdezzük a dokumentumot
 
             if user_doc.exists:
@@ -252,14 +235,17 @@ class FirebaseDAO(DAO, ABC):
             else:
                 print("A felhasználó nem található.")
                 return {}  # Ha a felhasználó nem található, üres szótárat adunk vissza
+        except FirebaseUnavailable:
+            logger.warning("get_user_info_by_email: FirebaseUnavailable - returning empty dict")
+            return {}
         except Exception as e:
             print(f"Hiba történt a felhasználó adatainak lekérésekor: {e}")
             return {} #
 
     def get_user_by_email(self,email):
         try:
-            self.collection=db.collection('user')
-            user_ref = self.collection.document(email)
+            users_coll = firebase_client.get_db_client().collection('user')
+            user_ref = users_coll.document(email)
             user_doc = user_ref.get()
             if user_doc.exists:
                 # Ha létezik a dokumentum, visszaadjuk az adatokat
@@ -267,68 +253,72 @@ class FirebaseDAO(DAO, ABC):
             else:
                 print("A felhasználó nem található.")
                 return {}  # Ha a felhasználó nem található, üres szótárat adunk vissza
+        except FirebaseUnavailable:
+            logger.warning("get_user_by_email: FirebaseUnavailable - returning empty dict")
+            return {}
         except Exception as e:
             print(f"Hiba történt a felhasználó adatainak lekérésekor: {e}")
-            return {}  #
+            return {}
 
     def upload_transactions(self,
                             transactions: List[Dict[str, Any]],
                             user_id: str = None) -> int:
-        """
-        Tranzakciók listájának feltöltése a Firestore-ba a meglévő create metódus használatával.
-
-        Paraméterek:
-            transactions (List[Dict[str, Any]]): A feltöltendő tranzakciók listája.
-            user_id (str, optional): Opcionális felhasználói azonosító.
-                                     Ha meg van adva, felülírja a tranzakciókban lévő user_id-t.
-        """
-        if self.collection.id != "transactions":
+        if self.collection_name != "transactions":
             print("Hiba: Az upload_transactions metódus csak a 'transactions' kollekcióval működik.")
             return 0
 
         uploaded_count = 0
         for data in transactions:
-            # 1. Ha a metódus paraméterként kapott user_id-t,
-            # akkor ezt használjuk a beágyazott adat helyett.
             if user_id:
                 data['user_id'] = user_id
 
-            # 2. Ellenőrizzük, hogy az adatok tartalmaznak-e user_id-t.
             if 'user_id' not in data:
                 print("FIGYELEM: Egy tranzakció kihagyva, mert hiányzik a user_id.")
                 continue
 
-            # 3. Feltöltés (az eredeti create metódus már elvégzi a mentést az alkollekcióba).
             if self.create(data):
                 uploaded_count += 1
 
         return uploaded_count
 
     def delete_all_user_transactions(self, user_id: str) -> int:
-        """
-        Egy adott felhasználó (user_id alapján) összes tranzakciójának törlése az alkollekcióból.
-        """
-        if self.collection.id != "transactions":
-            # Bár logikailag a 'users' kollekciót érinti, a DAO 'transactions' kontextusban fut.
+        if self.collection_name != "transactions":
             print("Hiba: A delete_all_user_transactions metódus csak a 'transactions' kollekcióval működik.")
             return 0
 
         try:
-            # A tranzakciók elérési útvonala: /users/{user_id}/transactions
-            user_ref = db.collection("users").document(user_id)
-            transactions_ref = user_ref.collection("transactions")
-
-            # Lekérjük az összes dokumentum referenciáját
-            docs = transactions_ref.stream()
-
+            docs = firebase_client.get_db_client().collection("users").document(user_id).collection("transactions").stream()
             deleted_count = 0
-            # Töröljük az összes tranzakciót egyesével
             for doc in docs:
                 doc.reference.delete()
                 deleted_count += 1
 
             return deleted_count
 
+        except FirebaseUnavailable:
+            logger.warning("delete_all_user_transactions: FirebaseUnavailable - returning 0")
+            return 0
         except Exception as e:
             print(f"Hiba történt a törlés során a(z) {user_id} felhasználónál: {e}")
             return 0
+
+    def check_quota_status(self) -> dict:
+        """
+        Check the quota status of the Firebase database.
+        Returns a dictionary with the quota status, e.g., {"quota_reached": True/False}.
+        """
+        try:
+            db = firebase_client.get_db_client()
+            # Example: Check a lightweight document for quota status
+            quota_doc = db.collection("quota_status").document("status").get()
+            if quota_doc.exists:
+                return quota_doc.to_dict()
+            else:
+                return {"quota_reached": False}  # Default to False if no status document exists
+        except FirebaseUnavailable:
+            logger.warning("check_quota_status: Firebase unavailable; assuming quota reached")
+            return {"quota_reached": True}  # Assume quota is reached if Firebase is unavailable
+        except Exception as e:
+            logger.error(f"check_quota_status: Unexpected error: {e}")
+            return {"quota_reached": True}  # Assume quota is reached on unexpected errors
+

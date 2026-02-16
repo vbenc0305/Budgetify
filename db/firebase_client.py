@@ -3,11 +3,14 @@ from firebase_admin import credentials, firestore
 from typing import Optional, Any
 import threading
 import logging
-import os
 import json
 from pathlib import Path
-from datetime import datetime, timedelta
-import asyncio
+from datetime import datetime, timedelta, timezone
+import os
+import socket
+import csv
+from uuid import uuid4
+from concurrent.futures import ThreadPoolExecutor, Future, TimeoutError as FutureTimeout
 
 logger = logging.getLogger(__name__)
 logger.debug("db.firebase_client module imported")
@@ -17,8 +20,30 @@ _db_client_lock = threading.Lock()
 _db_client: Optional[Any] = None
 _db_init_error: Optional[str] = None
 
-OFFLINE_DIR = Path("offline_backups")
-OFFLINE_DIR.mkdir(parents=True, exist_ok=True)
+# Fast-fail/backoff controls to avoid repeated long waits when Google services are unreachable or quota is exceeded.
+# Can be tweaked via environment variables.
+INIT_CONNECT_HOST = os.getenv("FIREBASE_INIT_HOST", "oauth2.googleapis.com")
+INIT_CONNECT_PORT = int(os.getenv("FIREBASE_INIT_PORT", "443"))
+INIT_CONNECT_TIMEOUT = float(os.getenv("FIREBASE_INIT_TIMEOUT", "2"))  # seconds for TCP probe
+INIT_BACKOFF_SECONDS = int(os.getenv("FIREBASE_RETRY_BACKOFF", "60"))  # wait between init attempts after failure
+QUOTA_BACKOFF_SECONDS = int(os.getenv("FIREBASE_QUOTA_BACKOFF", "3600"))  # longer wait after quota errors
+INIT_DEADLINE_SECONDS = float(os.getenv("FIREBASE_INIT_DEADLINE", "5"))  # fail-fast cutoff for firebase_admin (5s default to avoid 300s hangs)
+
+_last_init_attempt: Optional[datetime] = None
+_quota_exceeded_until: Optional[datetime] = None
+_init_executor = ThreadPoolExecutor(max_workers=1)
+_init_future: Optional[Future] = None
+
+# Use a single directory for per-user transaction cache and offline stashes for readability.
+# `OFFLINE_DIR` is kept as an alias for backward compatibility.
+USER_TX_DIR = Path("userTransactions")
+USER_TX_DIR.mkdir(parents=True, exist_ok=True)
+OFFLINE_DIR = USER_TX_DIR
+
+FALLBACK_DATASET_PATH = Path("datasets") / "Dataset.csv"
+_fallback_rows: list[dict] | None = None
+_fallback_rows_mtime: float | None = None
+_fallback_lock = threading.Lock()
 
 # marker files for fetch_needed when Firestore cannot be updated immediately
 FETCH_MARKER_SUFFIX = ".fetch"
@@ -29,35 +54,162 @@ class FirebaseUnavailable(Exception):
     pass
 
 
+def _looks_like_quota_error(exc: Exception | str) -> bool:
+    text = str(exc).lower()
+    return any(keyword in text for keyword in ("quota", "rate limit", "429"))
+
+
+def _mark_quota_backoff(reason: str) -> None:
+    global _quota_exceeded_until, _db_init_error
+    _db_init_error = reason
+    _quota_exceeded_until = datetime.now(timezone.utc) + timedelta(seconds=QUOTA_BACKOFF_SECONDS)
+
+
+def _firebase_init_worker():
+    """Worker that initializes Firebase in a separate thread with socket timeout."""
+    import socket as sock_module
+    # Set aggressive socket timeout to prevent 300s hangs
+    old_timeout = sock_module.getdefaulttimeout()
+    try:
+        # Force all socket operations to timeout after 5 seconds
+        sock_module.setdefaulttimeout(5.0)
+
+        try:
+            firebase_admin.get_app()
+            logger.debug("Firebase default app already exists; worker will reuse instance")
+        except ValueError:
+            cred = credentials.Certificate(_cred_path)
+            firebase_admin.initialize_app(cred)
+        return firestore.client()
+    except Exception as exc:
+        logger.exception("Firebase init worker failed")
+        raise exc
+    finally:
+        # Restore original timeout
+        sock_module.setdefaulttimeout(old_timeout)
+
+
 def _init_firebase():
-    """Internal: initialize firebase app and return a firestore client."""
-    global _db_client, _db_init_error
+    """Internal: initialize firebase app and return a firestore client.
+
+    This function now includes a short TCP connectivity probe and backoff logic so that
+    when Google's token endpoints are unreachable (or quota-limited) the app fails fast
+    and falls back to local caches instead of blocking for long network timeouts.
+    """
+    global _db_client, _db_init_error, _last_init_attempt, _quota_exceeded_until, _init_future
     logger.debug("_init_firebase called")
+
+    now = datetime.now(timezone.utc)
+
+    # CRITICAL: Check quota status FIRST before any network operations
+    if _quota_exceeded_until is not None and now < _quota_exceeded_until:
+        msg = f"Firebase quota backoff active until {_quota_exceeded_until.isoformat()}"
+        logger.warning(msg)
+        raise FirebaseUnavailable(msg)
+
     # double-checked locking
     if _db_client is not None:
         logger.debug("_db_client already initialized")
         return _db_client
 
+
+    # Feature-flag to force immediate fail-fast (useful during testing or when you want local-only operation)
+    if os.getenv("FIREBASE_FAILFAST", "").lower() in ("1", "true", "yes"):
+        _db_init_error = "FIREBASE_FAILFAST enabled"
+        logger.warning("FIREBASE_FAILFAST enabled - skipping Firebase initialization")
+        raise FirebaseUnavailable(_db_init_error)
+
+
+    # If there was a recent init attempt that failed, avoid hammering and fail fast until backoff expires
+    if _last_init_attempt is not None and (now - _last_init_attempt) < timedelta(seconds=INIT_BACKOFF_SECONDS):
+        msg = f"Recent Firebase init failed at {_last_init_attempt.isoformat()}; backing off ({INIT_BACKOFF_SECONDS}s)"
+        logger.debug(msg)
+        _db_init_error = msg
+        raise FirebaseUnavailable(msg)
+
     with _db_client_lock:
         if _db_client is not None:
             logger.debug("_db_client already initialized (inside lock)")
             return _db_client
-        try:
-            logger.info(f"Initializing Firebase with cred path: {_cred_path}")
-            cred = credentials.Certificate(_cred_path)
-            if not firebase_admin._apps:
-                # initialize_app can perform network work; keep it inside try/except
-                firebase_admin.initialize_app(cred)
-            _db_client = firestore.client()
-            logger.info("Firebase initialized successfully")
-            _db_init_error = None
+    # perform a quick TCP probe to the oauth2 host so we can fail fast if network is down or blocked
+    try:
+        logger.debug(f"Probing connectivity to {INIT_CONNECT_HOST}:{INIT_CONNECT_PORT} with timeout {INIT_CONNECT_TIMEOUT}s")
+        sock = socket.create_connection((INIT_CONNECT_HOST, INIT_CONNECT_PORT), timeout=INIT_CONNECT_TIMEOUT)
+        sock.close()
+    except Exception as probe_exc:
+        _last_init_attempt = datetime.now(timezone.utc)
+        _db_init_error = f"Network probe failed: {probe_exc}"
+        logger.warning(f"Firebase init probe failed: {probe_exc}")
+        raise FirebaseUnavailable(_db_init_error) from probe_exc
+
+    # Add a timeout for Firebase initialization
+    try:
+        with socket.create_connection((INIT_CONNECT_HOST, INIT_CONNECT_PORT), timeout=INIT_CONNECT_TIMEOUT):
+            logger.debug(f"Connectivity probe to {INIT_CONNECT_HOST}:{INIT_CONNECT_PORT} succeeded")
+    except socket.timeout:
+        msg = f"Connectivity probe to {INIT_CONNECT_HOST}:{INIT_CONNECT_PORT} timed out after {INIT_CONNECT_TIMEOUT}s"
+        logger.error(msg)
+        _db_init_error = msg
+        raise FirebaseUnavailable(msg)
+    except Exception as e:
+        msg = f"Connectivity probe to {INIT_CONNECT_HOST}:{INIT_CONNECT_PORT} failed: {e}"
+        logger.error(msg)
+        _db_init_error = msg
+        raise FirebaseUnavailable(msg)
+
+    future: Optional[Future] = None
+    with _db_client_lock:
+        if _db_client is not None:
             return _db_client
-        except Exception as e:
-            _db_init_error = str(e)
-            logger.exception("Failed to initialize Firebase client")
-            _db_client = None
-            # Raise a dedicated exception for upstream handlers
-            raise FirebaseUnavailable(f"Failed to initialize Firebase client: {_db_init_error}") from e
+        if _init_future and _init_future.done():
+            try:
+                client = _init_future.result()
+                _db_client = client
+                _init_future = None
+                _db_init_error = None
+                return _db_client
+            except Exception as exc:
+                _init_future = None
+                msg = f"Firebase initialization failed: {exc}"
+                logger.error(msg)
+                _db_init_error = msg
+                if _looks_like_quota_error(exc):
+                    _mark_quota_backoff(msg)
+                raise FirebaseUnavailable(msg)
+        if _init_future is None:
+            _last_init_attempt = datetime.now(timezone.utc)
+            logger.debug("Spawning Firebase init worker")
+            _init_future = _init_executor.submit(_firebase_init_worker)
+        future = _init_future
+
+    try:
+        client = future.result(timeout=INIT_DEADLINE_SECONDS)
+    except FutureTimeout:
+        msg = f"Firebase initialization timed out after {INIT_DEADLINE_SECONDS}s - likely quota exceeded"
+        logger.error(msg)
+        # Cancel the future (though worker thread will continue until Python GC)
+        with _db_client_lock:
+            _init_future = None
+        _mark_quota_backoff(msg)
+        logger.warning(f"Quota backoff activated until {_quota_exceeded_until.isoformat() if _quota_exceeded_until else 'unknown'}")
+        raise FirebaseUnavailable(msg)
+    except Exception as exc:
+        msg = f"Firebase initialization failed: {exc}"
+        logger.error(msg)
+        with _db_client_lock:
+            _init_future = None
+        if _looks_like_quota_error(exc):
+            _mark_quota_backoff(msg)
+        else:
+            _db_init_error = msg
+        raise FirebaseUnavailable(msg)
+    else:
+        with _db_client_lock:
+            _db_client = client
+            _init_future = None
+            _db_init_error = None
+        logger.info("Firebase initialized successfully")
+        return client
 
 
 def get_db_client() -> Any:
@@ -65,11 +217,45 @@ def get_db_client() -> Any:
     # If a previous init attempt failed, return a clear error immediately
     if _db_init_error is not None:
         logger.debug("get_db_client: previous init error detected")
-        raise FirebaseUnavailable(f"Firebase unavailable: {_db_init_error}")
+        # If the error is old and backoff expired, attempt to re-init; otherwise raise quickly
+        now = datetime.now(timezone.utc)
+        if _quota_exceeded_until is not None and now < _quota_exceeded_until:
+            raise FirebaseUnavailable(f"Firebase unavailable: {_db_init_error}")
+        if _last_init_attempt is not None and (now - _last_init_attempt) < timedelta(seconds=INIT_BACKOFF_SECONDS):
+            raise FirebaseUnavailable(f"Firebase unavailable: {_db_init_error}")
     if _db_client is not None:
         logger.debug("returning existing db client")
         return _db_client
     return _init_firebase()
+
+
+# --- quota helpers -------------------------------------------------
+
+def is_quota_exceeded() -> bool:
+    """Return True if we've recently detected a quota/rate-limit condition and are currently backing off."""
+    if _quota_exceeded_until is None:
+        return False
+    try:
+        return datetime.now(timezone.utc) < _quota_exceeded_until
+    except Exception:
+        return False
+
+
+def get_quota_status() -> dict:
+    """Return a small status dict describing quota/backoff state for logging or health checks.
+
+    Keys:
+      - quota_exceeded: bool
+      - quota_exceeded_until: ISO timestamp or None
+      - last_init_attempt: ISO timestamp or None
+      - init_error: str or None
+    """
+    return {
+        "quota_exceeded": is_quota_exceeded(),
+        "quota_exceeded_until": _quota_exceeded_until.isoformat() if _quota_exceeded_until else None,
+        "last_init_attempt": _last_init_attempt.isoformat() if _last_init_attempt else None,
+        "init_error": _db_init_error,
+    }
 
 
 # ----------------- Offline/age helpers -----------------
@@ -87,9 +273,9 @@ def is_offline_file_stale(uid: str, days: int = 7) -> bool:
     if not p.exists():
         return False
     try:
-        # use UTC to compare reliably with datetime.utcnow()
-        mtime = datetime.utcfromtimestamp(p.stat().st_mtime)
-        age = datetime.utcnow() - mtime
+        # use timezone-aware UTC datetimes
+        mtime = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc)
+        age = datetime.now(timezone.utc) - mtime
         logger.debug(f"Offline file for uid={uid} mtime={mtime.isoformat()} age_days={age.days}")
         return age > timedelta(days=days)
     except Exception:
@@ -104,7 +290,7 @@ def _fetch_marker_path(uid: str) -> Path:
 def _write_fetch_marker(uid: str) -> None:
     try:
         p = _fetch_marker_path(uid)
-        p.write_text(datetime.utcnow().isoformat())
+        p.write_text(datetime.now(timezone.utc).isoformat())
         logger.info(f"Wrote fetch marker for uid={uid} at {p}")
     except Exception:
         logger.exception("Failed to write fetch marker")
@@ -138,6 +324,78 @@ def _flush_fetch_marker(uid: str) -> bool:
     except Exception:
         logger.exception("Failed to set fetch_needed in Firestore")
         return False
+
+
+# ----------------- Local user transactions helpers -----------------
+
+def _local_tx_path(uid: str) -> Path:
+    """Per-user JSONL file path for locally saved transactions."""
+    return USER_TX_DIR / f"{uid}.jsonl"
+
+
+def _append_local_tx(uid: str, tx_data: dict) -> None:
+    """Append a single transaction as JSON line to the per-user file."""
+    try:
+        p = _local_tx_path(uid)
+        with p.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(tx_data, ensure_ascii=False) + "\n")
+        logger.info(f"Appended local tx for uid={uid} to {p}")
+    except Exception:
+        logger.exception(f"Failed to append local tx for uid={uid}")
+
+
+def _append_local_txs(uid: str, tx_list: list[dict]) -> int:
+    """Append multiple transactions; returns number written."""
+    count = 0
+    try:
+        p = _local_tx_path(uid)
+        with p.open("a", encoding="utf-8") as fh:
+            for tx in tx_list:
+                fh.write(json.dumps(tx, ensure_ascii=False) + "\n")
+                count += 1
+        logger.info(f"Appended {count} local txs for uid={uid} to {p}")
+    except Exception:
+        logger.exception(f"Failed to append local txs for uid={uid}")
+    return count
+
+
+def _read_local_txs(uid: str) -> list:
+    """Read locally saved transactions for a user; returns list of dicts.
+    If file missing, returns empty list.
+    """
+    p = _local_tx_path(uid)
+    if not p.exists():
+        return []
+    out = []
+    try:
+        with p.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    out.append(json.loads(line))
+                except Exception:
+                    logger.exception(f"Skipping invalid JSON line in {p}")
+        logger.debug(f"Read {len(out)} local txs for uid={uid} from {p}")
+    except Exception:
+        logger.exception(f"Failed to read local txs for uid={uid}")
+    return out
+
+
+def _write_local_txs_overwrite(uid: str, tx_list: list[dict]) -> None:
+    """Atomically overwrite the per-user local JSONL file with tx_list (list of dicts)."""
+    try:
+        p = _local_tx_path(uid)
+        tmp = p.with_suffix('.tmp')
+        with tmp.open('w', encoding='utf-8') as fh:
+            for tx in tx_list:
+                fh.write(json.dumps(tx, ensure_ascii=False) + '\n')
+        # atomic replace
+        tmp.replace(p)
+        logger.info(f"Wrote {len(tx_list)} txs to local stash for uid={uid} at {p}")
+    except Exception:
+        logger.exception(f"Failed to write local txs for uid={uid}")
 
 
 # ----------------- DB operations -----------------
@@ -213,6 +471,88 @@ def add_new_occupation(name: str):
         return False
 
 
+def _parse_amount(value: str) -> float:
+    cleaned = (value or "").replace("\xa0", "").replace(" ", "")
+    cleaned = cleaned.replace(",", "")
+    if not cleaned:
+        raise ValueError("empty amount value in fallback dataset")
+    return float(cleaned)
+
+
+def _normalize_date_value(value: str | None) -> str | None:
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y.%m.%d %H:%M:%S", "%Y.%m.%d"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+            return parsed.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            continue
+    return text
+
+
+def _normalize_dataset_row(row: dict, idx: int) -> dict:
+    date_value = row.get("Tranzakció dátuma") or row.get("Könyvelés dátuma")
+    amount_value = _parse_amount(str(row.get("Összeg", "")))
+    return {
+        "id": row.get("id") or f"fallback-{idx}",
+        "amount": amount_value,
+        "category": row.get("Költési kategória") or "Ismeretlen",
+        "date": _normalize_date_value(date_value),
+        "description": row.get("Közlemény") or row.get("Partner neve") or "",
+        "for_who": row.get("Partner neve") or "",
+        "tran_type": row.get("Típus") or row.get("Bejövő/Kimenő") or "Ismeretlen",
+        "internal_transfer": "none",
+        "data_source": "dataset",
+    }
+
+
+def _load_dataset_fallback() -> list[dict]:
+    global _fallback_rows, _fallback_rows_mtime
+    path = FALLBACK_DATASET_PATH
+    if not path.exists():
+        logger.warning("Fallback dataset missing at %s", path)
+        return []
+
+    mtime = path.stat().st_mtime
+    with _fallback_lock:
+        if _fallback_rows is not None and _fallback_rows_mtime == mtime:
+            return _fallback_rows
+
+        rows: list[dict] = []
+        try:
+            with path.open("r", encoding="utf-8-sig") as csv_file:
+                reader = csv.DictReader(csv_file)
+                for idx, raw in enumerate(reader):
+                    try:
+                        rows.append(_normalize_dataset_row(raw, idx))
+                    except Exception:
+                        logger.exception("Failed to normalize fallback dataset row %s", idx)
+        except Exception:
+            logger.exception("Failed to load fallback dataset from %s", path)
+            rows = []
+
+        _fallback_rows = rows
+        _fallback_rows_mtime = mtime if rows else None
+        return rows
+
+
+def get_fallback_transactions(uid: str) -> list[dict]:
+    base_rows = _load_dataset_fallback()
+    if not base_rows:
+        return []
+    output = []
+    for idx, row in enumerate(base_rows):
+        tx = dict(row)
+        tx["user_id"] = uid
+        tx.setdefault("id", f"fallback-{uid}-{idx}")
+        output.append(tx)
+    return output
+
+
 def get_user_transactions(uid: str):
     """Return user's transactions from Firestore. Also set `fetch_needed` when local offline stash is stale.
 
@@ -224,6 +564,19 @@ def get_user_transactions(uid: str):
     """
     if not uid:
         return []
+
+    # Short-circuit: if we have a fresh local stash for this user, prefer it and skip Firestore.
+    try:
+        local_path = _local_tx_path(uid)
+        if local_path.exists():
+            mtime = datetime.fromtimestamp(local_path.stat().st_mtime, tz=timezone.utc)
+            age = datetime.now(timezone.utc) - mtime
+            if age <= timedelta(days=7):
+                logger.info(f"Using fresh local stash for uid={uid} (age_days={age.days}) - skipping Firestore")
+                return _read_local_txs(uid)
+    except Exception:
+        # If anything goes wrong when inspecting the local file, continue with normal logic
+        logger.exception("Error while checking local userTransactions stash; falling back to normal fetch logic")
 
     # 1) Check offline file staleness and ensure fetch flag/marker is written (always attempted)
     try:
@@ -248,7 +601,15 @@ def get_user_transactions(uid: str):
     try:
         db = get_db_client()
     except FirebaseUnavailable:
-        logger.warning(f"get_user_transactions: FirebaseUnavailable for uid={uid}")
+        logger.warning(f"get_user_transactions: FirebaseUnavailable for uid={uid} — returning local stash if present")
+        # Fallback: return locally saved transactions if any
+        local = _read_local_txs(uid)
+        if local:
+            return local
+        fallback = get_fallback_transactions(uid)
+        if fallback:
+            logger.info("Serving fallback dataset transactions for uid=%s", uid)
+            return fallback
         return []
 
     try:
@@ -257,11 +618,40 @@ def get_user_transactions(uid: str):
         docs = transactions_ref.stream()
         res = [doc.to_dict() for doc in docs]
     except Exception as e:
-        logger.exception(f"Hiba a felhasználó tranzakcióinak lekérésekor for uid={uid}: {e}")
+        logger.exception(f"Hiba a felhasználó tranzakcióinak lekérésekor for uid={uid}: {e} — falling back to local stash")
+        local = _read_local_txs(uid)
+        if local:
+            return local
+        fallback = get_fallback_transactions(uid)
+        if fallback:
+            logger.info("Serving fallback dataset transactions for uid=%s due to read failure", uid)
+            return fallback
         return []
 
-
-    return res
+    # Merge remote + local stash: local stash may contain transactions not yet pushed; include them but avoid duplicates by id
+    local = _read_local_txs(uid)
+    if not local:
+        # write remote result to local cache for future fast reads
+        try:
+            _write_local_txs_overwrite(uid, res)
+        except Exception:
+            logger.exception("Failed to update local cache with remote transactions")
+        return res
+    # index remote by id if possible
+    remote_by_id = {tx.get('id'): tx for tx in res if isinstance(tx, dict) and tx.get('id')}
+    merged = list(res)
+    for ltx in local:
+        lid = ltx.get('id')
+        if lid and lid in remote_by_id:
+            # prefer remote version (assumed authoritative)
+            continue
+        merged.append(ltx)
+    # Attempt to update local cache with merged view so future reads use the cache
+    try:
+        _write_local_txs_overwrite(uid, merged)
+    except Exception:
+        logger.exception("Failed to update local cache with merged transactions")
+    return merged
 
 
 def get_usr_info_doc(id: str):
@@ -280,26 +670,116 @@ def update_usr_info_doc(id: str, data: dict):
 
 
 def save_user_transaction(uid: str, transaction_data: dict):
-    db = get_db_client()
-    doc_id = transaction_data.get("id")
-    collection_ref = db.collection("users").document(uid).collection("transactions")
-    if doc_id:
+    """Save a single transaction. Try Firestore; on failure, append to local JSONL stash and return a generated id.
+
+    Returns the document id (str) on success or the locally generated id when falling back.
+    """
+    # ensure we have an id for local fallback
+    import uuid
+    doc_id = transaction_data.get("id") or str(uuid.uuid4())
+    transaction_data = dict(transaction_data)
+    transaction_data["id"] = doc_id
+
+    try:
+        db = get_db_client()
+    except FirebaseUnavailable:
+        logger.warning(f"save_user_transaction: Firebase unavailable for uid={uid}; saving locally")
+        _append_local_tx(uid, transaction_data)
+        return doc_id
+
+    try:
+        collection_ref = db.collection("users").document(uid).collection("transactions")
         doc_ref = collection_ref.document(doc_id)
-    else:
-        doc_ref = collection_ref.document()
-    doc_ref.set(transaction_data)
-    return doc_ref.id
+        doc_ref.set(transaction_data)
+        return doc_ref.id
+    except Exception:
+        logger.exception(f"Failed to save transaction to Firestore for uid={uid}; saving locally")
+        _append_local_tx(uid, transaction_data)
+        return doc_id
 
 
 def save_user_transactions(uid: str, transactions: list[dict]):
+    """Save multiple transactions. Try batch write to Firestore; on failure, append locally. Returns number written.
+    """
     if not transactions:
         return 0
-    db = get_db_client()
-    collection_ref = db.collection("users").document(uid).collection("transactions")
-    batch = db.batch()
-    for tx_data in transactions:
-        doc_id = tx_data.get("id")
-        doc_ref = collection_ref.document(doc_id) if doc_id else collection_ref.document()
-        batch.set(doc_ref, tx_data)
-    batch.commit()
-    return len(transactions)
+
+    # ensure ids exist for local fallback
+    import uuid
+    txs = []
+    for tx in transactions:
+        tx_copy = dict(tx)
+        if not tx_copy.get("id"):
+            tx_copy["id"] = str(uuid.uuid4())
+        txs.append(tx_copy)
+
+    try:
+        db = get_db_client()
+    except FirebaseUnavailable:
+        logger.warning(f"save_user_transactions: Firebase unavailable for uid={uid}; saving {len(txs)} locally")
+        return _append_local_txs(uid, txs)
+
+    try:
+        collection_ref = db.collection("users").document(uid).collection("transactions")
+        batch = db.batch()
+        for tx_data in txs:
+            doc_id = tx_data.get("id")
+            doc_ref = collection_ref.document(doc_id) if doc_id else collection_ref.document()
+            batch.set(doc_ref, tx_data)
+        batch.commit()
+        return len(txs)
+    except Exception:
+        logger.exception(f"Failed to batch save transactions to Firestore for uid={uid}; saving locally")
+        return _append_local_txs(uid, txs)
+
+
+def flush_local_transactions(uid: str) -> int:
+    """Attempt to push locally-stashed transactions for `uid` to Firestore.
+
+    Returns number of transactions successfully pushed. On success the local file is removed.
+    If Firebase is unavailable or push fails, returns 0 and keeps the local file.
+    """
+    txs = _read_local_txs(uid)
+    if not txs:
+        return 0
+    try:
+        db = get_db_client()
+    except FirebaseUnavailable:
+        logger.debug(f"flush_local_transactions: Firebase unavailable for uid={uid}")
+        return 0
+
+    try:
+        collection_ref = db.collection("users").document(uid).collection("transactions")
+        batch = db.batch()
+        for tx in txs:
+            doc_id = tx.get('id')
+            doc_ref = collection_ref.document(doc_id) if doc_id else collection_ref.document()
+            batch.set(doc_ref, tx)
+        batch.commit()
+        # If commit succeeded, remove local stash
+        try:
+            p = _local_tx_path(uid)
+            if p.exists():
+                p.unlink()
+                logger.info(f"Flushed and removed local tx stash for uid={uid}")
+        except Exception:
+            logger.exception(f"Failed to remove local tx stash for uid={uid} after flushing")
+        return len(txs)
+    except Exception:
+        logger.exception(f"Failed to flush local transactions to Firestore for uid={uid}")
+        return 0
+
+
+def flush_all_local_transactions() -> int:
+    """Find all files in USER_TX_DIR and attempt to flush each one. Returns total pushed count."""
+    total = 0
+    try:
+        for p in USER_TX_DIR.iterdir():
+            if not p.is_file() or not p.name.endswith('.jsonl'):
+                continue
+            uid = p.stem
+            pushed = flush_local_transactions(uid)
+            total += pushed
+    except Exception:
+        logger.exception("Failed during flush_all_local_transactions")
+    return total

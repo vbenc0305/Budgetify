@@ -5,7 +5,7 @@ import pandas as pd
 from starlette.responses import JSONResponse
 
 from api.dependencies import get_current_user_uid
-from db.firebase_client import get_user_transactions, save_user_transaction, save_user_transactions, FirebaseUnavailable
+from db.firebase_client import get_user_transactions, save_user_transaction, save_user_transactions, FirebaseUnavailable, is_quota_exceeded, get_quota_status
 from src.models.transactions import Transaction
 from typing import List, Dict, Any, Optional
 from fastapi import Body, Depends, HTTPException, APIRouter
@@ -27,26 +27,44 @@ _pipeline: Optional[object] = None
 EXPECTED_KEYS = {"összeg", "tranzakció", "tranzakció dátuma", "közlemény", "típus", "bejövő", "kimenő", "bejövő/kimenő", "költési kategória"}
 
 
-def _get_pipeline() -> object:
-    """Return a cached ForecastPipeline, creating it in a background thread on first call.
-    This performs a lazy import of the Generation module to avoid import-time side-effects.
+async def _get_pipeline() -> object:
+    """Asynchronously return a cached ForecastPipeline instance.
+    Creation is performed in a worker thread to avoid blocking the running event loop.
+    Lazy-imports the Generation module to avoid import-time side-effects.
     """
     global _pipeline
     if _pipeline is not None:
         return _pipeline
-    with _pipeline_lock:
-        if _pipeline is not None:
-            return _pipeline
-        try:
-            # lazy import the module that defines ForecastPipeline
-            gen_mod = importlib.import_module("src.Generation.Case_one_has_enough_Transact_arima")
-            ForecastPipeline = getattr(gen_mod, "ForecastPipeline")
-            # create pipeline in thread to avoid blocking asyncio event loop
-            _pipeline = asyncio.get_event_loop().run_until_complete(asyncio.to_thread(ForecastPipeline))
-            return _pipeline
-        except Exception as e:
-            logger.exception("Failed to initialize ForecastPipeline")
-            raise HTTPException(status_code=500, detail=f"Failed to initialize ForecastPipeline: {e}")
+
+    # perform the heavy/side-effecting creation in a thread so we don't block the loop
+    def _create_pipeline():
+        # use the same threading lock to guard against concurrent creation from multiple threads
+        with _pipeline_lock:
+            global _pipeline
+            if _pipeline is not None:
+                return _pipeline
+            try:
+                gen_mod = importlib.import_module("src.Generation.Case_one_has_enough_Transact_arima")
+                ForecastPipeline = getattr(gen_mod, "ForecastPipeline")
+                # instantiate the pipeline (may be heavy) in worker thread
+                instance = ForecastPipeline()
+                _pipeline = instance
+                return _pipeline
+            except Exception as e:
+                logger.exception("Failed to initialize ForecastPipeline")
+                # propagate so the awaiting coroutine can raise an HTTPException
+                raise
+
+    try:
+        await asyncio.to_thread(_create_pipeline)
+        if _pipeline is None:
+            raise HTTPException(status_code=500, detail="Failed to initialize ForecastPipeline")
+        return _pipeline
+    except HTTPException:
+        raise
+    except Exception as e:
+        # wrap any other exception as HTTPException for the FastAPI layer
+        raise HTTPException(status_code=500, detail=f"Failed to initialize ForecastPipeline: {e}")
 
 @router.get("/transactions")
 async def get_transactions(uid: str = Depends(get_current_user_uid)):
@@ -194,7 +212,10 @@ async def predict_future_transactions(uid: str = Depends(get_current_user_uid)):
 
     # 2) pipeline futtatása háttérszálon, tx_list-tel (így nem duplikáljuk a feature-engineeringet)
     try:
-        result = await asyncio.to_thread(_get_pipeline().run, uid=uid, plot=False, verbose=True)
+        # ensure pipeline is initialized (initialization runs in a worker thread)
+        pipeline = await _get_pipeline()
+        # run the pipeline.run in a worker thread to avoid blocking the event loop
+        result = await asyncio.to_thread(pipeline.run, uid=uid, plot=False, verbose=True)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:

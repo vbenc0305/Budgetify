@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime
 
+from src.Generation.Case_one_has_enough_Transact_arima import ForecastPipeline
 from src.models.company import Company  # Importáljuk a Company osztályt
 from src.DAO.DAOimpl import FirebaseDAO
 from src.models.user import User
@@ -172,5 +173,30 @@ class TestUser(unittest.TestCase):
         # Valid last login beállítása
         self.valid_user.last_login = datetime(2025, 2, 1)
         self.assertEqual(self.valid_user.last_login, datetime(2025, 2, 1))
+
+def make_tx_example():
+    return [
+        {"date":"2024-01-05", "amount": 100.0, "for_who":"out", "user_id":"u1"},
+        {"date":"2024-02-12", "amount": 150.0, "for_who":"out", "user_id":"u1"},
+        {"date":"2024-03-01", "amount": 120.0, "for_who":"out", "user_id":"u1"},
+        {"date":"2024-04-10", "amount": 200.0, "for_who":"out", "user_id":"u1"},
+    ]
+
+def test_run_with_tx_list():
+    p = ForecastPipeline(uid_default="u1")
+    res = p.run(tx_list=make_tx_example(), plot=True, verbose=False)
+    assert res["status"] == "success"
+    assert len(res["history"]) >= 3
+    print(res)
+    assert len(res["forecast"]) == 10
+
+def test_run_empty_tx_list_uses_demo():
+    p = ForecastPipeline(uid_default="u1")
+    res = p.run(tx_list=[], plot=True, verbose=False)
+    assert res["data_source"] == "demo"
+    assert len(res["history"]) == 10
+    assert len(res["forecast"]) == 10
+
+
 if __name__ == '__main__':
-    unittest.main()
+    test_run_with_tx_list()

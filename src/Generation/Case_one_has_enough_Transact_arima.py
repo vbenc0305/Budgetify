@@ -7,29 +7,30 @@ from typing import List, Dict, Optional, Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import warnings
 
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error, r2_score
+from statsmodels.tools.sm_exceptions import ValueWarning
 from statsmodels.tsa.ar_model import AutoReg
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing, Holt
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-from src.Generation.Feature_engineering import engineer_all_features
+from src.Generation.Feature_engineering import engineer_all_features, build_monthly_panel_from_tx, \
+    make_monthly_exog_no_leakage, fit_and_forecast_time_regression_with_exog, make_exog_forecast_from_last_known
 from src.Generation.data_loader import get_all_transactions
 
 # --- Állandók / konfiguráció (NINCS argumentum, FIX uid) ---
 TARGET = "amount"
 FORECAST_STEPS = 10
 ARIMA_ORDER = (1, 1, 1)
-MIN_POINTS = 8  # minimum pont a futtatáshoz (konzervatív)
+MIN_POINTS = 3  # minimum pont a futtatáshoz (konzervatív)
 uid_base = "3Dye4gBbAdPQSto3WbqgkBu6lrj2"
 OUT_PATH = Path("forecast_output.csv")
 
 
 # --- helper funkciók ---
-
-
 def is_flat(series: pd.Series, rel_tol: float = 0.01) -> bool:
     if series is None:
         return True
@@ -42,10 +43,6 @@ def is_flat(series: pd.Series, rel_tol: float = 0.01) -> bool:
     if mean == 0:
         return (mx - mn) < 1e-6
     return (mx - mn) / mean < rel_tol
-
-
-def naive_last(series: pd.Series, steps: int):
-    return np.repeat(series.iloc[-1], steps)
 
 
 # --- segédfüggvény: DataFrame -> havi Series előállítása (robosztusabb) ---
@@ -177,7 +174,8 @@ def fit_and_forecast_arima(series: pd.Series, order=(1, 1, 1), steps=10, use_log
         return None, None, None
 
 
-def fit_and_forecast_sarimax(series: pd.Series, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12), steps=10, use_log=False):
+def fit_and_forecast_sarimax(series: pd.Series, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12),
+                             steps=10, use_log=False, exog: pd.DataFrame = None, exog_forecast: pd.DataFrame = None):
     s = series.copy().astype(float)
     transform = False
     if use_log:
@@ -187,12 +185,28 @@ def fit_and_forecast_sarimax(series: pd.Series, order=(1, 1, 1), seasonal_order=
             s = np.log1p(s)
             transform = True
     try:
+        # align exog to series index if provided
+        exog_train = None
+        if exog is not None:
+            exog_train = exog.reindex(s.index)
+            # coerce exog to numeric, drop non-numeric columns
+            exog_train = exog_train.apply(pd.to_numeric, errors='coerce').ffill().fillna(0.0).values
+
         model = SARIMAX(s, order=order, seasonal_order=seasonal_order,
-                        enforce_stationarity=False, enforce_invertibility=False)
+                        exog=exog_train, enforce_stationarity=False, enforce_invertibility=False)
         fit = model.fit(disp=False)
-        fc = fit.get_forecast(steps=steps)
+
+        # exog_forecast: DataFrame indexed by future months
+        if exog_forecast is not None:
+            exog_fc = exog_forecast.reindex(pd.date_range(start=s.index[-1] + pd.offsets.MonthEnd(1), periods=steps, freq="ME"))
+            exog_fc = exog_fc.apply(pd.to_numeric, errors='coerce').ffill().fillna(0.0).values
+            fc = fit.get_forecast(steps=steps, exog=exog_fc)
+        else:
+            fc = fit.get_forecast(steps=steps)
+
         mean = fc.predicted_mean
         ci = fc.conf_int(alpha=0.2)
+
         if transform:
             cap = 700.0
             max_out = float(max(series.max() * 10.0, 1e6))
@@ -217,8 +231,9 @@ def fit_and_forecast_sarimax(series: pd.Series, order=(1, 1, 1), seasonal_order=
                 pass
             return fit, mean, ci
     except Exception as e:
-        print(f"⚠️ SARIMAX fit error: {e}")
+        print(f"⚠️ SARIMAX fit error (exog aware): {e}")
         return None, None, None
+
 
 
 def fit_and_forecast_ses(series: pd.Series, steps=10):
@@ -261,15 +276,36 @@ def fit_and_forecast_holt(series: pd.Series, steps=10):
 
 def fit_and_forecast_autoreg(series: pd.Series, lags=5, steps=10):
     try:
-        used_lags = min(lags, max(1, len(series) - 1))
-        model = AutoReg(series, lags=used_lags, old_names=False).fit()
-        start = len(series)
-        end = start + steps - 1
-        preds = model.predict(start=start, end=end, dynamic=False)
-        idx = pd.date_range(start=series.index[-1] + pd.offsets.MonthEnd(1), periods=steps, freq="ME")
-        preds = pd.Series(preds.values, index=idx, name="autoreg_forecast")
-        preds = preds.clip(lower=0.0)
-        return model, preds, None
+        n = len(series)
+        if n < 3:
+            # too short for autoreg modelling
+            print(f"⚠️ AutoReg skipped: series too short (n={n}).")
+            return None, None, None
+
+        # Try decreasing lag orders until a fit succeeds or we reach 0
+        max_lag = min(lags, max(0, n - 1))
+        last_exc = None
+        for used_lags in range(max_lag, -1, -1):
+            try:
+                # AutoReg may still fail if effective sample after creating lags is too small
+                model = AutoReg(series, lags=used_lags, old_names=False).fit()
+                start = len(series)
+                end = start + steps - 1
+                preds = model.predict(start=start, end=end, dynamic=False)
+                idx = pd.date_range(start=series.index[-1] + pd.offsets.MonthEnd(1), periods=steps, freq="ME")
+                preds = pd.Series(preds.values, index=idx, name="autoreg_forecast")
+                preds = preds.clip(lower=0.0)
+                #if used_lags != max_lag:
+                 #   print(f"⚠️ AutoReg used reduced lag order {used_lags} (requested {max_lag}) due to limited data.")
+                return model, preds, None
+            except Exception as e:
+                last_exc = e
+                # continue trying with fewer lags
+                continue
+
+        # if we reach here, all attempts failed
+        print(f"⚠️ AutoReg fit error (all lag orders failed): {last_exc}")
+        return None, None, None
     except Exception as e:
         print(f"⚠️ AutoReg fit error: {e}")
         return None, None, None
@@ -324,23 +360,28 @@ def fit_and_forecast_time_regression_boosted(series: pd.Series, steps=10, lags_f
 
 # --- walk-forward (javítva) ---
 def walk_forward_1step(series: pd.Series, model_order=(1, 1, 1), n_test=5):
-    if n_test >= len(series):
-        raise ValueError("n_test túl nagy a sorozathoz.")
-    history = series.iloc[:-n_test].copy()
-    test = series.iloc[-n_test:].tolist()
-    preds = []
-    for t in range(len(test)):
-        try:
-            model = ARIMA(history, order=model_order).fit()
-            yhat = float(model.forecast(steps=1).iloc[0])
-        except Exception:
-            yhat = float(history.iloc[-1])
-        preds.append(yhat)
-        next_idx = history.index[-1] + pd.offsets.MonthEnd(1)
-        history = pd.concat([history, pd.Series([test[t]], index=[next_idx])])
-    mse = mean_squared_error(test, preds)
-    r2 = r2_score(test, preds) if len(test) > 1 else float("nan")
-    return preds, test, mse, r2
+     if n_test >= len(series):
+         raise ValueError("n_test túl nagy a sorozathoz.")
+     history = series.iloc[:-n_test].copy()
+     # ensure frequency is present to avoid statsmodels inferring warnings
+     try:
+         history = history.asfreq('ME')
+     except Exception:
+         pass
+     test = series.iloc[-n_test:].tolist()
+     preds = []
+     for t in range(len(test)):
+         try:
+             model = ARIMA(history, order=model_order).fit()
+             yhat = float(model.forecast(steps=1).iloc[0])
+         except Exception:
+             yhat = float(history.iloc[-1])
+         preds.append(yhat)
+         next_idx = history.index[-1] + pd.offsets.MonthEnd(1)
+         history = pd.concat([history, pd.Series([test[t]], index=[next_idx])])
+     mse = mean_squared_error(test, preds)
+     r2 = r2_score(test, preds) if len(test) > 1 else float("nan")
+     return preds, test, mse, r2
 
 
 # --- plot results ---
@@ -377,15 +418,9 @@ def plot_results(series, forecast_mean, forecast_ci, baseline_preds=None, save_p
     else:
         plt.show()
 
-
-# helper used in plot
-def simple_exp_smoothing_forecast(series, steps):
-    m = SimpleExpSmoothing(series).fit()
-    return m.forecast(steps)
-
-
 # --- Javított pipeline: ARIMA/SARIMAX vs SES vs HOLT vs AUTOREG + fallbacks ---
-def run_short_series_pipeline(monthly_series: pd.Series, plot: bool = False, verbose: bool = False):
+def run_short_series_pipeline(monthly_series: pd.Series, exog: Optional[pd.DataFrame] = None,
+                              exog_forecast: Optional[pd.DataFrame] = None, plot: bool = False, verbose: bool = False):
     if len(monthly_series) < MIN_POINTS:
         raise ValueError(f"Adatmennyiség túl kevés (min {MIN_POINTS} hónap ajánlott).")
 
@@ -398,6 +433,13 @@ def run_short_series_pipeline(monthly_series: pd.Series, plot: bool = False, ver
     n_test = min(5, len(monthly_series_proc) // 3)
     preds_arima, test_vals, mse_arima, r2_arima = walk_forward_1step(monthly_series_proc, model_order=ARIMA_ORDER,
                                                                      n_test=n_test)
+
+    if len(monthly_series) < MIN_POINTS:
+        raise ValueError(f"Adatmennyiség túl kevés (min {MIN_POINTS} hónap ajánlott).")
+    inspect_series(monthly_series, plot=plot, verbose=verbose)
+    monthly_series_proc = winsorize_series(monthly_series)
+
+
     if verbose:
         print(f"Walk-forward (1-step) ARIMA MSE: {mse_arima:.3f}, R2: {r2_arima:.3f}")
 
@@ -408,7 +450,7 @@ def run_short_series_pipeline(monthly_series: pd.Series, plot: bool = False, ver
     for t in range(len(test)):
         try:
             s = SimpleExpSmoothing(pd.Series(history)).fit()
-            yhat = float(s.forecast(1)[0])
+            yhat = float(s.forecast(1).iloc[0])
         except Exception:
             yhat = float(history[-1])
         ses_preds.append(yhat)
@@ -423,7 +465,8 @@ def run_short_series_pipeline(monthly_series: pd.Series, plot: bool = False, ver
     for t in range(len(test)):
         try:
             hmod = Holt(history).fit(optimized=True)
-            yhat = float(hmod.forecast(1)[0])
+            # use iloc to avoid FutureWarning about Series.__getitem__
+            yhat = float(hmod.forecast(1).iloc[0])
         except Exception:
             yhat = float(history.iloc[-1])
         holt_preds.append(yhat)
@@ -459,6 +502,24 @@ def run_short_series_pipeline(monthly_series: pd.Series, plot: bool = False, ver
     if verbose:
         print(f"👉 Modell döntés (norm. WF MSE alapján): {chosen.upper()} választva (raw MSE={candidates_sorted[0][1]:.1f}, norm={candidates_sorted[0][2]:.3f}).")
 
+   # Safety: if the chosen model's normalized MSE is very large or NaN, pick a conservative fallback
+    chosen_norm = candidates_sorted[0][2]
+    if not np.isfinite(chosen_norm) or chosen_norm > 1e3:
+        # very large normalized MSE -> modeling unstable, prefer simpler model
+        print(f"⚠️ A model választás bizonytalan (norm={chosen_norm}); választás egyszerűsítése.")
+        if len(monthly_series_proc) >= 12:
+            # seasonal-naive is robust when we have 12+ months
+            chosen = 'ses' if np.var(monthly_series_proc.values) == 0 else 'holt'
+        else:
+            chosen = 'holt'
+
+    # If ARIMA was chosen but ARIMA walk-forward R2 is negative -> avoid ARIMA
+    if chosen == 'arima' and not np.isfinite(r2_arima):
+        pass
+    elif chosen == 'arima' and r2_arima < 0:
+        print(f"⚠️ ARIMA WF R2 negatív ({r2_arima:.3f}), váltás egyszerűbb modellre.")
+        chosen = 'holt'
+
     mean_forecast = None
     ci = None
 
@@ -478,6 +539,7 @@ def run_short_series_pipeline(monthly_series: pd.Series, plot: bool = False, ver
 
     # try chosen; if fails or numerically insane -> fallback chain
     tried = []
+
     def try_model(model_name):
         nonlocal mean_forecast, ci
         tried.append(model_name)
@@ -488,9 +550,15 @@ def run_short_series_pipeline(monthly_series: pd.Series, plot: bool = False, ver
         elif model_name == "autoreg":
             _, mean_forecast, ci = fit_and_forecast_autoreg(monthly_series_proc, lags=8, steps=FORECAST_STEPS)
         elif model_name == "arima":
-            # IMPORTANT: disable log by default to avoid exp overflow
-            fit, mean_forecast, ci = fit_and_forecast_arima(monthly_series_proc, order=ARIMA_ORDER, steps=FORECAST_STEPS, use_log=False)
-            # if ARIMA returned None, mean_forecast stays None
+            # ha van exog -> használjuk SARIMAX exog-ként
+            if exog is not None:
+                fit, mean_forecast, ci = fit_and_forecast_sarimax(monthly_series_proc, order=ARIMA_ORDER,
+                                                                  seasonal_order=(1, 1, 1, 12),
+                                                                  steps=FORECAST_STEPS, use_log=False,
+                                                                  exog=exog, exog_forecast=exog_forecast)
+            else:
+                fit, mean_forecast, ci = fit_and_forecast_arima(monthly_series_proc, order=ARIMA_ORDER,
+                                                                steps=FORECAST_STEPS, use_log=False)
         return _forecast_is_sane(mean_forecast, monthly_series_proc, scale_factor=10.0)
 
     # Try primary model
@@ -621,34 +689,42 @@ class ForecastPipeline:
             out.append({"date": date_str, "lower": lower, "upper": upper})
         return out
 
-    def run(self, uid: Optional[str] = None, tx_list: Optional[List[Dict[str, Any]]] = None, plot=False, verbose=False) -> Dict[str, Any]:
+    def run(self, uid: Optional[str] = None, tx_list: Optional[List[Dict[str, Any]]] = None,
+            plot: bool = False, verbose: bool = False) -> Dict[str, Any]:
         """
-        Futtatja a pipeline-t.
-        - Preferálja a tx_list-et, ha kapott ilyet (API előre lekéri és átadja).
-        - Ha nincs tx_list, akkor uid kell (vagy a default uid használódik) és a pipeline lekéri a DB-t.
-        Visszaad részletes, JSON-szerializálható dict-et.
+        Exog-aware run: feature-engineering -> monthly panel -> exog/exog_forecast -> model pipeline.
+        Robusztusabb handling ha tx_list üres vagy a lekérés meghiúsul.
         """
         uid_local = uid if uid is not None else self.uid_default
+
         # 1) adatforrás: tx_list vagy DB
         if tx_list is None:
             try:
-                tx_list = get_all_transactions(uid)
+                tx_list = get_all_transactions(uid_local)
             except Exception as e:
                 print(f"❌ Hiba a tranzakciók lekérésekor: {e}")
                 tx_list = []
 
+        # biztosítsuk, hogy mindig list-ünk legyen (ne csak ha truthy)
+        tx_list = tx_list or []
+
         monthly_series = None
         used_status = "no_data"
+        exog = None
+        exog_forecast = None
+        panel_uid = pd.DataFrame()  # default, hogy mindig létezzen
 
-        if tx_list:
+        # Ha van legalább egy tranzakció, próbáljuk meg a feature engineeringet
+        if len(tx_list) > 0:
             df_tx = pd.DataFrame(tx_list)
-            # próbáljuk meg a feature-engineeringet egy helyen (pipeline kezeli)
+
+            # 1.a feature engineering (te általad írt függvény)
             try:
                 df_tx = engineer_all_features(df_tx)
             except Exception as e:
                 print(f"⚠️ engineer_all_features hibát dobott: {e} (folytatom a nyers df-fel)")
 
-            # NORMALIZÁLÁS: prefer 'for_who' -> tran_type_norm (megegyezik a korábbi logikával)
+            # 1.b normalizálás / kiválogatás (korábbi logika)
             if 'for_who' in df_tx.columns:
                 df_tx['tran_type_norm'] = df_tx['for_who'].astype(str).str.lower()
             else:
@@ -663,40 +739,108 @@ class ForecastPipeline:
             if TARGET not in df_tx.columns:
                 print(f"❌ Figyelem: a pipeline elvárja a '{TARGET}' oszlopot az engineer_all_features kimenetében.")
 
+            # 2) Build monthly panel (aggregáció)
             try:
-                monthly_series = prepare_monthly_series_from_df(df_tx, date_col="date", amount_col=TARGET)
+                panel = build_monthly_panel_from_tx(df_tx, uid_local=uid_local, date_col="date", uid_col='user_id',
+                                                    amount_col=TARGET)
+                if panel is None:
+                    panel = pd.DataFrame()
             except Exception as e:
-                print(f"⚠️ Nem sikerült havi sorozatot előállítani: {e}")
+                print(f"⚠️ build_monthly_panel_from_tx hibát dobott: {e}")
+                panel = pd.DataFrame()
+
+            # 3) Filter user (ha van user_id)
+            if not panel.empty and 'user_id' in panel.columns:
+                try:
+                    panel_uid = panel[
+                        panel['user_id'] == (uid_local if uid_local is not None else panel['user_id'].iloc[0])].copy()
+                except Exception:
+                    panel_uid = panel.copy()
+            else:
+                panel_uid = panel.copy()
+
+            # 4) monthly_series előállítása (ha van adat)
+            if (panel_uid is None) or panel_uid.empty:
                 monthly_series = None
+            else:
+                panel_uid['date'] = pd.to_datetime(panel_uid['date'])
+                panel_uid = panel_uid.sort_values('date').reset_index(drop=True)
+                # ha a build_monthly_panel_from_tx más oszlopnevet használ, itt kell a fallback
+                value_col = 'y_sum' if 'y_sum' in panel_uid.columns else (
+                    TARGET if TARGET in panel_uid.columns else None)
+                if value_col is None:
+                    print("❌ Nem található aggregált érték ('y_sum' / TARGET) a panel-ben.")
+                    monthly_series = None
+                else:
+                    try:
+                        monthly_series = pd.Series(panel_uid[value_col].values, index=pd.to_datetime(panel_uid['date']))
+                        monthly_series = monthly_series.asfreq('ME', fill_value=0.0)
+                    except Exception as e:
+                        print(f"⚠️ Nem sikerült monthly_series-t előállítani: {e}")
+                        monthly_series = None
 
-        # 2) fallback demo adat, ha nincs elegendő adat
-        if (monthly_series is None) or monthly_series.empty:
-            # demo adatokat hozunk létre — ugyanúgy, mint korábban
-            periods = 10
-            last = pd.Timestamp.today().normalize()
-            idx = pd.date_range(end=last, periods=periods, freq="ME")
-            np.random.seed(42)
-            base = np.linspace(200, 400, periods)
-            seasonal = 20 * np.sin(np.linspace(0, 2 * np.pi, periods))
-            noise = np.random.normal(scale=30, size=periods)
-            values = (base + seasonal + noise).clip(min=0)
-            monthly_series = pd.Series(values.round(2), index=idx)
-            used_status = "demo"
-        else:
-            used_status = "from_db"
+            # 5) Készítsük el a leakage-mentes exog-ot (ha lehetséges)
+            try:
+                exog = make_monthly_exog_no_leakage(panel_uid, uid_col='user_id', date_col='date', shift_periods=1)
+                if isinstance(exog, pd.DataFrame) and 'date' in exog.columns:
+                    exog = exog.set_index(pd.to_datetime(exog['date'])).drop(columns=['date'], errors='ignore')
+                if isinstance(exog, pd.DataFrame):
+                    exog = exog.sort_index().asfreq('ME')
+                    # coerce to numeric and fill
+                    exog = exog.apply(pd.to_numeric, errors='coerce').ffill().fillna(0.0)
+            except Exception as e:
+                print(f"⚠️ make_monthly_exog_no_leakage hibát dobott: {e}")
+                exog = None
 
-        # 3) futtatjuk a meglévő modellező pipeline-t (blokkoló hívás — hétköznapi használatban to_thread)
+            # 6) exog_forecast készítése
+            try:
+                if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty:
+                    exog_forecast = make_exog_forecast_from_last_known(exog, steps=FORECAST_STEPS)
+                    if isinstance(exog_forecast, pd.DataFrame):
+                        exog_forecast.index = pd.date_range(
+                            start=pd.to_datetime(exog.index[-1]) + pd.offsets.MonthEnd(1),
+                            periods=FORECAST_STEPS, freq='ME')
+                        exog_forecast = exog_forecast.asfreq('ME')
+                        exog_forecast = exog_forecast.apply(pd.to_numeric, errors='coerce').ffill().fillna(0.0)
+                else:
+                    exog_forecast = None
+            except Exception as e:
+                print(f"⚠️ make_exog_forecast_from_last_known hibát dobott: {e} — fallback exog_forecast készítése")
+                try:
+                    if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty:
+                        idx_future = pd.date_range(start=pd.to_datetime(exog.index[-1]) + pd.offsets.MonthEnd(1),
+                                                   periods=FORECAST_STEPS, freq='ME')
+                        exog_forecast = exog.tail(1).reindex(idx_future)
+                        exog_forecast = exog_forecast.apply(pd.to_numeric, errors='coerce').ffill().fillna(0.0)
+                    else:
+                        exog_forecast = None
+                except Exception:
+                    exog_forecast = None
+
+
+        # 3) futtatjuk a modell pipeline-t (most már exog & exog_forecast készen áll)
         print("\n▶️ Lefuttatom a rövid-sorozat pipeline-t...")
-        fc_series, fc_ci, metrics = run_short_series_pipeline(monthly_series)
+        fc_series, fc_ci, metrics = run_short_series_pipeline(monthly_series, exog=exog, exog_forecast=exog_forecast,
+                                                              plot=plot, verbose=verbose)
 
-        # 4) előkészítjük a kimenetet: dátummal párosított listák, CI, metrics
+        # 4) opcionális: exog-aware time-reg összehasonlítás
+        try:
+            if exog is not None and monthly_series is not None and len(monthly_series) >= MIN_POINTS:
+                _, exog_fc, _ = fit_and_forecast_time_regression_with_exog(monthly_series, exog, steps=FORECAST_STEPS,
+                                                                           lags_for_features=3)
+            else:
+                exog_fc = None
+        except Exception:
+            exog_fc = None
+
+        # 5) előkészítjük a kimenetet
         history_list = self._series_to_date_value_list(monthly_series)
         forecast_list = self._series_to_date_value_list(fc_series)
         ci_list = self._ci_to_list(fc_ci)
         history_arr = monthly_series.values.astype(float)
         forecast_arr = fc_series.values.astype(float)
 
-        # 5) opcionális: mentjük CSV-be (ugyanaz, mint korábban)
+        # 6) mentés CSV (opcionális)
         try:
             ci_out = None
             if fc_ci is not None:
@@ -704,19 +848,17 @@ class ForecastPipeline:
                 lower = ci_df.iloc[:, 0].values
                 upper = ci_df.iloc[:, 1].values
                 ci_out = pd.DataFrame({"lower": lower, "upper": upper}, index=fc_series.index)
-            df_out = pd.DataFrame(
-                {
-                    "forecast": fc_series,
-                    "ci_lower": ci_out["lower"] if ci_out is not None else np.nan,
-                    "ci_upper": ci_out["upper"] if ci_out is not None else np.nan,
-                }
-            )
+            df_out = pd.DataFrame({
+                "forecast": fc_series,
+                "ci_lower": ci_out["lower"] if ci_out is not None else np.nan,
+                "ci_upper": ci_out["upper"] if ci_out is not None else np.nan,
+            })
             df_out.to_csv(self.out_path, index_label="date")
             print(f"\n💾 Elmentve (wrapper): {self.out_path.resolve()}")
         except Exception as e:
             print("⚠️ Nem sikerült elmenteni a forecast-ot (wrapper):", e)
 
-        # 6) visszatérési dict
+        # 7) visszatérési dict
         result = {
             "status": "success",
             "data_source": used_status,
@@ -724,7 +866,6 @@ class ForecastPipeline:
             "forecast": forecast_list,
             "ci": ci_list,
             "metrics": metrics or {},
-            # raw arrays included for internal use if kell
             "raw_arrays": {"history_arr": history_arr, "forecast_arr": forecast_arr},
         }
         return result
