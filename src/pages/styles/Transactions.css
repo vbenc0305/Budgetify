@@ -118,6 +118,7 @@
 }
 
 .bulkDeleteToggleButton,
+.bulkDeleteSelectAllButton,
 .bulkDeleteCancelButton,
 .bulkDeleteConfirmButton {
     padding: 8px 12px;
@@ -129,6 +130,12 @@
 
 .bulkDeleteToggleButton {
     background: #7c3aed;
+    color: #fff;
+}
+
+
+.bulkDeleteSelectAllButton {
+    background: #2563eb;
     color: #fff;
 }
 

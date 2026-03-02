@@ -64,6 +64,15 @@ export default function Transactions() {
     });
   }, [transactions, typeFilter]);
 
+  const filteredSelectionKeys = useMemo(
+    () => filtered.map((tx, idx) => selectionKeyForTx(tx, idx)),
+    [filtered],
+  );
+
+  const allFilteredSelected =
+    filteredSelectionKeys.length > 0 &&
+    filteredSelectionKeys.every((key) => selectedKeys.includes(key));
+
   const selectedOnScreenCount = useMemo(() => {
     if (!filtered.length || !selectedKeys.length) return 0;
     return filtered.filter((tx, idx) => selectedKeys.includes(selectionKeyForTx(tx, idx))).length;
@@ -89,6 +98,22 @@ export default function Transactions() {
     setSelectedKeys((prev) =>
       prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key],
     );
+  };
+
+  const toggleSelectAllFiltered = () => {
+    setDeleteError(null);
+
+    if (allFilteredSelected) {
+      const filteredSet = new Set(filteredSelectionKeys);
+      setSelectedKeys((prev) => prev.filter((key) => !filteredSet.has(key)));
+      return;
+    }
+
+    setSelectedKeys((prev) => {
+      const merged = new Set(prev);
+      filteredSelectionKeys.forEach((key) => merged.add(key));
+      return Array.from(merged);
+    });
   };
 
   const cancelBulkDelete = () => {
@@ -209,6 +234,9 @@ export default function Transactions() {
           ) : (
             <div className="bulkDeleteActions">
               <span className="bulkDeleteCount">Kijelölve: {selectedOnScreenCount}</span>
+              <button onClick={toggleSelectAllFiltered} className="bulkDeleteSelectAllButton">
+                {allFilteredSelected ? "Kijelölés törlése" : "Összes kiválasztása"}
+              </button>
               <button onClick={cancelBulkDelete} className="bulkDeleteCancelButton">
                 Mégse
               </button>
