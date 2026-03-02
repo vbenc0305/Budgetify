@@ -1,44 +1,35 @@
-/* --- Frissített src/components/styles/Transactions.css --- */
-
-/* wrapper az egészhez (középre igazít, responsive) */
 .transactionsWrapper {
     width: 70%;
     max-width: 1100px;
     margin: 18px auto;
     padding: 6px;
     box-sizing: border-box;
-    /* Biztosítjuk, hogy a wrapper világos hátterű legyen (felülírja a dark mode-t) */
     background-color: transparent;
 }
 
-/* container ami a border-radius-ot és a border-t kezeli */
 .tableContainer {
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid #ddd;
-    background: #ffffff; /* FEHÉR háttér: így nem lesz fekete alapon fekete szöveg */
-    color: lightblue; /* alapértelmezett szöveg sötét */
-    /* javaslat: enyhe árnyék, ha szeretnéd (törölhető) */
+    background: #ffffff;
+    color: lightblue;
     box-shadow: 0 1px 4px rgba(16, 24, 40, 0.03);
-    /* Segít a böngésző színrendszerének kezelésében */
     color-scheme: light;
 }
 
-/* maga a tábla */
 .transactionsTable {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     table-layout: fixed;
     font-family: inherit;
-    background: transparent; /* a konténer adja a fehér hátteret */
-    color: inherit; /* örökli a .tableContainer színét */
+    background: transparent;
+    color: inherit;
 }
 
-/* fejlécek - világos fejlécek, sötét betű */
 .transactionsTable th {
-    background-color: #999DA0; /* páratlan sorok: fehér */
-    color: #111111; /* sötét, jól látható */
+    background-color: #999DA0;
+    color: #111111;
     padding: 12px 15px;
     text-align: left;
     font-weight: 600;
@@ -47,7 +38,6 @@
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* sejtszintű stílusok */
 .transactionsTable td {
     padding: 10px 15px;
     border-bottom: 1px solid #eee;
@@ -57,84 +47,33 @@
     text-overflow: ellipsis;
 }
 
-/* alternáló sorok (lágy, olvasható) */
 .transactionsTable tbody tr:nth-child(odd) {
     background-color: #222021;
     color: white;
 }
 
 .transactionsTable tbody tr:nth-child(even) {
-    background-color: #999DA0; /* páratlan sorok: fehér */
+    background-color: #999DA0;
     color: black;
 }
 
-/* Szűrő doboz (kártya) */
 .filterBox {
     border: 1px solid #e3e7ee;
     padding: 12px;
     border-radius: 10px;
     box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
     margin-bottom: 14px;
-    background-color: #999DA0; /* páratlan sorok: fehér */
+    background-color: #999DA0;
     color: black;
 }
 
-/* Eddigi .filterRow marad, de hozzáadunk gombokat */
 .filterRow {
     display: flex;
     gap: 10px;
     align-items: center;
     flex-wrap: wrap;
-}
-
-/* Alkalmaz gomb */
-.filterApplyButton {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: none;
-    background: #3b82f6; /* kék, figyelemfelkeltő */
-    color: #fff;
-    cursor: pointer;
-    font-weight: 600;
-    transition: transform 80ms ease;
-}
-
-.filterApplyButton:active {
-    transform: translateY(1px);
-}
-
-/* Töröl gomb (kisebb, semleges) */
-.filterClearButton {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #d1d5db;
-    background: #fff;
-    color: #111;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-/* Alkalmazott szűrő infó (kis text) */
-.appliedInfo {
-    margin-top: 8px;
-    color: #444;
-    font-size: 0.95rem;
-}
-
-
-/* Hover ELTÁVOLÍTVA (kérésed szerint) */
-/* korábbi: .transactionsTable tbody tr:hover { background-color: #f1f7ff; } */
-/* Nincs hover szabály többé */
-
-/* --- Szűrősáv stílusok --- */
-.filterRow {
-    display: flex;
-    gap: 10px;
-    align-items: center;
     margin-bottom: 12px;
     width: 100%;
-
-
 }
 
 .filterLabel {
@@ -152,6 +91,21 @@
     color: #111;
 }
 
+.filterApplyButton {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #3b82f6;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 80ms ease;
+}
+
+.filterApplyButton:active {
+    transform: translateY(1px);
+}
+
 .filterClearButton {
     padding: 8px 10px;
     border-radius: 6px;
@@ -160,6 +114,63 @@
     cursor: pointer;
     font-size: 0.95rem;
     color: #111;
+    font-weight: 600;
+}
+
+.bulkDeleteToggleButton,
+.bulkDeleteSelectAllButton,
+.bulkDeleteCancelButton,
+.bulkDeleteConfirmButton {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.bulkDeleteToggleButton {
+    background: #7c3aed;
+    color: #fff;
+}
+
+
+.bulkDeleteSelectAllButton {
+    background: #2563eb;
+    color: #fff;
+}
+
+.bulkDeleteActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bulkDeleteCount {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.bulkDeleteCancelButton {
+    background: #fff;
+    color: #111;
+    border-color: #d1d5db;
+}
+
+.bulkDeleteConfirmButton {
+    background: #dc2626;
+    color: #fff;
+}
+
+.bulkDeleteError {
+    color: #b91c1c;
+    margin: 8px 0 0;
+    font-size: 0.9rem;
+}
+
+.activeFilterInfo {
+    margin-top: 8px;
+    color: #444;
+    font-size: 0.95rem;
 }
 
 .resultCount {
@@ -171,7 +182,6 @@
     gap: 6px;
 }
 
-/* kis reszponzivitás mobilra */
 @media (max-width: 880px) {
     .transactionsWrapper {
         width: 92%;
@@ -182,7 +192,8 @@
         font-size: 0.9rem;
     }
 
-    .transactionsTable th, .transactionsTable td {
+    .transactionsTable th,
+    .transactionsTable td {
         padding: 8px 10px;
         font-size: 0.9rem;
     }
@@ -190,7 +201,7 @@
 
 .noTransactionsCard {
     display: flex;
-    flex-direction: column; /* ez a kulcs! */
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     border-radius: 12px;
@@ -210,13 +221,12 @@
     margin: 0;
 }
 
-/* Gomb stílusa a noTransactionsCard alatt */
 .importButton {
     margin-top: 20px;
     padding: 12px 24px;
     border: none;
     border-radius: 8px;
-    background-color: #3b82f6; /* kék */
+    background-color: #3b82f6;
     color: white;
     font-size: 1rem;
     font-weight: 600;
@@ -225,11 +235,10 @@
 }
 
 .importButton:hover {
-    background-color: #2563eb; /* sötétebb kék hover */
+    background-color: #2563eb;
     transform: translateY(-2px);
 }
 
 .importButton:active {
     transform: translateY(1px);
 }
-
