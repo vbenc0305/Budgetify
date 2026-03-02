@@ -13,6 +13,8 @@ import {
   Brush,
 } from "recharts";
 import { getAuth } from "firebase/auth";
+import "../pages/styles/Statistics.css";
+import "./styles/MiniForecastCard.css";
 
 export default function MiniForecastCard({ userId }) {
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,6 @@ export default function MiniForecastCard({ userId }) {
   const [history, setHistory] = useState([]);
   const [forecast, setForecast] = useState([]);
   const [ci, setCi] = useState(null);
-  const [metrics, setMetrics] = useState({});
 
   const [showCI, setShowCI] = useState(true);
   const [smoothingWindow, setSmoothingWindow] = useState(0);
@@ -84,14 +85,10 @@ export default function MiniForecastCard({ userId }) {
         } else {
           setCi(null);
         }
-
-        setMetrics(data.metrics ?? {});
       } catch (err) {
-        if (!isMounted) return;
-        setError(err.message || String(err));
+        if (isMounted) setError(err.message || String(err));
       } finally {
-        if (!isMounted) return;
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -190,21 +187,16 @@ export default function MiniForecastCard({ userId }) {
   };
 
   return (
-    <div className="chart-card">
-      <div
-        style={{
-          padding: 12,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+    <div className="mini-forecast-card chart-card">
+      <div className="chart-card-header">
         <div>
-          <h2 style={{ margin: 0 }}>Előrejelzés — jövőbeli kiadások</h2>
-          <div className="muted">Mini forecast (az Insights fül része)</div>
+          <h2 className="chart-title">Előrejelzés — jövőbeli kiadások</h2>
+          <div className="chart-subtitle muted">
+            Mini forecast (az Insights fül része)
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="chart-controls">
           <button
             onClick={() => setShowCI((s) => !s)}
             className="control-btn"
