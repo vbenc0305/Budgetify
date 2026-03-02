@@ -1,0 +1,30 @@
+.loadingContainer {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: var(--text-primary);
+}
+
+.loadingSpinner {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 3px solid rgba(99, 102, 241, 0.2);
+  border-top-color: var(--accent-primary);
+  animation: loadingSpin 0.8s linear infinite;
+}
+
+.loadingText {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+@keyframes loadingSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
