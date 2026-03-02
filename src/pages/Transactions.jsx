@@ -5,16 +5,31 @@ import { useUser } from "../stores/useUser";
 import "./styles/Transactions.css";
 import MassImportModal from "../components/Modals/MassImportModal.jsx";
 
-const getTransactionId = (tx) =>
-  tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id ?? null;
+const extractTransactionId = (tx) => {
+  const raw = tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id ?? tx?.path ?? tx?.ref_path ?? null;
+  if (raw === null || raw === undefined) return null;
 
-const normalizeTransactionId = (id) => (id === null || id === undefined ? null : String(id));
+  const str = String(raw).trim();
+  if (!str) return null;
+
+  // Firebase path format: users/{uid}/transactions/{txId} (or with leading slash)
+  const normalizedPath = str.startsWith("/") ? str.slice(1) : str;
+  const segments = normalizedPath.split("/").filter(Boolean);
+  const txIndex = segments.lastIndexOf("transactions");
+  if (txIndex >= 0 && segments[txIndex + 1]) {
+    return segments[txIndex + 1];
+  }
+
+  return str;
+};
+
+const selectionKeyForTx = (tx, idx) => extractTransactionId(tx) ?? `fallback-${idx}`;
 
 export default function Transactions() {
   const { user, authChecked } = useUser();
   const [showImportModal, setShowImportModal] = useState(false);
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
-  const [selectedTransactionIds, setSelectedTransactionIds] = useState([]);
+  const [selectedKeys, setSelectedKeys] = useState([]);
   const [deleteError, setDeleteError] = useState(null);
 
   const transactions = useTransaction((state) => state.transactions);
@@ -50,12 +65,9 @@ export default function Transactions() {
   }, [transactions, typeFilter]);
 
   const selectedOnScreenCount = useMemo(() => {
-    if (!filtered.length || !selectedTransactionIds.length) return 0;
-    return filtered.filter((tx) => {
-      const id = normalizeTransactionId(getTransactionId(tx));
-      return id && selectedTransactionIds.includes(id);
-    }).length;
-  }, [filtered, selectedTransactionIds]);
+    if (!filtered.length || !selectedKeys.length) return 0;
+    return filtered.filter((tx, idx) => selectedKeys.includes(selectionKeyForTx(tx, idx))).length;
+  }, [filtered, selectedKeys]);
 
   const applyFilter = () => setTypeFilter(pendingFilter);
 
@@ -66,29 +78,39 @@ export default function Transactions() {
 
   const toggleBulkDeleteMode = () => {
     setDeleteError(null);
-    setSelectedTransactionIds([]);
+    setSelectedKeys([]);
     setBulkDeleteMode((prev) => !prev);
   };
 
-  const toggleTransactionSelection = (rawId) => {
-    const id = normalizeTransactionId(rawId);
-    if (!id) return;
+  const toggleTransactionSelection = (key) => {
+    if (!key) return;
 
     setDeleteError(null);
-    setSelectedTransactionIds((prev) =>
-      prev.includes(id) ? prev.filter((txId) => txId !== id) : [...prev, id],
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key],
     );
   };
 
   const cancelBulkDelete = () => {
     setBulkDeleteMode(false);
-    setSelectedTransactionIds([]);
+    setSelectedKeys([]);
     setDeleteError(null);
   };
 
   const handleBulkDelete = async () => {
-    if (!selectedTransactionIds.length) {
+    if (!selectedKeys.length) {
       setDeleteError("Válassz ki legalább egy tranzakciót.");
+      return;
+    }
+
+    const selectedTransactionIds = filtered
+      .map((tx, idx) => ({ key: selectionKeyForTx(tx, idx), id: extractTransactionId(tx) }))
+      .filter((item) => selectedKeys.includes(item.key))
+      .map((item) => item.id)
+      .filter(Boolean);
+
+    if (!selectedTransactionIds.length) {
+      setDeleteError("A kijelölt elemekhez nem található törölhető tranzakció azonosító.");
       return;
     }
 
@@ -224,8 +246,8 @@ export default function Transactions() {
           </thead>
           <tbody>
             {filtered.map((tx, idx) => {
-              const transactionId = getTransactionId(tx);
-              const normalizedId = normalizeTransactionId(transactionId);
+              const txId = extractTransactionId(tx);
+              const rowSelectionKey = selectionKeyForTx(tx, idx);
               const rawType = tx.tran_type ?? tx.type ?? "";
               const norm = normalizeType(rawType);
               const displayType = norm === "outgoing" ? "Kiadás" : norm === "income" ? "Bevétel" : rawType || "-";
@@ -237,18 +259,17 @@ export default function Transactions() {
                 dateStr = tx.date || "-";
               }
 
-              const isSelected = normalizedId ? selectedTransactionIds.includes(normalizedId) : false;
+              const isSelected = selectedKeys.includes(rowSelectionKey);
 
               return (
-                <tr key={normalizedId || `${tx.description || "tx"}-${idx}`}>
+                <tr key={rowSelectionKey}>
                   {bulkDeleteMode && (
                     <td>
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        disabled={!normalizedId}
-                        onChange={() => toggleTransactionSelection(normalizedId)}
-                        aria-label={`Tranzakció kijelölése: ${tx.description || normalizedId || idx}`}
+                        onChange={() => toggleTransactionSelection(rowSelectionKey)}
+                        aria-label={`Tranzakció kijelölése: ${tx.description || txId || idx}`}
                       />
                     </td>
                   )}

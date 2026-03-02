@@ -149,11 +149,23 @@ export const useTransaction = create(
             throw new Error(`Tömeges törlés sikertelen: ${res.status} ${text}`);
           }
 
-          const idSet = new Set(transactionIds.map((id) => String(id)));
+          const normalizeTxId = (raw) => {
+            if (raw === null || raw === undefined) return null;
+            const str = String(raw).trim();
+            if (!str) return null;
+            const normalizedPath = str.startsWith("/") ? str.slice(1) : str;
+            const segments = normalizedPath.split("/").filter(Boolean);
+            const txIndex = segments.lastIndexOf("transactions");
+            if (txIndex >= 0 && segments[txIndex + 1]) return segments[txIndex + 1];
+            return str;
+          };
+
+          const idSet = new Set(transactionIds.map((id) => normalizeTxId(id)).filter(Boolean));
           set((state) => ({
             transactions: state.transactions.filter((tx) => {
-              const txId = tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id;
-              return !idSet.has(String(txId));
+              const txId = tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id ?? tx?.path ?? tx?.ref_path;
+              const normalized = normalizeTxId(txId);
+              return !normalized || !idSet.has(normalized);
             }),
             loading: false,
           }));
