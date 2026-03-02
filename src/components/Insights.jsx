@@ -1,8 +1,7 @@
 // Insights.jsx
 import React, { useState, Suspense } from "react";
-import MiniForecastCard from "./MiniForecastCard";
-import BasicStats from "./BasicStats";
-import "./styles/Prediction.css"; // ha ezt használod az eredeti stílusokhoz
+import MiniForecastCard from "./MiniForeCastCardComponent.jsx";
+import BasicStats from "./BasicStatsComponent.jsx";
 
 export default function Insights({ userId }) {
   const tabs = [

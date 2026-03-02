@@ -2,28 +2,31 @@ import React, { useState } from "react";
 import BasicStats from "../components/BasicStatsComponent.jsx";
 import MiniForecast from "../components/MiniForeCastCardComponent.jsx";
 import Insights from "../components/Insights";
-import "./styles/Statistics.css";
 
-export default function Statistics() {
+export default function Statistics({ userId }) {
   const [activeTab, setActiveTab] = useState("basic");
 
   const renderTab = () => {
     switch (activeTab) {
       case "basic":
-        return <BasicStats />;
+        return <BasicStats userId={userId} />;
       case "forecast":
-        return <MiniForecast />;
+        return <MiniForecast userId={userId} />;
       case "insights":
-        return <Insights />;
+        return <Insights userId={userId} />;
       default:
-        return <BasicStats />;
+        return <BasicStats userId={userId} />;
     }
   };
 
   return (
     <div className="statistics-container">
       <header className="statistics-header">
-        <h1>Felhasználói Statisztikák 📊</h1>
+        <h1 className="statistics-title">Felhasználói Statisztikák 📊</h1>
+        <p className="statistics-subtitle">
+          Áttekintés a tranzakciókról és előrejelzések a felhasználóhoz
+        </p>
+
         <div className="tabs">
           <button
             className={activeTab === "basic" ? "tab active" : "tab"}

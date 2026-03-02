@@ -1,85 +1,99 @@
 .register-container {
-    max-width: 400px;
-    margin: 5rem auto;
-    background-color: #1e1e1e;
-    padding: 2rem;
-    border-radius: 1rem;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    color: white;
+    max-width: 420px;
+    margin: 4rem auto;
+    background: linear-gradient(135deg,
+    rgba(99, 102, 241, 0.08),
+    rgba(139, 92, 246, 0.06));
+    backdrop-filter: blur(10px);
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+    color: var(--text-primary);
 }
 
 .register-form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .register-form h2 {
     text-align: center;
-    font-weight: bold;
-    margin-bottom: 1rem;
-    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+}
+
+.register-form label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    color: var(--text-primary);
+    gap: 0.5rem;
 }
 
 .register-form input {
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-    border: none;
+    padding: 0.75rem;
+    border-radius: 10px;
+    border: 1px solid rgba(226, 232, 240, 0.1);
     font-size: 1rem;
-    background-color: #2a2a2a;
-    color: white;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
 }
 
 .register-form input::placeholder {
-    color: #aaa;
+    color: var(--text-muted);
 }
 
 .register-form input:focus {
-    outline: 2px solid #007bff;
-    background-color: #3a3a3a;
+    outline: none;
+    border-color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .register-form button {
-    background-color: #007bff;
-    color: white;
-    border: none;
     padding: 0.75rem;
     font-size: 1rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-}
-
-.register-form button:hover {
-    background-color: #0056b3;
+    margin-top: 0.5rem;
+    font-weight: 600;
 }
 
 .error-text {
-    color: #d32f2f;
-    font-size: 0.9rem;
+    color: var(--error);
+    font-size: 0.85rem;
     text-align: center;
+    margin: -1rem 0 0;
 }
 
 .success-text {
-    color: #4caf50;
-    font-size: 0.9rem;
+    color: var(--success);
+    font-size: 0.85rem;
     text-align: center;
+    margin: -1rem 0 0;
 }
 
 .register-prompt {
-    margin-top: 1rem;
+    margin-top: 1.5rem;
     text-align: center;
     font-size: 0.9rem;
-    color: #ccc;
+    color: var(--text-secondary);
 }
 
 .register-link {
-    color: #007bff;
+    color: var(--accent-primary);
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 600;
+    transition: all 0.2s ease;
 }
 
 .register-link:hover {
+    color: var(--accent-secondary);
     text-decoration: underline;
 }

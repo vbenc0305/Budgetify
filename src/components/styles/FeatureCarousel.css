@@ -1,108 +1,106 @@
 /* FeatureCarousel.css */
 
-/* A teljes körülvevő konténer, illeszkedik a Home.css stílusához */
 .carousel-container {
-    max-width: 700px;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 1.5rem;
+    padding: 2rem 1.5rem;
 }
 
-/* A doboz, ahol a slide-ok váltakoznak */
-/* Harmonizál a .home-root háttérével és árnyékával */
 .carousel-box {
     position: relative;
-    background: #ffffff;
-    border-radius: 2rem;
-    padding: 2rem 1rem;
-    min-height: 160px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+    background: linear-gradient(135deg,
+    rgba(99, 102, 241, 0.08),
+    rgba(139, 92, 246, 0.06));
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    padding: 2.5rem 1rem;
+    min-height: 200px;
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: black;
+    color: var(--text-primary);
 }
 
-/* A slide tartalma */
-/* Extra paddingmal, hogy ne lógjon alá a nyíl */
 .carousel-content {
     text-align: center;
-    max-width: 600px;
-    padding: 0 2.5rem; /* bal és jobb oldali hely a nyilaknak */
+    max-width: 650px;
+    padding: 0 3rem;
 }
 
-/* Slide címe */
-/* Megfelel a .home-section-title stílusának, de kicsit nagyobb kiemeléssel */
 .carousel-title {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
-    color: #3730a3; /* egyezik a home-section-title színével */
+    margin-bottom: 0.75rem;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-/* Slide leírása */
-/* Harmonizál a .home-paragraph színével és sorközével */
 .carousel-description {
-    font-size: 1.125rem;
-    color: #374151; /* egyezik a home-paragraph színével */
+    font-size: 1.1rem;
+    color: var(--text-secondary);
     line-height: 1.7;
 }
 
-/* Nyilak (balra/jobbra) */
-/* Egyszerű, letisztult, a Home.css árnyékához és palettájához igazítva */
 .carousel-arrow {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(226, 232, 240, 0.1);
     font-size: 2rem;
-    color: #2563eb; /* a home-title gradientjéből az egyik szín */
+    color: var(--accent-primary);
     cursor: pointer;
-    padding: 0 0.75rem;
-    transition: transform 0.2s ease, color 0.2s ease;
+    padding: 0.75rem;
+    border-radius: 10px;
+    transition: all 0.2s ease;
 }
-
-
-.carousel-arrow:focus {
-    outline: none;        /* teljesen eltünteti a fókusz körvonalat */
-    box-shadow: none;     /* ha esetleg a böngésző shadow-val is kiemeli */
-}
-
 
 .carousel-arrow:hover {
-    color: #a21caf; /* a home-title gradient másik színe */
+    background: rgba(99, 102, 241, 0.15);
+    border-color: var(--accent-primary);
+    transform: translateY(-50%) scale(1.1);
 }
 
-/* Bal oldali nyíl */
+.carousel-arrow:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
 .left-arrow {
-    left: 0.5rem;
+    left: 1rem;
 }
 
-/* Jobb oldali nyíl */
 .right-arrow {
-    right: 0.5rem;
+    right: 1rem;
 }
 
-/* A pöttyök („dots”) konténere */
 .carousel-dots {
-    margin-top: 1rem;
+    margin-top: 1.5rem;
     text-align: center;
 }
 
-/* Egy-egy pötty (alapállapot) */
-/* Illeszkedik a Home.css által használt színekkel */
 .carousel-dot {
     display: inline-block;
-    width: 1rem;
-    height: 1rem;
-    margin: 0 0.3rem;
-    background-color: #d1d5db; /* világosszürke, passzol a Home.css elemeihez */
+    width: 0.75rem;
+    height: 0.75rem;
+    margin: 0 0.4rem;
+    background-color: rgba(226, 232, 240, 0.2);
     border-radius: 50%;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(226, 232, 240, 0.1);
 }
 
-/* Aktív pötty: a Home.css címsor színével harmonizál */
+.carousel-dot:hover {
+    background-color: rgba(99, 102, 241, 0.4);
+    border-color: var(--accent-primary);
+}
+
 .carousel-dot.active {
-    background-color: #3730a3;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-color: var(--accent-secondary);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
 }

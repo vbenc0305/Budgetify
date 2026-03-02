@@ -1,0 +1,145 @@
+/* MiniForecastCard specific styles, aligned with dark theme */
+
+.mini-forecast-card {
+    background: linear-gradient(135deg,
+        rgba(99, 102, 241, 0.05),
+        rgba(139, 92, 246, 0.03));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+    transition: all 0.3s ease;
+}
+
+.mini-forecast-card:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 48px rgba(99, 102, 241, 0.2);
+}
+
+/* Header */
+.chart-card-header {
+    padding: 1.25rem 1.5rem 0.875rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.chart-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.25px;
+    color: var(--text-primary);
+}
+
+.chart-subtitle, .mini-forecast-card .muted {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* Controls row */
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-controls .control-btn,
+.chart-controls .control-select {
+    height: 34px;
+}
+
+/* Button polish to match app */
+.control-btn {
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: var(--accent-primary);
+}
+
+.control-btn:active {
+    transform: translateY(1px);
+}
+
+/* Make the last control (Export) look accented */
+.chart-controls .control-btn:last-child {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: white;
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.chart-controls .control-btn:last-child:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+}
+
+/* Select */
+.control-select {
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.control-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--fg);
+}
+
+/* Skeleton and error tweaks for this card */
+.mini-forecast-card .loading-skeleton {
+    height: 16rem;
+}
+
+.mini-forecast-card .error-box {
+    margin: 0 12px 8px 12px;
+}
+
+/* Recharts small theming nits */
+.mini-forecast-card .recharts-cartesian-grid-horizontal line,
+.mini-forecast-card .recharts-cartesian-grid-vertical line {
+    /* fallback */
+    stroke: var(--border);
+    /* modern */
+    stroke: color-mix(in srgb, var(--border), #000 10%);
+}
+
+/* Brush container spacing */
+.mini-forecast-card .recharts-brush {
+    margin-top: 4px;
+}
+
+@media (max-width: 480px) {
+    .chart-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .chart-controls {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}

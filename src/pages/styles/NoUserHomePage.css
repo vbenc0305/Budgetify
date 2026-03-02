@@ -1,88 +1,107 @@
-/* Harmonized NoUserHomePage.css - match dark site visual language */
+/* NoUserHomePage.css */
 .no-user-home-container {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 2rem;
-  /* Lighter translucent card so it stands out on the dark page */
-  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
-  border-radius: 1.25rem;
-  border: 1px solid rgba(255,255,255,0.08);
-  /* softer, more elevated shadow but lighter so the card reads lighter than the page */
-  box-shadow: 0 8px 24px rgba(11,11,11,0.6), inset 0 1px 0 rgba(255,255,255,0.03);
-  backdrop-filter: blur(8px) saturate(120%);
-  min-height: 60vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-  color: rgba(255,255,255,0.92);
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 3rem 2rem;
+    background: linear-gradient(135deg,
+    rgba(99, 102, 241, 0.08),
+    rgba(139, 92, 246, 0.06));
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+    backdrop-filter: blur(10px);
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
 }
 
 .no-user-home-container h1 {
-  font-size: 2.2rem;
-  font-weight: 800;
-  text-align: center;
-  /* keep vibrant gradient headline for emphasis */
-  background: linear-gradient(90deg, #7dd3fc, #c084fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 0 0 1rem 0;
+    font-size: 2.8rem;
+    font-weight: 800;
+    text-align: center;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 0 1.5rem 0;
+    letter-spacing: -1px;
 }
 
 .no-user-home-container p {
-  font-size: 1.125rem;
-  color: rgba(255,255,255,0.82);
-  text-align: center;
-  line-height: 1.6;
-  margin: 0 0 1rem 0;
-  max-width: 560px;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.8;
+    margin: 0 0 1.5rem 0;
+    max-width: 600px;
 }
 
-/* Optional call-to-action button style to keep consistent with the UI */
 .no-user-home-cta {
-  display: inline-flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
+    display: inline-flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .button-primary {
-  background: linear-gradient(90deg, #2563eb, #a21caf);
-  color: #ffffff;
-  border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.18);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: white;
+    border: none;
+    padding: 0.85rem 2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+    transition: all 0.2s ease;
 }
 
 .button-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.22);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(99, 102, 241, 0.4);
 }
 
 .button-ghost {
-  background: transparent;
-  border: 2px solid rgba(37, 99, 235, 0.12);
-  color: #2563eb;
-  padding: 0.5rem 0.9rem;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
+    background: transparent;
+    border: 2px solid rgba(99, 102, 241, 0.3);
+    color: var(--accent-primary);
+    padding: 0.75rem 1.75rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.button-ghost:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--accent-primary);
 }
 
 @media (max-width: 600px) {
-  .no-user-home-container {
-    padding: 1.5rem;
-    max-width: 96vw;
-    border-radius: 1rem;
-  }
-  .no-user-home-container h1 {
-    font-size: 1.6rem;
-  }
-  .no-user-home-container p {
-    font-size: 1rem;
-  }
+    .no-user-home-container {
+        padding: 2rem 1.5rem;
+        margin: 1rem auto;
+        border-radius: 12px;
+    }
+
+    .no-user-home-container h1 {
+        font-size: 2rem;
+    }
+
+    .no-user-home-container p {
+        font-size: 1rem;
+    }
+
+    .no-user-home-cta {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .button-primary, .button-ghost {
+        width: 100%;
+    }
 }

@@ -1,31 +1,31 @@
 /* Footer.css */
 .footer-root {
-    background: rgba(243, 244, 246, 0.85);
-    backdrop-filter: blur(6px);
-    border-top: 1.5px solid #e5e7eb;
-    box-shadow: 0 -4px 24px 0 rgba(31, 38, 135, 0.08);
-    padding: 2rem 0 1.5rem 0;
-    margin-top: 3rem;
-    border-radius: 0 0 2rem 2rem;
+    background: linear-gradient(135deg,
+    rgba(99, 102, 241, 0.08),
+    rgba(139, 92, 246, 0.05));
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(226, 232, 240, 0.1);
+    box-shadow: 0 -8px 32px rgba(99, 102, 241, 0.1);
+    padding: 3rem 1.5rem 2rem;
+    margin-top: 4rem;
 }
 
 .footer-content {
-    max-width: 700px;
+    max-width: 1200px;
     margin: 0 auto;
     text-align: center;
-    color: #4b5563;
-    font-size: 1.05rem;
-    letter-spacing: 0.01em;
-    line-height: 1.7;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    line-height: 1.6;
 }
 
 @media (max-width: 600px) {
     .footer-root {
-        padding: 1.2rem 0 1rem 0;
-        border-radius: 0 0 1rem 1rem;
+        padding: 2rem 1rem 1.5rem;
     }
+
     .footer-content {
-        font-size: 0.95rem;
-        padding: 0 1rem;
+        font-size: 0.85rem;
     }
 }
