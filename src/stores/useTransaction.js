@@ -116,6 +116,55 @@ export const useTransaction = create(
         }
       },
 
+      massDeleteTransactions: async (transactionIds, user) => {
+        if (!user || typeof user.getIdToken !== "function") {
+          const msg = "Nincs bejelentkezett user.";
+          set({ error: msg });
+          throw new Error(msg);
+        }
+
+        if (!Array.isArray(transactionIds) || transactionIds.length === 0) {
+          throw new Error("Nincs kiválasztott tranzakció a törléshez.");
+        }
+
+        if (get().loading) {
+          throw new Error("Már folyamatban van egy művelet.");
+        }
+
+        set({ loading: true, error: null });
+
+        try {
+          const token = await user.getIdToken();
+          const res = await fetch("/api/transactions/mass_delete", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ transaction_ids: transactionIds }),
+          });
+
+          if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            throw new Error(`Tömeges törlés sikertelen: ${res.status} ${text}`);
+          }
+
+          const idSet = new Set(transactionIds.map((id) => String(id)));
+          set((state) => ({
+            transactions: state.transactions.filter((tx) => {
+              const txId = tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id;
+              return !idSet.has(String(txId));
+            }),
+            loading: false,
+          }));
+
+          return true;
+        } catch (err) {
+          set({ error: err.message || "Tömeges törlés hiba", loading: false });
+          throw err;
+        }
+      },
+
       resetTransactions: () =>
         set({ transactions: [], loading: false, error: null, fetched: false }),
     }),
