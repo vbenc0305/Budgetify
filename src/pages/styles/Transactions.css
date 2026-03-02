@@ -114,6 +114,49 @@
     font-weight: 600;
 }
 
+.bulkDeleteToggleButton,
+.bulkDeleteCancelButton,
+.bulkDeleteConfirmButton {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.bulkDeleteToggleButton {
+    background: #7c3aed;
+    color: #fff;
+}
+
+.bulkDeleteActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bulkDeleteCount {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.bulkDeleteCancelButton {
+    background: #fff;
+    color: #111;
+    border-color: #d1d5db;
+}
+
+.bulkDeleteConfirmButton {
+    background: #dc2626;
+    color: #fff;
+}
+
+.bulkDeleteError {
+    color: #b91c1c;
+    margin: 8px 0 0;
+    font-size: 0.9rem;
+}
+
 /* Alkalmazott szűrő infó (kis text) */
 .appliedInfo {
     margin-top: 8px;
@@ -232,4 +275,3 @@
 .importButton:active {
     transform: translateY(1px);
 }
-

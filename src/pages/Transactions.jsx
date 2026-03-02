@@ -8,6 +8,9 @@ import MassImportModal from "../components/Modals/MassImportModal.jsx";
 export default function Transactions() {
   const { user, authChecked } = useUser();
   const [showImportModal, setShowImportModal] = useState(false);
+  const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState([]);
+  const [deleteError, setDeleteError] = useState(null);
 
   const transactions = useTransaction((state) => state.transactions);
   const loading = useTransaction((state) => state.loading);
@@ -45,6 +48,11 @@ export default function Transactions() {
     });
   }, [transactions, typeFilter]);
 
+  const selectedOnScreenCount = useMemo(
+    () => filtered.filter((tx) => selectedTransactionIds.includes(tx.id)).length,
+    [filtered, selectedTransactionIds],
+  );
+
   // Alkalmaz gomb logika: csak ha változott, akkor állítjuk be az aktív szűrőt
   const applyFilter = () => {
     setTypeFilter(pendingFilter);
@@ -54,6 +62,47 @@ export default function Transactions() {
   const clearFilter = () => {
     setPendingFilter("all");
     setTypeFilter("all");
+  };
+
+  const toggleBulkDeleteMode = () => {
+    setDeleteError(null);
+    setSelectedTransactionIds([]);
+    setBulkDeleteMode((prev) => !prev);
+  };
+
+  const toggleTransactionSelection = (id) => {
+    if (id === undefined || id === null) return;
+    setDeleteError(null);
+    setSelectedTransactionIds((prev) =>
+      prev.includes(id) ? prev.filter((txId) => txId !== id) : [...prev, id],
+    );
+  };
+
+  const cancelBulkDelete = () => {
+    setBulkDeleteMode(false);
+    setSelectedTransactionIds([]);
+    setDeleteError(null);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedTransactionIds.length) {
+      setDeleteError("Válassz ki legalább egy tranzakciót.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Biztosan törölni szeretnél ${selectedTransactionIds.length} tranzakciót? Ez a művelet nem visszavonható.`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { massDeleteTransactions } = useTransaction.getState();
+      await massDeleteTransactions(selectedTransactionIds, user);
+      cancelBulkDelete();
+    } catch (err) {
+      setDeleteError(err?.message || "A tömeges törlés sikertelen.");
+    }
   };
 
   if (loading) return <div>Betöltés...</div>;
@@ -143,10 +192,43 @@ export default function Transactions() {
             Töröl
           </button>
 
+          {!bulkDeleteMode ? (
+            <button
+              onClick={toggleBulkDeleteMode}
+              className="bulkDeleteToggleButton"
+              title="Tömeges törlés"
+              aria-label="Tömeges törlés mód"
+            >
+              Tömeges törlés
+            </button>
+          ) : (
+            <div className="bulkDeleteActions">
+              <span className="bulkDeleteCount">Kijelölve: {selectedOnScreenCount}</span>
+              <button
+                onClick={cancelBulkDelete}
+                className="bulkDeleteCancelButton"
+                title="Tömeges törlés megszakítása"
+                aria-label="Tömeges törlés megszakítása"
+              >
+                Mégse
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="bulkDeleteConfirmButton"
+                title="Kijelöltek törlése"
+                aria-label="Kijelöltek törlése"
+              >
+                Törlés véglegesítése
+              </button>
+            </div>
+          )}
+
           <div className="resultCount" aria-live="polite">
             Találatok: <strong>{filtered.length}</strong>
           </div>
         </div>
+
+        {deleteError && <p className="bulkDeleteError">{deleteError}</p>}
 
         {/* Megmutatjuk melyik szűrő van épp alkalmazva */}
         <div className="appliedInfo">
@@ -174,6 +256,7 @@ export default function Transactions() {
         >
           <thead>
             <tr>
+              {bulkDeleteMode && <th scope="col">Kijelölés</th>}
               <th scope="col">Dátum</th>
               <th scope="col">Összeg</th>
               <th scope="col">Leírás</th>
@@ -201,8 +284,21 @@ export default function Transactions() {
                 dateStr = tx.date || "-";
               }
 
+              const isSelected = selectedTransactionIds.includes(tx.id);
+
               return (
                 <tr key={tx.id || idx}>
+                  {bulkDeleteMode && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(isSelected)}
+                        disabled={!tx.id}
+                        onChange={() => toggleTransactionSelection(tx.id)}
+                        aria-label={`Tranzakció kijelölése: ${tx.description || tx.id || idx}`}
+                      />
+                    </td>
+                  )}
                   <td>{dateStr}</td>
                   <td>{tx.amount ?? "-"}</td>
                   <td title={tx.description || "-"}>{tx.description || "-"}</td>
