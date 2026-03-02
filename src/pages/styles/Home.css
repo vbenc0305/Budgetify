@@ -1,48 +1,63 @@
 /* Home.css */
 .home-root {
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 2rem;
-    background: linear-gradient(135deg, #e0e7ff 0%, #fff 60%, #f3e8ff 100%);
-    border-radius: 2rem;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
-    min-height: 80vh;
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 3rem 2rem;
+    background: linear-gradient(135deg,
+    rgba(99, 102, 241, 0.08),
+    rgba(139, 92, 246, 0.06));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+    min-height: auto;
 }
 
 .home-title {
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 800;
     text-align: center;
-    background: linear-gradient(90deg, #2563eb, #a21caf);
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 2rem;
+    letter-spacing: -1px;
 }
 
 .home-section-title {
     font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 1rem;
-    color: #3730a3;
+    margin: 2rem 0 1rem;
+    color: var(--accent-primary);
+    border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+    padding-bottom: 0.5rem;
 }
 
 .home-list,
 .home-ol {
-    font-size: 1.125rem;
+    font-size: 1.05rem;
     margin-left: 1.5rem;
     margin-bottom: 1.5rem;
-    color: #1a1a1a;
+    color: var(--text-secondary);
 }
 
 .home-list li,
 .home-ol li {
     margin-bottom: 0.75rem;
-    line-height: 1.7;
+    line-height: 1.8;
+    transition: all 0.2s ease;
+}
+
+.home-list li:hover,
+.home-ol li:hover {
+    color: var(--accent-primary);
+    transform: translateX(4px);
 }
 
 .home-paragraph {
-    font-size: 1.125rem;
-    line-height: 1.7;
-    color: #374151;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
     margin-bottom: 2rem;
 }

@@ -1,109 +1,101 @@
-
-
-.profile-json details summary {
-    cursor: pointer;
-    color: #fff;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.profile-json pre {
-    font-size: 0.92rem;
-    color: #fff;
-    background: none;
-    margin: 0;
-    padding: 0.5rem 0 0 0;
-    border: none;
-}
-
-.profile-container h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 1.5rem;
-    letter-spacing: 0.04em;
-    text-shadow: 0 2px 8px rgba(100, 108, 255, 0.18);
-}
-
 .profile-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 600px;
-    margin: 4rem auto;
+    max-width: 700px;
+    margin: 3rem auto;
     padding: 2.5rem;
-    background: rgba(30, 32, 40, 0.85);
-    border-radius: 18px;
-    box-shadow: 0 12px 40px rgba(60, 80, 255, 0.15), 0 2px 8px rgba(0,0,0,0.12);
-    backdrop-filter: blur(8px);
-    border: 2px solid rgba(100, 108, 255, 0.18);
+    background: linear-gradient(135deg,
+    rgba(99, 102, 241, 0.08),
+    rgba(139, 92, 246, 0.06));
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
     box-sizing: border-box;
+}
+
+.profile-container h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 2rem;
+    letter-spacing: -0.5px;
 }
 
 .profile-card {
     width: 100%;
-    background: rgba(40, 44, 60, 0.7);
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(100, 108, 255, 0.10);
-    padding: 2rem 1.5rem;
-    margin-bottom: 2rem;
-    border: 1.5px solid rgba(100, 108, 255, 0.18);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(226, 232, 240, 0.1);
     backdrop-filter: blur(4px);
-    transition: box-shadow 0.3s;
+    transition: all 0.3s ease;
 }
 
 .profile-card:hover {
-    box-shadow: 0 8px 32px rgba(100, 108, 255, 0.18);
-    border-color: #646cff;
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
 }
 
 .profile-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.8rem 0.5rem;
+    padding: 1rem;
     margin-bottom: 0.5rem;
     border-radius: 8px;
-    background: rgba(255,255,255,0.03);
-    box-shadow: 0 1px 4px rgba(100, 108, 255, 0.04);
-    border: 1px solid rgba(100, 108, 255, 0.08);
-    transition: background 0.2s, box-shadow 0.2s;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(226, 232, 240, 0.08);
+    transition: all 0.2s ease;
 }
 
 .profile-row:hover {
-    background: rgba(100, 108, 255, 0.08);
-    box-shadow: 0 2px 8px rgba(100, 108, 255, 0.10);
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.2);
 }
 
 .profile-label {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #646cff;
-    letter-spacing: 0.02em;
-    text-shadow: 0 1px 2px rgba(100, 108, 255, 0.10);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    letter-spacing: 0.5px;
 }
 
 .profile-value {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 500;
-    color: #fff;
-    background-color: #fff;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-secondary);
 }
 
-.profile-json {
-    width: 100%;
-    margin-top: 1.5rem;
-    background: rgba(40, 44, 60, 0.6);
-    border-radius: 12px;
+.profile-json details summary {
+    cursor: pointer;
+    color: var(--accent-primary);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.profile-json details summary:hover {
+    color: var(--accent-secondary);
+}
+
+.profile-json pre {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+    margin: 0.5rem 0 0;
     padding: 1rem;
-    color: #fff;
-    font-size: 0.95rem;
-    box-shadow: 0 2px 8px rgba(100, 108, 255, 0.08);
-    border: 1px solid rgba(100, 108, 255, 0.10);
+    border-radius: 8px;
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    overflow-x: auto;
+}
+
 .profile-container h1 {
     font-size: 2.5rem;
     font-weight: 600;
@@ -135,90 +127,89 @@
     font-weight: 500;
     color: rgba(255, 255, 255, 0.87);
 }
-        padding: 1.2rem;
+
+.profile-card {
+    padding: 1.2rem 0.7rem;
+
+    .profile-form input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        background-color: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        color: #fff;
+        transition: border-color 0.25s, box-shadow 0.25s;
+        outline: none;
     }
-    .profile-card {
-        padding: 1.2rem 0.7rem;
 
-        .profile-form input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            background-color: #2b2b2b;
-            border: 1px solid #3d3d3d;
-            border-radius: 8px;
-            color: #fff;
-            transition: border-color 0.25s, box-shadow 0.25s;
-            outline: none;
-        }
+    .profile-form input:focus {
+        border-color: #646cff;
+        box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+    }
 
-        .profile-form input:focus {
-            border-color: #646cff;
-            box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
-        }
+    .profile-form input.disabled-input {
+        background-color: #1a1a1a;
+        color: rgba(255, 255, 255, 0.5);
+        border-color: #2b2b2b;
+        cursor: not-allowed;
+    }
 
-        .profile-form input.disabled-input {
-            background-color: #1a1a1a;
-            color: rgba(255, 255, 255, 0.5);
-            border-color: #2b2b2b;
-            cursor: not-allowed;
-        }
+    .save-button {
+        background: linear-gradient(90deg, #646cff, #535bf2);
+        color: #fff;
+        font-weight: 600;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-top: 1rem;
+    }
 
-        .save-button {
-            background: linear-gradient(90deg, #646cff, #535bf2);
-            color: #fff;
-            font-weight: 600;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 1rem;
-        }
+    .save-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(100, 108, 255, 0.4);
+    }
 
-        .save-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(100, 108, 255, 0.4);
-        }
+    .save-button:disabled {
+        background: #3d3d3d;
+        cursor: not-allowed;
+        color: rgba(255, 255, 255, 0.5);
+    }
 
-        .save-button:disabled {
-            background: #3d3d3d;
-            cursor: not-allowed;
-            color: rgba(255, 255, 255, 0.5);
-        }
+    .message {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        width: 100%;
+        text-align: center;
+        font-weight: 500;
+    }
 
-        .message {
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            width: 100%;
-            text-align: center;
-            font-weight: 500;
-        }
+    .message.error {
+        background-color: #fca5a5;
+        color: #b91c1c;
+    }
 
-        .message.error {
-            background-color: #fca5a5;
-            color: #b91c1c;
-        }
+    .message.success {
+        background-color: #bbf7d0;
+        color: #15803d;
+    }
 
-        .message.success {
-            background-color: #bbf7d0;
-            color: #15803d;
-        }
+    .profile-meta {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #2b2b2b;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
 
-        .profile-meta {
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid #2b2b2b;
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        /* Kisebb képernyőkre optimalizálás */
-        @media (max-width: 768px) {
-            .profile-container {
-                margin: 2rem auto;
-                padding: 1.5rem;
-            }
+    /* Kisebb képernyőkre optimalizálás */
+    @media (max-width: 768px) {
+        .profile-container {
+            margin: 2rem auto;
+            padding: 1.5rem;
         }
     }
+}

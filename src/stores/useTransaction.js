@@ -171,6 +171,12 @@ export const useTransaction = create(
       getStorage: () => localStorage,
       onRehydrateStorage: () => (state) => {
         console.log("Transaction store rehydrated:", state);
+        // Clear the error after rehydration because it might be stale
+        // (e.g., from a previous session where there was no user)
+        if (state && state.error === "Nincs bejelentkezett user.") {
+          state.error = null;
+          state.fetched = false; // Reset fetched so transactions will be refetched
+        }
       },
     },
   ),
