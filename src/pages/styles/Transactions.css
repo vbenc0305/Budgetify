@@ -1,24 +1,20 @@
-/* Transactions.css - Modern Dark Theme */
-
 .transactionsWrapper {
-    width: 90%;
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 1.5rem;
+    width: 70%;
+    max-width: 1100px;
+    margin: 18px auto;
+    padding: 6px;
     box-sizing: border-box;
     background-color: transparent;
 }
 
 .tableContainer {
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
-    border: 1px solid rgba(226, 232, 240, 0.1);
-    background: linear-gradient(135deg,
-    rgba(99, 102, 241, 0.05),
-    rgba(139, 92, 246, 0.03));
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
-    color-scheme: dark;
+    border: 1px solid #ddd;
+    background: #ffffff;
+    color: lightblue;
+    box-shadow: 0 1px 4px rgba(16, 24, 40, 0.03);
+    color-scheme: light;
 }
 
 .transactionsTable {
@@ -32,123 +28,93 @@
 }
 
 .transactionsTable th {
-    background: linear-gradient(90deg,
-    rgba(99, 102, 241, 0.15),
-    rgba(139, 92, 246, 0.1));
-    color: var(--accent-primary);
-    padding: 1rem 1.25rem;
+    background-color: #999DA0;
+    color: #111111;
+    padding: 12px 15px;
     text-align: left;
-    font-weight: 700;
-    font-size: 0.95rem;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.1);
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    font-size: 0.98rem;
+    line-height: 1.2;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .transactionsTable td {
-    padding: 0.875rem 1.25rem;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.05);
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
     font-size: 0.95rem;
-    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.transactionsTable tbody tr {
-    transition: all 0.2s ease;
-}
-
 .transactionsTable tbody tr:nth-child(odd) {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: #222021;
+    color: white;
 }
 
 .transactionsTable tbody tr:nth-child(even) {
-    background-color: rgba(99, 102, 241, 0.05);
+    background-color: #999DA0;
+    color: black;
 }
 
-.transactionsTable tbody tr:hover {
-    background-color: rgba(99, 102, 241, 0.12);
-    border-left: 3px solid var(--accent-primary);
-    padding-left: 0;
-}
-
-/* Filter Box */
 .filterBox {
-    border: 1px solid rgba(226, 232, 240, 0.1);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
-    margin-bottom: 1.5rem;
-    background: linear-gradient(135deg,
-    rgba(99, 102, 241, 0.05),
-    rgba(139, 92, 246, 0.03));
-    backdrop-filter: blur(10px);
+    border: 1px solid #e3e7ee;
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
+    margin-bottom: 14px;
+    background-color: #999DA0;
+    color: black;
 }
 
 .filterRow {
     display: flex;
-    gap: 1rem;
+    gap: 10px;
     align-items: center;
     flex-wrap: wrap;
+    margin-bottom: 12px;
+    width: 100%;
 }
 
 .filterLabel {
-    min-width: 100px;
+    min-width: 110px;
     font-weight: 600;
-    color: var(--text-primary);
-    font-size: 0.95rem;
+    color: #111;
 }
 
 .filterSelect {
-    padding: 0.65rem 0.85rem;
-    border-radius: 8px;
-    border: 1px solid rgba(226, 232, 240, 0.1);
-    background: var(--bg-secondary);
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #fff;
     font-size: 0.95rem;
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    flex: 1;
-    min-width: 150px;
-}
-
-.filterSelect:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    color: #111;
 }
 
 .filterApplyButton {
-    padding: 0.65rem 1.5rem;
+    padding: 8px 12px;
     border-radius: 8px;
     border: none;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    color: white;
+    background: #3b82f6;
+    color: #fff;
     cursor: pointer;
     font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    transition: transform 80ms ease;
 }
 
-.filterApplyButton:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+.filterApplyButton:active {
+    transform: translateY(1px);
 }
 
 .filterClearButton {
-    padding: 0.65rem 1.5rem;
-    border-radius: 8px;
-    border: 1px solid rgba(226, 232, 240, 0.2);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #f5f5f5;
     cursor: pointer;
+    font-size: 0.95rem;
+    color: #111;
     font-weight: 600;
-    transition: all 0.2s ease;
-}
-
-.filterClearButton:hover {
-    background: var(--bg-tertiary);
-    border-color: rgba(226, 232, 240, 0.3);
 }
 
 .bulkDeleteToggleButton,
@@ -194,14 +160,19 @@
     font-size: 0.9rem;
 }
 
-.appliedInfo {
-    margin-top: 1rem;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    padding: 0.75rem;
-    background: rgba(99, 102, 241, 0.1);
-    border-left: 3px solid var(--accent-primary);
-    border-radius: 4px;
+.activeFilterInfo {
+    margin-top: 8px;
+    color: #444;
+    font-size: 0.95rem;
+}
+
+.resultCount {
+    margin-left: auto;
+    color: #555;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 @media (max-width: 880px) {
@@ -214,7 +185,8 @@
         font-size: 0.9rem;
     }
 
-    .transactionsTable th, .transactionsTable td {
+    .transactionsTable th,
+    .transactionsTable td {
         padding: 8px 10px;
         font-size: 0.9rem;
     }
@@ -222,7 +194,7 @@
 
 .noTransactionsCard {
     display: flex;
-    flex-direction: column; /* ez a kulcs! */
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     border-radius: 12px;
@@ -242,13 +214,12 @@
     margin: 0;
 }
 
-/* Gomb stílusa a noTransactionsCard alatt */
 .importButton {
     margin-top: 20px;
     padding: 12px 24px;
     border: none;
     border-radius: 8px;
-    background-color: #3b82f6; /* kék */
+    background-color: #3b82f6;
     color: white;
     font-size: 1rem;
     font-weight: 600;
@@ -257,7 +228,7 @@
 }
 
 .importButton:hover {
-    background-color: #2563eb; /* sötétebb kék hover */
+    background-color: #2563eb;
     transform: translateY(-2px);
 }
 

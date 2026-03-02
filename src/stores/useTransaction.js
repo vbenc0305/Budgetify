@@ -149,10 +149,12 @@ export const useTransaction = create(
             throw new Error(`Tömeges törlés sikertelen: ${res.status} ${text}`);
           }
 
+          const idSet = new Set(transactionIds.map((id) => String(id)));
           set((state) => ({
-            transactions: state.transactions.filter(
-              (tx) => !transactionIds.includes(tx.id),
-            ),
+            transactions: state.transactions.filter((tx) => {
+              const txId = tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id;
+              return !idSet.has(String(txId));
+            }),
             loading: false,
           }));
 
