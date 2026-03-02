@@ -4,6 +4,7 @@ import { useTransaction } from "../stores/useTransaction";
 import { useUser } from "../stores/useUser";
 import "./styles/Transactions.css";
 import MassImportModal from "../components/Modals/MassImportModal.jsx";
+import Loading from "../components/Loading";
 
 const extractTransactionId = (tx) => {
   const raw = tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id ?? tx?.path ?? tx?.ref_path ?? null;
@@ -153,7 +154,7 @@ export default function Transactions() {
     }
   };
 
-  if (loading) return <div>Betöltés...</div>;
+  if (loading) return <Loading />;
 
   if (!transactions || transactions.length === 0)
     return (
