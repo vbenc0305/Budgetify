@@ -1,13 +1,36 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8"/>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script>
+        (function () {
+            var storageKey = "budgetify-theme-preference";
+            var preference = "system";
+
+            try {
+                var saved = window.localStorage.getItem(storageKey);
+                if (saved === "light" || saved === "dark" || saved === "system") {
+                    preference = saved;
+                }
+            } catch (error) {
+                preference = "system";
+            }
+
+            var prefersDark =
+                typeof window.matchMedia === "function" &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches;
+            var resolved = preference === "system" ? (prefersDark ? "dark" : "light") : preference;
+
+            document.documentElement.setAttribute("data-theme", resolved);
+            document.documentElement.style.colorScheme = resolved;
+        })();
+    </script>
     <title>Budgetify</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="/src/main.jsx"></script>
+</body>
 </html>

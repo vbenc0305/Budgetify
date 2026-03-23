@@ -22,7 +22,7 @@ export default function Statistics({ userId }) {
   return (
     <div className="statistics-container">
       <header className="statistics-header">
-        <h1 className="statistics-title">Felhasználói Statisztikák 📊</h1>
+        <h1 className="statistics-title">Felhasználói Statisztikák</h1>
         <p className="statistics-subtitle">
           Áttekintés a tranzakciókról és előrejelzések a felhasználóhoz
         </p>

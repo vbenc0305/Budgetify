@@ -8,14 +8,64 @@
     --shadow: 0 12px 48px rgba(99, 102, 241, 0.2);
 }
 
-/* Overlay */
-.modalOverlay {
+/* Theme-aware styles scoped to the OTP mass import modal */
+.massImportModalOverlay {
+    --mass-import-overlay-bg: rgba(15, 23, 42, 0.28);
+    --mass-import-panel-bg: linear-gradient(135deg, #ffffff, #f8fafc);
+    --mass-import-panel-border: rgba(15, 23, 42, 0.12);
+    --mass-import-shadow: 0 12px 40px rgba(15, 23, 42, 0.16);
+    --mass-import-body-text: var(--text-secondary);
+    --mass-import-close-hover-bg: rgba(99, 102, 241, 0.15);
+    --mass-import-file-bg: rgba(79, 70, 229, 0.04);
+    --mass-import-file-border: rgba(79, 70, 229, 0.24);
+    --mass-import-file-name: var(--text-primary);
+    --mass-import-error-text: #b91c1c;
+    --mass-import-error-bg: var(--danger-soft-bg);
+    --mass-import-preview-bg: #f8fafc;
+    --mass-import-preview-border: rgba(15, 23, 42, 0.08);
+    --mass-import-preview-title: var(--text-primary);
+    --mass-import-table-head-bg: rgba(79, 70, 229, 0.09);
+    --mass-import-table-head-text: #1f2937;
+    --mass-import-table-odd-row: #ffffff;
+    --mass-import-table-even-row: #f8fafc;
+    --mass-import-table-hover-row: rgba(99, 102, 241, 0.12);
+    --mass-import-table-cell: var(--text-secondary);
+    --mass-import-cancel-text: var(--text-primary);
+    --mass-import-cancel-border: rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="dark"] .massImportModalOverlay {
+    --mass-import-overlay-bg: rgba(2, 6, 23, 0.66);
+    --mass-import-panel-bg: linear-gradient(135deg, rgba(26, 31, 43, 0.98), rgba(37, 45, 58, 0.95));
+    --mass-import-panel-border: rgba(226, 232, 240, 0.12);
+    --mass-import-shadow: 0 12px 48px rgba(99, 102, 241, 0.2);
+    --mass-import-body-text: var(--text-secondary);
+    --mass-import-close-hover-bg: rgba(99, 102, 241, 0.2);
+    --mass-import-file-bg: rgba(14, 165, 233, 0.03);
+    --mass-import-file-border: rgba(99, 102, 241, 0.25);
+    --mass-import-file-name: #e5e7eb;
+    --mass-import-error-text: #fecaca;
+    --mass-import-error-bg: rgba(127, 29, 29, 0.45);
+    --mass-import-preview-bg: rgba(15, 23, 42, 0.2);
+    --mass-import-preview-border: rgba(226, 232, 240, 0.12);
+    --mass-import-preview-title: #f8fafc;
+    --mass-import-table-head-bg: rgba(99, 102, 241, 0.16);
+    --mass-import-table-head-text: #e5e7eb;
+    --mass-import-table-odd-row: rgba(15, 23, 42, 0.16);
+    --mass-import-table-even-row: rgba(99, 102, 241, 0.08);
+    --mass-import-table-hover-row: rgba(99, 102, 241, 0.2);
+    --mass-import-table-cell: #cbd5e1;
+    --mass-import-cancel-text: #e5e7eb;
+    --mass-import-cancel-border: rgba(226, 232, 240, 0.2);
+}
+
+.massImportModalOverlay {
     position: fixed;
     inset: 0;
     display: flex;
     justify-content: flex-end;
     align-items: stretch;
-    background: rgba(15, 20, 25, 0.6);
+    background: var(--mass-import-overlay-bg);
     backdrop-filter: blur(8px) saturate(120%);
     z-index: 9999;
     opacity: 0;
@@ -23,22 +73,18 @@
     transition: opacity 280ms cubic-bezier(.2, .9, .2, 1);
 }
 
-.modalOverlay.open {
+.massImportModalOverlay.open {
     opacity: 1;
     pointer-events: auto;
 }
 
-/* Modal panel */
-.modalContent {
+.massImportModalContent {
     width: 480px;
     max-width: 100%;
     height: 100%;
-    background: linear-gradient(135deg,
-    rgba(26, 31, 43, 0.98),
-    rgba(37, 45, 58, 0.95));
-    backdrop-filter: blur(10px);
-    border-left: 1px solid rgba(226, 232, 240, 0.1);
-    box-shadow: var(--shadow);
+    background: var(--mass-import-panel-bg);
+    border-left: 1px solid var(--mass-import-panel-border);
+    box-shadow: var(--mass-import-shadow);
     transform: translateX(100%);
     transition: transform 340ms cubic-bezier(.2, .9, .2, 1);
     display: flex;
@@ -50,28 +96,28 @@
     border-bottom-left-radius: 16px;
 }
 
-.modalOverlay.open .modalContent {
+.massImportModalOverlay.open .massImportModalContent {
     transform: translateX(0);
 }
 
 /* Header */
-.modalContent .modalHeader {
+.massImportModalHeader {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.modalContent h2 {
+.massImportModalContent h2 {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     flex: 1 1 auto;
 }
 
-.modalCloseButton {
+.massImportModalCloseButton {
     appearance: none;
     border: none;
     background: transparent;
@@ -85,32 +131,32 @@
     transition: all 0.2s ease;
 }
 
-.modalCloseButton:hover {
-    background: rgba(99, 102, 241, 0.15);
+.massImportModalCloseButton:hover {
+    background: var(--mass-import-close-hover-bg);
     color: var(--accent-primary);
 }
 
 /* Body area with scroll */
-.modalBody {
+.massImportModalBody {
     overflow-y: auto;
     padding-right: 6px;
     flex: 1 1 auto;
 }
 
-.modalContent p {
+.massImportModalBody p {
     margin: 6px 0 14px;
-    color: var(--text-secondary);
+    color: var(--mass-import-body-text);
     font-size: 0.95rem;
     line-height: 1.6;
 }
 
 /* File input - modern style */
-.fileInputWrapper {
+.massImportFileInputWrapper {
     display: flex;
     gap: 10px;
     align-items: center;
-    background: rgba(14, 165, 233, 0.03);
-    border: 1px dashed rgba(99, 102, 241, 0.12);
+    background: var(--mass-import-file-bg);
+    border: 1px dashed var(--mass-import-file-border);
     padding: 12px;
     border-radius: 10px;
 }
@@ -122,79 +168,95 @@ input[type="file"] {
 }
 
 /* If you want to hide native input and style a label: works with current markup too */
-.fileInputLabel {
+.massImportFileInputLabel {
     display: inline-flex;
     gap: 8px;
     align-items: center;
     padding: 8px 12px;
     border-radius: 8px;
-    background: linear-gradient(90deg, var(--accent), rgba(59, 130, 246, 0.85));
+    background: linear-gradient(90deg, var(--accent-primary), rgba(59, 130, 246, 0.85));
     color: #fff;
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
 }
 
-.fileName {
-    color: #0b1220;
+.massImportFileName {
+    color: var(--mass-import-file-name);
     font-size: 0.95rem;
     margin-left: auto;
 }
 
 /* Error text */
-.error {
-    color: #b91c1c;
-    background: rgba(185, 28, 28, 0.04);
+.massImportError {
+    color: var(--mass-import-error-text);
+    background: var(--mass-import-error-bg);
     padding: 8px 10px;
     border-radius: 8px;
     font-size: 0.9rem;
 }
 
 /* Preview section (PreviewTable uses .previewSection) */
-.previewSection {
-    margin-top: 12px;
+.massImportModalContent .previewSection {
+    margin: 12px 0 0;
     border-radius: 10px;
-    background: rgba(15, 23, 42, 0.03);
+    background: var(--mass-import-preview-bg);
+    border: 1px solid var(--mass-import-preview-border);
     padding: 10px;
     font-size: 0.93rem;
+    box-shadow: none;
 }
 
-.previewSection h4 {
+.massImportModalContent .previewSection h4 {
     margin: 0 0 8px 0;
     font-size: 0.98rem;
-    color: #0f172a;
+    color: var(--mass-import-preview-title);
 }
 
-.previewSection .tableWrapper {
+.massImportModalContent .previewSection .tableWrapper {
     max-height: 180px;
     overflow: auto;
 }
 
-.previewTable {
+.massImportModalContent .previewTable {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.88rem;
 }
 
-.previewTable th {
+.massImportModalContent .previewTable thead th {
     text-align: left;
     font-weight: 700;
-    color: #111827;
+    color: var(--mass-import-table-head-text);
     padding: 8px 10px;
-    background: transparent;
+    background: var(--mass-import-table-head-bg);
+    border-bottom: 1px solid var(--mass-import-preview-border);
 }
 
-.previewTable td {
+.massImportModalContent .previewTable tbody tr:nth-child(odd) {
+    background: var(--mass-import-table-odd-row);
+}
+
+.massImportModalContent .previewTable tbody tr:nth-child(even) {
+    background: var(--mass-import-table-even-row);
+}
+
+.massImportModalContent .previewTable tbody tr:hover {
+    background: var(--mass-import-table-hover-row);
+}
+
+.massImportModalContent .previewTable tbody td {
     padding: 8px 10px;
-    color: #374151;
-    border-top: 1px dashed rgba(15, 23, 42, 0.06);
+    color: var(--mass-import-table-cell);
+    border-top: 1px dashed var(--mass-import-preview-border);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 /* Actions */
-.modalActions {
+.massImportModalActions {
     display: flex;
     gap: 10px;
     justify-content: flex-end;
@@ -202,7 +264,7 @@ input[type="file"] {
     padding-top: 8px;
 }
 
-.modalActions button {
+.massImportModalActions button {
     padding: 10px 14px;
     border-radius: 8px;
     border: none;
@@ -211,40 +273,40 @@ input[type="file"] {
     font-size: 0.95rem;
 }
 
-.modalActions button:disabled {
+.massImportModalActions button:disabled {
     opacity: 0.55;
     cursor: not-allowed;
 }
 
-.modalActions button:nth-child(1) { /* cancel */
+.massImportCancelButton {
     background: transparent;
-    color: #374151;
-    border: 1px solid rgba(15, 23, 42, 0.06);
+    color: var(--mass-import-cancel-text);
+    border: 1px solid var(--mass-import-cancel-border);
 }
 
-.modalActions button:nth-child(2) { /* primary */
-    background: linear-gradient(90deg, var(--accent), var(--accent-600));
+.massImportImportButton {
+    background: linear-gradient(90deg, var(--accent-primary), #4f46e5);
     color: #fff;
     box-shadow: 0 8px 24px rgba(59, 130, 246, 0.14);
 }
 
 /* Responsive tweaks */
 @media (max-width: 720px) {
-    .modalContent {
+    .massImportModalContent {
         width: 100%;
         border-radius: 0;
     }
 
-    .modalOverlay {
+    .massImportModalOverlay {
         justify-content: center;
         align-items: center;
     }
 }
 
 /* small accessibility focus states */
-.modalCloseButton:focus,
-.modalActions button:focus,
-.fileInputLabel:focus {
+.massImportModalCloseButton:focus,
+.massImportModalActions button:focus,
+.massImportFileInputLabel:focus {
     outline: 3px solid rgba(59, 130, 246, 0.16);
     outline-offset: 2px;
 }

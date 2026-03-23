@@ -7,7 +7,14 @@ import MassImportModal from "../components/Modals/MassImportModal.jsx";
 import Loading from "../components/Loading";
 
 const extractTransactionId = (tx) => {
-  const raw = tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id ?? tx?.path ?? tx?.ref_path ?? null;
+  const raw =
+    tx?.id ??
+    tx?.transaction_id ??
+    tx?.tran_id ??
+    tx?._id ??
+    tx?.path ??
+    tx?.ref_path ??
+    null;
   if (raw === null || raw === undefined) return null;
 
   const str = String(raw).trim();
@@ -24,7 +31,10 @@ const extractTransactionId = (tx) => {
   return str;
 };
 
-const selectionKeyForTx = (tx, idx) => extractTransactionId(tx) ?? `fallback-${idx}`;
+const selectionKeyForTx = (tx, idx) =>
+  extractTransactionId(tx) ?? `fallback-${idx}`;
+
+const PAGE_SIZE = 50;
 
 export default function Transactions() {
   const { user, authChecked } = useUser();
@@ -43,7 +53,8 @@ export default function Transactions() {
 
   useEffect(() => {
     const { fetchTransactions } = useTransaction.getState();
-    if (authChecked && user && !fetched) {
+    const hasAuthUser = !!user && typeof user.getIdToken === "function";
+    if (authChecked && hasAuthUser && !fetched) {
       fetchTransactions(user);
     }
   }, [user, authChecked, fetched]);
@@ -51,8 +62,10 @@ export default function Transactions() {
   const normalizeType = (val) => {
     if (val === null || val === undefined) return "";
     const t = String(val).trim().toLowerCase();
-    if (["kiadás", "outgoing", "expense", "expenses"].includes(t)) return "outgoing";
-    if (["bevétel", "income", "revenue", "incomes", "incoming"].includes(t)) return "income";
+    if (["kiadás", "outgoing", "expense", "expenses"].includes(t))
+      return "outgoing";
+    if (["bevétel", "income", "revenue", "incomes", "incoming"].includes(t))
+      return "income";
     return t;
   };
 
@@ -65,25 +78,52 @@ export default function Transactions() {
     });
   }, [transactions, typeFilter]);
 
-  const filteredSelectionKeys = useMemo(
-    () => filtered.map((tx, idx) => selectionKeyForTx(tx, idx)),
-    [filtered],
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const [currentPage, setCurrentPage] = useState(1);
+  const effectiveCurrentPage = Math.min(currentPage, totalPages);
+
+  const currentPageStartIndex = (effectiveCurrentPage - 1) * PAGE_SIZE;
+  const currentPageEndIndex = currentPageStartIndex + PAGE_SIZE;
+
+  const pagedRows = useMemo(
+    () =>
+      filtered
+        .slice(currentPageStartIndex, currentPageEndIndex)
+        .map((tx, idx) => ({ tx, globalIdx: currentPageStartIndex + idx })),
+    [filtered, currentPageStartIndex, currentPageEndIndex],
   );
 
-  const allFilteredSelected =
-    filteredSelectionKeys.length > 0 &&
-    filteredSelectionKeys.every((key) => selectedKeys.includes(key));
+  const currentPageSelectionKeys = useMemo(
+    () =>
+      pagedRows.map(({ tx, globalIdx }) => selectionKeyForTx(tx, globalIdx)),
+    [pagedRows],
+  );
 
-  const selectedOnScreenCount = useMemo(() => {
+  const allCurrentPageSelected =
+    currentPageSelectionKeys.length > 0 &&
+    currentPageSelectionKeys.every((key) => selectedKeys.includes(key));
+
+  const selectedInFilteredCount = useMemo(() => {
     if (!filtered.length || !selectedKeys.length) return 0;
-    return filtered.filter((tx, idx) => selectedKeys.includes(selectionKeyForTx(tx, idx))).length;
+    return filtered.filter((tx, idx) =>
+      selectedKeys.includes(selectionKeyForTx(tx, idx)),
+    ).length;
   }, [filtered, selectedKeys]);
 
-  const applyFilter = () => setTypeFilter(pendingFilter);
+  const pageNumbers = useMemo(
+    () => Array.from({ length: totalPages }, (_, idx) => idx + 1),
+    [totalPages],
+  );
+
+  const applyFilter = () => {
+    setTypeFilter(pendingFilter);
+    setCurrentPage(1);
+  };
 
   const clearFilter = () => {
     setPendingFilter("all");
     setTypeFilter("all");
+    setCurrentPage(1);
   };
 
   const toggleBulkDeleteMode = () => {
@@ -104,15 +144,15 @@ export default function Transactions() {
   const toggleSelectAllFiltered = () => {
     setDeleteError(null);
 
-    if (allFilteredSelected) {
-      const filteredSet = new Set(filteredSelectionKeys);
-      setSelectedKeys((prev) => prev.filter((key) => !filteredSet.has(key)));
+    if (allCurrentPageSelected) {
+      const currentPageSet = new Set(currentPageSelectionKeys);
+      setSelectedKeys((prev) => prev.filter((key) => !currentPageSet.has(key)));
       return;
     }
 
     setSelectedKeys((prev) => {
       const merged = new Set(prev);
-      filteredSelectionKeys.forEach((key) => merged.add(key));
+      currentPageSelectionKeys.forEach((key) => merged.add(key));
       return Array.from(merged);
     });
   };
@@ -130,13 +170,18 @@ export default function Transactions() {
     }
 
     const selectedTransactionIds = filtered
-      .map((tx, idx) => ({ key: selectionKeyForTx(tx, idx), id: extractTransactionId(tx) }))
+      .map((tx, idx) => ({
+        key: selectionKeyForTx(tx, idx),
+        id: extractTransactionId(tx),
+      }))
       .filter((item) => selectedKeys.includes(item.key))
       .map((item) => item.id)
       .filter(Boolean);
 
     if (!selectedTransactionIds.length) {
-      setDeleteError("A kijelölt elemekhez nem található törölhető tranzakció azonosító.");
+      setDeleteError(
+        "A kijelölt elemekhez nem található törölhető tranzakció azonosító.",
+      );
       return;
     }
 
@@ -172,12 +217,17 @@ export default function Transactions() {
         />
         <div className="noTransactionsCard">
           {error ? (
-            <p style={{ color: "#b91c1c", marginBottom: 12 }}>{String(error)}</p>
+            <p style={{ color: "#b91c1c", marginBottom: 12 }}>
+              {String(error)}
+            </p>
           ) : (
             <p>Nincsenek tranzakciók.</p>
           )}
 
-          <button className="importButton" onClick={() => setShowImportModal(true)}>
+          <button
+            className="importButton"
+            onClick={() => setShowImportModal(true)}
+          >
             Kiadások importálása OTP-ből
           </button>
         </div>
@@ -216,11 +266,19 @@ export default function Transactions() {
             <option value="income">Bevétel</option>
           </select>
 
-          <button onClick={applyFilter} className="filterApplyButton" aria-label="Szűrő alkalmazása">
+          <button
+            onClick={applyFilter}
+            className="filterApplyButton"
+            aria-label="Szűrő alkalmazása"
+          >
             Alkalmaz
           </button>
 
-          <button onClick={clearFilter} className="filterClearButton" aria-label="Szűrő törlése">
+          <button
+            onClick={clearFilter}
+            className="filterClearButton"
+            aria-label="Szűrő törlése"
+          >
             Töröl
           </button>
 
@@ -234,14 +292,27 @@ export default function Transactions() {
             </button>
           ) : (
             <div className="bulkDeleteActions">
-              <span className="bulkDeleteCount">Kijelölve: {selectedOnScreenCount}</span>
-              <button onClick={toggleSelectAllFiltered} className="bulkDeleteSelectAllButton">
-                {allFilteredSelected ? "Kijelölés törlése" : "Összes kiválasztása"}
+              <span className="bulkDeleteCount">
+                Kijelölve: {selectedInFilteredCount}
+              </span>
+              <button
+                onClick={toggleSelectAllFiltered}
+                className="bulkDeleteSelectAllButton"
+              >
+                {allCurrentPageSelected
+                  ? "Kijelölés törlése"
+                  : "Összes kiválasztása"}
               </button>
-              <button onClick={cancelBulkDelete} className="bulkDeleteCancelButton">
+              <button
+                onClick={cancelBulkDelete}
+                className="bulkDeleteCancelButton"
+              >
                 Mégse
               </button>
-              <button onClick={handleBulkDelete} className="bulkDeleteConfirmButton">
+              <button
+                onClick={handleBulkDelete}
+                className="bulkDeleteConfirmButton"
+              >
                 Törlés véglegesítése
               </button>
             </div>
@@ -256,13 +327,24 @@ export default function Transactions() {
 
         {typeFilter !== "all" && (
           <div className="activeFilterInfo">
-            Aktív szűrő: <strong>{typeFilter === "outgoing" ? "Kiadás" : "Bevétel"}</strong>
+            Aktív szűrő:{" "}
+            <strong>{typeFilter === "outgoing" ? "Kiadás" : "Bevétel"}</strong>
+          </div>
+        )}
+
+        {filtered.length > PAGE_SIZE && (
+          <div className="paginationInfo" aria-live="polite">
+            Oldal <strong>{effectiveCurrentPage}</strong> / {totalPages}
           </div>
         )}
       </div>
 
       <div className="tableContainer">
-        <table className="transactionsTable" role="table" aria-label="Tranzakciók">
+        <table
+          className="transactionsTable"
+          role="table"
+          aria-label="Tranzakciók"
+        >
           <thead>
             <tr>
               {bulkDeleteMode && <th scope="col">Kijelölés</th>}
@@ -274,16 +356,23 @@ export default function Transactions() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((tx, idx) => {
+            {pagedRows.map(({ tx, globalIdx }) => {
               const txId = extractTransactionId(tx);
-              const rowSelectionKey = selectionKeyForTx(tx, idx);
+              const rowSelectionKey = selectionKeyForTx(tx, globalIdx);
               const rawType = tx.tran_type ?? tx.type ?? "";
               const norm = normalizeType(rawType);
-              const displayType = norm === "outgoing" ? "Kiadás" : norm === "income" ? "Bevétel" : rawType || "-";
+              const displayType =
+                norm === "outgoing"
+                  ? "Kiadás"
+                  : norm === "income"
+                    ? "Bevétel"
+                    : rawType || "-";
 
               let dateStr;
               try {
-                dateStr = tx.date ? new Date(tx.date).toLocaleDateString() : "-";
+                dateStr = tx.date
+                  ? new Date(tx.date).toLocaleDateString()
+                  : "-";
               } catch {
                 dateStr = tx.date || "-";
               }
@@ -297,8 +386,10 @@ export default function Transactions() {
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleTransactionSelection(rowSelectionKey)}
-                        aria-label={`Tranzakció kijelölése: ${tx.description || txId || idx}`}
+                        onChange={() =>
+                          toggleTransactionSelection(rowSelectionKey)
+                        }
+                        aria-label={`Tranzakció kijelölése: ${tx.description || txId || globalIdx}`}
                       />
                     </td>
                   )}
@@ -313,6 +404,51 @@ export default function Transactions() {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > PAGE_SIZE && (
+        <div
+          className="paginationTabs"
+          role="tablist"
+          aria-label="Tranzakció oldalak"
+        >
+          <button
+            type="button"
+            className="paginationTabButton"
+            onClick={() =>
+              setCurrentPage(Math.max(effectiveCurrentPage - 1, 1))
+            }
+            disabled={effectiveCurrentPage === 1}
+            aria-label="Előző oldal"
+          >
+            Elozo
+          </button>
+
+          {pageNumbers.map((page) => (
+            <button
+              key={page}
+              type="button"
+              role="tab"
+              aria-selected={effectiveCurrentPage === page}
+              className={`paginationTabButton ${effectiveCurrentPage === page ? "active" : ""}`}
+              onClick={() => setCurrentPage(page)}
+            >
+              {page}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            className="paginationTabButton"
+            onClick={() =>
+              setCurrentPage(Math.min(effectiveCurrentPage + 1, totalPages))
+            }
+            disabled={effectiveCurrentPage === totalPages}
+            aria-label="Következő oldal"
+          >
+            Kovetkezo
+          </button>
+        </div>
+      )}
     </div>
   );
 }

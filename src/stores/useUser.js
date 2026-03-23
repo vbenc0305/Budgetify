@@ -107,9 +107,18 @@ export const useUser = create(
 
         const auth = getAuth();
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-          set({ user: firebaseUser, fetched: false, authChecked: true });
+          // Prefer the callback user, but guard against transient null values.
+          const effectiveUser =
+            firebaseUser && typeof firebaseUser.getIdToken === "function"
+              ? firebaseUser
+              : auth.currentUser &&
+                  typeof auth.currentUser.getIdToken === "function"
+                ? auth.currentUser
+                : null;
 
-          if (!firebaseUser) {
+          set({ user: effectiveUser, fetched: false, authChecked: true });
+
+          if (!effectiveUser) {
             useTransaction.getState().resetTransactions();
             set({ usrInfo: null, fetched: false });
           } else {
@@ -154,16 +163,6 @@ export const useUser = create(
               : null;
           }
 
-          function calcAgeFromBirthdate(birthdateStr) {
-            if (!birthdateStr) return null;
-            const d = new Date(birthdateStr);
-            if (Number.isNaN(d.getTime())) return null;
-            const now = new Date();
-            let age = now.getFullYear() - d.getFullYear();
-            const m = now.getMonth() - d.getMonth();
-            if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
-            return age >= 0 ? age : null;
-          }
           // --- 4) Ha van displayName vagy photoURL, frissítsük Firebase user objectet is
           const { displayName, photoURL } = payload;
           if (displayName || photoURL) {
@@ -250,10 +249,10 @@ export const useUser = create(
       name: "user-storage",
       getStorage: () => localStorage,
       partialize: (state) => ({
-        user: state.user,
+        // Firebase User is non-serializable (methods like getIdToken are lost),
+        // so persist only profile cache-like data.
         usrInfo: state.usrInfo,
         fetched: state.fetched,
-        authChecked: state.authChecked,
       }),
     },
   ),

@@ -1,5 +1,44 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { getAuth } from "firebase/auth";
+
+const hasTokenMethod = (candidate) =>
+  !!candidate && typeof candidate.getIdToken === "function";
+
+const resolveActiveUser = (candidateUser) => {
+  if (hasTokenMethod(candidateUser)) return candidateUser;
+  const current = getAuth().currentUser;
+  return hasTokenMethod(current) ? current : null;
+};
+
+const fetchWithAuthRetry = async (url, options, user) => {
+  const activeUser = resolveActiveUser(user);
+  if (!activeUser) {
+    throw new Error("Nincs bejelentkezett user.");
+  }
+
+  let token = await activeUser.getIdToken();
+  let response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options?.headers || {}),
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (response.status === 401) {
+    token = await activeUser.getIdToken(true);
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options?.headers || {}),
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  return { response, activeUser };
+};
 
 export const useTransaction = create(
   persist(
@@ -10,7 +49,8 @@ export const useTransaction = create(
       fetched: false,
 
       fetchTransactions: async (user) => {
-        if (!user || typeof user.getIdToken !== "function") {
+        const activeUser = resolveActiveUser(user);
+        if (!activeUser) {
           set({
             transactions: [],
             fetched: false,
@@ -24,21 +64,25 @@ export const useTransaction = create(
         set({ loading: true, error: null });
 
         try {
-          const token = await user.getIdToken();
-          const res = await fetch("/api/transactions", {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+          const { response } = await fetchWithAuthRetry(
+            "/api/transactions",
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
             },
-          });
+            activeUser,
+          );
 
-          if (!res.ok) {
-            const text = await res.text().catch(() => "");
-            throw new Error(`Network response not ok: ${res.status} ${text}`);
+          if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(
+              `Network response not ok: ${response.status} ${text}`,
+            );
           }
 
-          const data = await res.json();
+          const data = await response.json();
           set({ transactions: data, fetched: true, loading: false });
           console.log("✅ fetchTransactions sikeres", data);
         } catch (err) {
@@ -50,7 +94,8 @@ export const useTransaction = create(
       },
 
       massImport: async (jsonPayload, user) => {
-        if (!user || typeof user.getIdToken !== "function") {
+        const activeUser = resolveActiveUser(user);
+        if (!activeUser) {
           const msg = "Nincs bejelentkezett user.";
           set({ error: msg });
           throw new Error(msg);
@@ -62,24 +107,26 @@ export const useTransaction = create(
 
         set({ loading: true, error: null });
         try {
-          const token = await user.getIdToken();
-          const res = await fetch("/api/transactions/mass_import", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+          const { response } = await fetchWithAuthRetry(
+            "/api/transactions/mass_import",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              // Backend expects a JSON array in the request body (not an object).
+              // Send the parsed rows directly as the top-level array.
+              body: JSON.stringify(jsonPayload),
             },
-            // Backend expects a JSON array in the request body (not an object).
-            // Send the parsed rows directly as the top-level array.
-            body: JSON.stringify(jsonPayload),
-          });
+            activeUser,
+          );
 
-          if (!res.ok) {
-            const text = await res.text().catch(() => "");
-            throw new Error(`Import sikertelen: ${res.status} ${text}`);
+          if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`Import sikertelen: ${response.status} ${text}`);
           }
 
-          const result = await res.json();
+          const result = await response.json();
 
           if (
             result &&
@@ -101,7 +148,7 @@ export const useTransaction = create(
             // call the store action to re-fetch; await to ensure transactions updated
             const fetchFn = get().fetchTransactions;
             if (typeof fetchFn === "function") {
-              await fetchFn(user);
+              await fetchFn(activeUser);
             }
           } catch (e) {
             // non-fatal: if refetch fails we still return the import result
@@ -117,7 +164,8 @@ export const useTransaction = create(
       },
 
       massDeleteTransactions: async (transactionIds, user) => {
-        if (!user || typeof user.getIdToken !== "function") {
+        const activeUser = resolveActiveUser(user);
+        if (!activeUser) {
           const msg = "Nincs bejelentkezett user.";
           set({ error: msg });
           throw new Error(msg);
@@ -134,19 +182,23 @@ export const useTransaction = create(
         set({ loading: true, error: null });
 
         try {
-          const token = await user.getIdToken();
-          const res = await fetch("/api/transactions/mass_delete", {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+          const { response } = await fetchWithAuthRetry(
+            "/api/transactions/mass_delete",
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ transaction_ids: transactionIds }),
             },
-            body: JSON.stringify({ transaction_ids: transactionIds }),
-          });
+            activeUser,
+          );
 
-          if (!res.ok) {
-            const text = await res.text().catch(() => "");
-            throw new Error(`Tömeges törlés sikertelen: ${res.status} ${text}`);
+          if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(
+              `Tömeges törlés sikertelen: ${response.status} ${text}`,
+            );
           }
 
           const normalizeTxId = (raw) => {
@@ -156,14 +208,23 @@ export const useTransaction = create(
             const normalizedPath = str.startsWith("/") ? str.slice(1) : str;
             const segments = normalizedPath.split("/").filter(Boolean);
             const txIndex = segments.lastIndexOf("transactions");
-            if (txIndex >= 0 && segments[txIndex + 1]) return segments[txIndex + 1];
+            if (txIndex >= 0 && segments[txIndex + 1])
+              return segments[txIndex + 1];
             return str;
           };
 
-          const idSet = new Set(transactionIds.map((id) => normalizeTxId(id)).filter(Boolean));
+          const idSet = new Set(
+            transactionIds.map((id) => normalizeTxId(id)).filter(Boolean),
+          );
           set((state) => ({
             transactions: state.transactions.filter((tx) => {
-              const txId = tx?.id ?? tx?.transaction_id ?? tx?.tran_id ?? tx?._id ?? tx?.path ?? tx?.ref_path;
+              const txId =
+                tx?.id ??
+                tx?.transaction_id ??
+                tx?.tran_id ??
+                tx?._id ??
+                tx?.path ??
+                tx?.ref_path;
               const normalized = normalizeTxId(txId);
               return !normalized || !idSet.has(normalized);
             }),

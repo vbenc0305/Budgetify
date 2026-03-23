@@ -25,6 +25,7 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
   const [previewRows, setPreviewRows] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const hasAuthUser = !!user && typeof user.getIdToken === "function";
 
   // We'll obtain the massImport function at call time from the store to avoid
   // selector/timing issues that can cause `undefined` during initial render.
@@ -123,7 +124,7 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
         }
       } catch (toastErr) {
         // log toast errors to help debugging (avoid unused var eslint error)
-         
+
         console.warn("Could not show toast:", toastErr);
       }
 
@@ -146,7 +147,6 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
           window.showToast(msg, { type: "error", duration: 6000 });
         }
       } catch (toastErr) {
-         
         console.warn("Could not show error toast:", toastErr);
       }
     } finally {
@@ -156,7 +156,7 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
 
   return (
     <div
-      className={`modalOverlay ${isOpen ? "open" : ""}`}
+      className={`massImportModalOverlay modalOverlay ${isOpen ? "open" : ""}`}
       onClick={(e) => {
         // close only when clicking on the overlay itself (not the modal content)
         if (e.target === e.currentTarget) onClose();
@@ -164,14 +164,14 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
       aria-hidden={!isOpen}
     >
       <aside
-        className={`modalContent rightSlide ${isOpen ? "open" : ""}`}
+        className={`massImportModalContent modalContent rightSlide ${isOpen ? "open" : ""}`}
         role="dialog"
         aria-modal="true"
       >
-        <div className="modalHeader">
+        <div className="massImportModalHeader modalHeader">
           <h2>Kiadások importálása OTP-ből</h2>
           <button
-            className="modalCloseButton"
+            className="massImportModalCloseButton modalCloseButton"
             onClick={onClose}
             aria-label="Bezárás"
             title="Bezárás"
@@ -180,14 +180,17 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
           </button>
         </div>
 
-        <div className="modalBody">
+        <div className="massImportModalBody modalBody">
           <p>
             Válassz egy Excel fájlt az OTP exportból, hogy importáljuk a
             tranzakciókat.
           </p>
 
-          <div className="fileInputWrapper">
-            <label htmlFor="mass-import-file" className="fileInputLabel">
+          <div className="massImportFileInputWrapper fileInputWrapper">
+            <label
+              htmlFor="mass-import-file"
+              className="massImportFileInputLabel fileInputLabel"
+            >
               Fájl kiválasztása
             </label>
             <input
@@ -197,27 +200,30 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
               onChange={handleFileChange}
               style={{ display: "none" }}
             />
-            <div className="fileName">
+            <div className="massImportFileName fileName">
               {file ? file.name : "Nincs kiválasztva fájl"}
             </div>
           </div>
 
-          {!user && (
-            <p className="error" style={{ marginTop: 10 }}>
+          {!hasAuthUser && (
+            <p className="massImportError" style={{ marginTop: 10 }}>
               Importáláshoz bejelentkezés szükséges.
             </p>
           )}
 
-          {error && <p className="error">{error}</p>}
+          {error && <p className="massImportError">{error}</p>}
 
           <PreviewTable previewRows={previewRows} />
         </div>
 
-        <div className="modalActions">
-          <button onClick={onClose}>Mégse</button>
+        <div className="massImportModalActions modalActions">
+          <button className="massImportCancelButton" onClick={onClose}>
+            Mégse
+          </button>
           <button
+            className="massImportImportButton"
             onClick={handleImport}
-            disabled={!file || !!error || loading || !user}
+            disabled={!file || !!error || loading || !hasAuthUser}
           >
             {loading ? "Importálás..." : "Importálás"}
           </button>

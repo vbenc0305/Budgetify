@@ -3,11 +3,11 @@
 /* A teljes nav sáv */
 .navbar-root {
     background: linear-gradient(135deg,
-    rgba(99, 102, 241, 0.1),
-    rgba(139, 92, 246, 0.08));
+    color-mix(in srgb, var(--accent-primary) 18%, transparent),
+    color-mix(in srgb, var(--accent-secondary) 14%, transparent));
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.1);
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--accent-primary) 14%, transparent);
     position: sticky;
     top: 0;
     z-index: 50;
@@ -40,7 +40,7 @@ html, body {
 .navbar-menu {
     list-style: none;
     display: flex;
-    gap: 2rem;
+    gap: 1rem;
     margin: 0;
     padding: 0;
     align-items: center;
@@ -102,17 +102,13 @@ html, body {
     border-radius: 1px;
 }
 
-
 .logout-button {
-    /* Make logout look like a compact pill button and sit inline with menu links */
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--button-cta-text);
     border: none;
-    /* ensure dark background matches nav-cta */
-    background: linear-gradient(90deg, #0f172a, #111827) !important;
-    background-color: #0b0b0b !important;
+    background: var(--button-cta-bg) !important;
     font-weight: 700;
     cursor: pointer;
     padding: 6px 12px;
@@ -123,20 +119,44 @@ html, body {
 
 .logout-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.16);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--accent-blue) 24%, transparent);
 }
 
 /* Ensure nav links that use .nav-cta don't get overridden by .nav-link default padding */
 .nav-link.nav-cta {
-    /* enforce CTA visuals on anchors that also have .nav-link */
-    background: linear-gradient(90deg, #0f172a, #111827) !important;
-    color: #fff !important;
-    padding: 6px 12px !important; /* same as .nav-cta */
+    background: var(--button-cta-bg) !important;
+    color: var(--button-cta-text) !important;
+    padding: 6px 12px !important;
     border-radius: 10px !important;
     display: inline-flex !important;
     align-items: center !important;
     text-decoration: none !important;
     border: none !important;
     box-shadow: none !important;
-    background-color: #0b0b0b !important; /* solid fallback */
+}
+
+.theme-control-item {
+    gap: 0.45rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-elevated);
+}
+
+.theme-control-icon {
+    color: var(--accent-primary);
+    font-size: 0.95rem;
+}
+
+.theme-control-select {
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.2rem 0.35rem;
+}
+
+.theme-control-select:focus {
+    outline: none;
 }
