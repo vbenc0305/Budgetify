@@ -12,6 +12,7 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df['year'] = df['date'].dt.year
     df['day_of_week'] = df['date'].dt.dayofweek
     df['is_weekend'] = df['day_of_week'] >= 5
+    df['is_weekend'] = df['day_of_week'] >= 5
     df['quarter'] = df['date'].dt.quarter
     df['is_start_of_month'] = df['date'].dt.day <= 5
     df['is_end_of_month'] = df['date'].dt.is_month_end | (df['date'].dt.days_in_month - df['date'].dt.day <= 5)
@@ -26,6 +27,13 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
 def add_user_monthly_stats(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df = df[df['internal_transfer'] == 'none']  # csak valós tranzakciók
+
+    # Remove duplicates by date to ensure accurate statistics
+    if 'date' in df.columns:
+        before_stats_dupes = len(df)
+        df = df.drop_duplicates(subset=['date'], keep='first')
+        if len(df) != before_stats_dupes:
+            print(f"ℹ️ add_user_monthly_stats: removed {before_stats_dupes - len(df)} duplicate dates")
 
     group = df.groupby(['user_id', 'year', 'month'])
 
@@ -56,9 +64,11 @@ def add_salary_related_features(
 
     return df
 
-def clip_outliers_zscore(df: pd.DataFrame, columns: list = None, threshold: float = 3.0) -> pd.DataFrame:
+def clip_outliers_zscore(df: pd.DataFrame, columns: list = None, threshold: float = 3.0,
+                         exclude: Optional[list] = None) -> pd.DataFrame:
+    exclude = set(exclude or [])
     if columns is None:
-        columns = df.select_dtypes(include=[np.number]).columns.tolist()
+        columns = [c for c in df.select_dtypes(include=[np.number]).columns.tolist() if c not in exclude]
     for col in columns:
         mean = df[col].mean()
         std = df[col].std()
@@ -94,8 +104,8 @@ def engineer_all_features(df: pd.DataFrame) -> pd.DataFrame:
     df = add_salary_related_features(df)
     df = add_category_features(df)
 
-    # Clip outliers a numerikus mezőkön
-    df = clip_outliers_zscore(df)
+    # Clip outliers a numerikus mezőkön, de a nyers amount-ot ne torzítsuk
+    df = clip_outliers_zscore(df, exclude=['amount'])
 
     # Mentés CSV-be (opcionális)
     df.to_csv("transactions_with_features.csv", index=False)
@@ -115,6 +125,13 @@ def build_monthly_panel_from_tx(df: pd.DataFrame, uid_local: Optional[str] = Non
         df[uid_col] = uid_local if uid_local is not None else "unknown_user"
 
     df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+
+    # Remove duplicates by date to ensure clean aggregation
+    before_panel_dupes = len(df)
+    df = df.drop_duplicates(subset=[date_col], keep='first')
+    if len(df) != before_panel_dupes:
+        print(f"ℹ️ build_monthly_panel_from_tx: removed {before_panel_dupes - len(df)} duplicate dates before aggregation")
+
     # biztosítsuk a year/month oszlopokat (ha engineer_all_features generálta, ok)
     df['year'] = df[date_col].dt.year
     df['month'] = df[date_col].dt.month

@@ -9,11 +9,13 @@ from datetime import datetime, timedelta, timezone
 import os
 import socket
 import csv
-from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor, Future, TimeoutError as FutureTimeout
+import re
 
 logger = logging.getLogger(__name__)
 logger.debug("db.firebase_client module imported")
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 _cred_path = "conninfo.json"
 _db_client_lock = threading.Lock()
@@ -36,11 +38,12 @@ _init_future: Optional[Future] = None
 
 # Use a single directory for per-user transaction cache and offline stashes for readability.
 # `OFFLINE_DIR` is kept as an alias for backward compatibility.
-USER_TX_DIR = Path("userTransactions")
+_default_user_tx_dir = PROJECT_ROOT / "userTransactions"
+USER_TX_DIR = Path(os.getenv("BUDGETIFY_USER_TX_DIR", str(_default_user_tx_dir))).expanduser().resolve()
 USER_TX_DIR.mkdir(parents=True, exist_ok=True)
 OFFLINE_DIR = USER_TX_DIR
 
-FALLBACK_DATASET_PATH = Path("datasets") / "Dataset.csv"
+FALLBACK_DATASET_PATH = PROJECT_ROOT / "datasets" / "Dataset.csv"
 _fallback_rows: list[dict] | None = None
 _fallback_rows_mtime: float | None = None
 _fallback_lock = threading.Lock()
@@ -398,6 +401,62 @@ def _write_local_txs_overwrite(uid: str, tx_list: list[dict]) -> None:
         logger.exception(f"Failed to write local txs for uid={uid}")
 
 
+def _upsert_local_txs(uid: str, tx_list: list[dict]) -> None:
+    """Update existing local txs by `id` and append new ones to keep cache aligned with writes."""
+    if not tx_list:
+        return
+
+    local = _read_local_txs(uid)
+    index_by_id: dict[str, int] = {}
+    for idx, tx in enumerate(local):
+        if isinstance(tx, dict) and tx.get("id") and tx.get("id") not in index_by_id:
+            index_by_id[str(tx.get("id"))] = idx
+
+    for tx in tx_list:
+        if not isinstance(tx, dict):
+            continue
+        tx_copy = dict(tx)
+        tx_id = tx_copy.get("id")
+        if tx_id:
+            tx_key = str(tx_id)
+            if tx_key in index_by_id:
+                local[index_by_id[tx_key]] = tx_copy
+            else:
+                index_by_id[tx_key] = len(local)
+                local.append(tx_copy)
+        else:
+            local.append(tx_copy)
+
+    _write_local_txs_overwrite(uid, local)
+
+
+def _remove_local_txs_by_ids(uid: str, transaction_ids: list[str]) -> None:
+    """Remove deleted transaction IDs from local cache to avoid stale cache-first reads."""
+    if not transaction_ids:
+        return
+    id_set = {str(tx_id) for tx_id in transaction_ids if tx_id is not None}
+    if not id_set:
+        return
+
+    local = _read_local_txs(uid)
+    if not local:
+        return
+
+    filtered = []
+    for tx in local:
+        if not isinstance(tx, dict):
+            filtered.append(tx)
+            continue
+        tx_id = tx.get("id")
+        tx_doc_id = tx.get("transaction_id")
+        if str(tx_id) in id_set or str(tx_doc_id) in id_set:
+            continue
+        filtered.append(tx)
+
+    if len(filtered) != len(local):
+        _write_local_txs_overwrite(uid, filtered)
+
+
 # ----------------- DB operations -----------------
 
 def get_user_doc(uid: str):
@@ -616,7 +675,7 @@ def get_user_transactions(uid: str):
         user_ref = db.collection("users").document(uid)
         transactions_ref = user_ref.collection("transactions")
         docs = transactions_ref.stream()
-        res = [doc.to_dict() for doc in docs]
+        res = [doc.to_dict() | {"transaction_id": doc.id} for doc in docs]
     except Exception as e:
         logger.exception(f"Hiba a felhasználó tranzakcióinak lekérésekor for uid={uid}: {e} — falling back to local stash")
         local = _read_local_txs(uid)
@@ -637,15 +696,50 @@ def get_user_transactions(uid: str):
         except Exception:
             logger.exception("Failed to update local cache with remote transactions")
         return res
-    # index remote by id if possible
-    remote_by_id = {tx.get('id'): tx for tx in res if isinstance(tx, dict) and tx.get('id')}
+
+    # Build fingerprint sets for deduplication
+    remote_by_fp = {}
+    remote_by_id = {}
+    for tx in res:
+        if not isinstance(tx, dict):
+            continue
+        try:
+            fp = _tx_fingerprint_for_dedup(tx)
+            remote_by_fp[fp] = tx
+        except Exception:
+            logger.exception("Failed to create fingerprint for remote transaction")
+        tx_id = tx.get('id')
+        if tx_id:
+            remote_by_id[tx_id] = tx
+
+    # Start with all remote transactions
     merged = list(res)
+
+    # Add local transactions that are not duplicates
     for ltx in local:
+        if not isinstance(ltx, dict):
+            continue
+
+        # Check if already in remote by ID
         lid = ltx.get('id')
         if lid and lid in remote_by_id:
-            # prefer remote version (assumed authoritative)
+            logger.debug(f"Skipping local tx with id={lid} - already in remote by ID")
             continue
+
+        # Check if already in remote by fingerprint
+        try:
+            lfp = _tx_fingerprint_for_dedup(ltx)
+            if lfp in remote_by_fp:
+                logger.debug(f"Skipping local tx with fingerprint={lfp[:50]}... - already in remote")
+                continue
+        except Exception:
+            logger.exception("Failed to create fingerprint for local transaction - including it anyway")
+
+        # Not a duplicate - add to merged list
         merged.append(ltx)
+
+    logger.info(f"Merged {len(res)} remote + {len(local)} local = {len(merged)} total txs for uid={uid} (removed {len(res) + len(local) - len(merged)} duplicates)")
+
     # Attempt to update local cache with merged view so future reads use the cache
     try:
         _write_local_txs_overwrite(uid, merged)
@@ -669,9 +763,11 @@ def update_usr_info_doc(id: str, data: dict):
     return data
 
 
-def save_user_transaction(uid: str, transaction_data: dict):
-    """Save a single transaction. Try Firestore; on failure, append to local JSONL stash and return a generated id.
+def save_user_transaction(uid: str, transaction_data: dict, allow_local_fallback: bool = True):
+    """Save a single transaction.
 
+    By default, falls back to local JSONL when Firestore is unavailable.
+    If `allow_local_fallback` is False, Firebase errors are raised to caller.
     Returns the document id (str) on success or the locally generated id when falling back.
     """
     # ensure we have an id for local fallback
@@ -683,6 +779,8 @@ def save_user_transaction(uid: str, transaction_data: dict):
     try:
         db = get_db_client()
     except FirebaseUnavailable:
+        if not allow_local_fallback:
+            raise
         logger.warning(f"save_user_transaction: Firebase unavailable for uid={uid}; saving locally")
         _append_local_tx(uid, transaction_data)
         return doc_id
@@ -691,15 +789,25 @@ def save_user_transaction(uid: str, transaction_data: dict):
         collection_ref = db.collection("users").document(uid).collection("transactions")
         doc_ref = collection_ref.document(doc_id)
         doc_ref.set(transaction_data)
+        try:
+            _upsert_local_txs(uid, [transaction_data])
+        except Exception:
+            logger.exception("Failed to sync local cache after save_user_transaction")
         return doc_ref.id
     except Exception:
+        if not allow_local_fallback:
+            raise
         logger.exception(f"Failed to save transaction to Firestore for uid={uid}; saving locally")
         _append_local_tx(uid, transaction_data)
         return doc_id
 
 
-def save_user_transactions(uid: str, transactions: list[dict]):
-    """Save multiple transactions. Try batch write to Firestore; on failure, append locally. Returns number written.
+def save_user_transactions(uid: str, transactions: list[dict], allow_local_fallback: bool = True):
+    """Save multiple transactions.
+
+    By default, falls back to local JSONL when Firestore is unavailable.
+    If `allow_local_fallback` is False, Firebase errors are raised to caller.
+    Returns number of written transactions.
     """
     if not transactions:
         return 0
@@ -716,6 +824,8 @@ def save_user_transactions(uid: str, transactions: list[dict]):
     try:
         db = get_db_client()
     except FirebaseUnavailable:
+        if not allow_local_fallback:
+            raise
         logger.warning(f"save_user_transactions: Firebase unavailable for uid={uid}; saving {len(txs)} locally")
         return _append_local_txs(uid, txs)
 
@@ -727,8 +837,14 @@ def save_user_transactions(uid: str, transactions: list[dict]):
             doc_ref = collection_ref.document(doc_id) if doc_id else collection_ref.document()
             batch.set(doc_ref, tx_data)
         batch.commit()
+        try:
+            _upsert_local_txs(uid, txs)
+        except Exception:
+            logger.exception("Failed to sync local cache after save_user_transactions")
         return len(txs)
     except Exception:
+        if not allow_local_fallback:
+            raise
         logger.exception(f"Failed to batch save transactions to Firestore for uid={uid}; saving locally")
         return _append_local_txs(uid, txs)
 
@@ -783,3 +899,81 @@ def flush_all_local_transactions() -> int:
     except Exception:
         logger.exception("Failed during flush_all_local_transactions")
     return total
+
+# Helper function for duplicate detection using fingerprints
+def _tx_fingerprint_for_dedup(tx: dict) -> str:
+    """
+    Create a fingerprint for transaction deduplication using full timestamp, amount, and key fields.
+    This matches the logic in api.routes.transactions._tx_fingerprint_for_matching
+    """
+    def _normalize_text(s: Any) -> str:
+        if not s:
+            return ""
+        t = str(s).lower()
+        # normalize diacritics
+        t = t.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ö", "o").replace("ő", "o").replace("ú", "u").replace("ü", "u").replace("ű", "u")
+        t = re.sub(r"\s+", " ", t)
+        return t
+
+    # Full timestamp (not just date)
+    date_raw = str(tx.get("date", "")).strip()
+    date_full = date_raw if date_raw else ""
+
+    # Amount with 2 decimal places
+    try:
+        amount_val = float(tx.get("amount", 0.0) or 0.0)
+    except Exception:
+        amount_val = 0.0
+    amount_s = f"{amount_val:.2f}"
+
+    # Normalized text fields
+    desc = _normalize_text(tx.get("description", ""))[:200]
+    cat = _normalize_text(tx.get("category", ""))
+    ttype = _normalize_text(tx.get("tran_type", ""))
+    internal = _normalize_text(tx.get("internal_transfer", ""))
+
+    return "|".join([date_full, amount_s, desc, cat, ttype, internal])
+
+
+def delete_user_transactions_batched(uid: str, transaction_ids: list[str], batch_size: int = 500) -> int:
+    """Delete multiple user transactions using Firestore batch writes.
+
+    Returns the number of transaction IDs processed (requested for deletion).
+
+    This helper assumes that deleting a non-existent document is a no-op.
+    Raises FirebaseUnavailable if Firestore cannot be initialized, and lets
+    other exceptions propagate to the caller.
+    """
+    if not transaction_ids:
+        return 0
+
+    try:
+        db = get_db_client()
+    except FirebaseUnavailable as exc:
+        # surface as-is so API layer can convert to 503
+        logger.warning(f"delete_user_transactions_batched: Firebase unavailable for uid={uid}: {exc}")
+        raise
+
+    collection_ref = db.collection("users").document(uid).collection("transactions")
+
+    total_processed = 0
+    # Chunk IDs into batches of at most batch_size (Firestore limit is 500 ops per batch)
+    for i in range(0, len(transaction_ids), batch_size):
+        chunk = transaction_ids[i : i + batch_size]
+        if not chunk:
+            continue
+        batch = db.batch()
+        for tx_id in chunk:
+            doc_ref = collection_ref.document(str(tx_id))
+            batch.delete(doc_ref)
+        # Commit this batch; any exception should bubble up to caller
+        batch.commit()
+        total_processed += len(chunk)
+
+    try:
+        _remove_local_txs_by_ids(uid, transaction_ids)
+    except Exception:
+        logger.exception("Failed to sync local cache after delete_user_transactions_batched")
+
+    return total_processed
+

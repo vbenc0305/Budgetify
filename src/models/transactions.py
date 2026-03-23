@@ -18,6 +18,7 @@ class Transaction:
                  for_who: str,
                  tran_type: str,
                  user_id: str,
+                 transaction_id: Optional[str] = None,
                  internal_transfer: Optional[str] = None):
         """
         Inicializálja a tranzakció attribútumait.
@@ -30,6 +31,7 @@ class Transaction:
             for_who (str): Kinek vagy mire vonatkozik a tranzakció.
             tran_type (str): A tranzakció típusa (banki leírás/pl. 'VÁSÁRLÁS KÁRTYÁVAL').
             user_id (str): A tranzakcióhoz tartozó felhasználó azonosítója.
+            transaction_id (Optional[str]): A tranzakció Firebase dokumentum azonosítója.
             internal_transfer (Optional[str]): Belső átvezetés jelölése: None/'none'/'jar_in'/'jar_out'/'rounding'
         """
         self._amount = amount
@@ -39,6 +41,7 @@ class Transaction:
         self._for_who = for_who
         self._tran_type = tran_type
         self._user_id = user_id
+        self._transaction_id = transaction_id
         self._internal_transfer = internal_transfer if internal_transfer in self.ALLOWED_INTERNAL_TRANSFER_VALUES else None
 
     # Getterek és setterek az egyes attribútumokhoz
@@ -138,6 +141,16 @@ class Transaction:
             raise ValueError(f"internal_transfer értéke csak a következők lehetnek: {self.ALLOWED_INTERNAL_TRANSFER_VALUES}")
         self._internal_transfer = value
 
+    @property
+    def transaction_id(self) -> Optional[str]:
+        """Visszaadja a tranzakció Firebase dokumentum azonosítóját."""
+        return self._transaction_id
+
+    @transaction_id.setter
+    def transaction_id(self, value: Optional[str]):
+        """Beállítja a tranzakció Firebase dokumentum azonosítóját."""
+        self._transaction_id = value
+
     def to_dict(self) -> dict:
         """
         Visszaadja a tranzakció adatainak szótár formátumát.
@@ -153,5 +166,6 @@ class Transaction:
             'for_who': self._for_who,
             'tran_type': self._tran_type,
             'user_id': self._user_id,
-            'internal_transfer': self._internal_transfer
+            'internal_transfer': self._internal_transfer,
+            'transaction_id': self._transaction_id
         }

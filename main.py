@@ -46,6 +46,6 @@ def root():
     return {"message": "Hello from Budgetify FastAPI!"}
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8080))
+    port = int(os.getenv("PORT", 8081))
     logger.info(f"Starting uvicorn on 0.0.0.0:{port}")
     uvicorn.run(app, host="0.0.0.0", port=port)

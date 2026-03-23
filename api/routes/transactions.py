@@ -5,7 +5,7 @@ import pandas as pd
 from starlette.responses import JSONResponse
 
 from api.dependencies import get_current_user_uid
-from db.firebase_client import get_user_transactions, save_user_transaction, save_user_transactions, FirebaseUnavailable, is_quota_exceeded, get_quota_status
+from db.firebase_client import get_user_transactions, save_user_transaction, save_user_transactions, FirebaseUnavailable, is_quota_exceeded, get_quota_status, get_db_client, delete_user_transactions_batched
 from src.models.transactions import Transaction
 from typing import List, Dict, Any, Optional
 from fastapi import Body, Depends, HTTPException, APIRouter
@@ -44,7 +44,7 @@ async def _get_pipeline() -> object:
             if _pipeline is not None:
                 return _pipeline
             try:
-                gen_mod = importlib.import_module("src.Generation.Case_one_has_enough_Transact_arima")
+                gen_mod = importlib.import_module("src.Generation.Case_one_has_enough_Transact_arima_refactored")
                 ForecastPipeline = getattr(gen_mod, "ForecastPipeline")
                 # instantiate the pipeline (may be heavy) in worker thread
                 instance = ForecastPipeline()
@@ -75,6 +75,107 @@ async def get_transactions(uid: str = Depends(get_current_user_uid)):
         logger.error(f"Firebase unavailable in get_transactions: {e}")
         raise HTTPException(status_code=503, detail=str(e))
 
+# --- DELETE tömeges tranzakciók törlése
+@router.delete("/transactions/mass_delete")
+async def mass_delete_transactions(
+    request_body: dict = Body(...),
+    uid: str = Depends(get_current_user_uid)
+):
+    """
+    Bulk delete multiple transactions for the authenticated user.
+
+    Request body:
+    {
+        "transaction_ids": ["id1", "id2", "id3", ...]
+    }
+
+    Response (success):
+    {
+        "success": true,
+        "message": "X transaction(s) deleted successfully",
+        "deleted_count": 3
+    }
+    """
+    # 1) Validate request body - transaction_ids must be provided and non-empty
+    transaction_ids = request_body.get("transaction_ids")
+
+    if not transaction_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="transaction_ids is required and must be a non-empty array"
+        )
+
+    if not isinstance(transaction_ids, list):
+        raise HTTPException(
+            status_code=400,
+            detail="transaction_ids must be an array"
+        )
+
+    if len(transaction_ids) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="transaction_ids array cannot be empty"
+        )
+
+    # 2) Normalize transaction IDs (extract from Firestore paths if needed)
+    normalized_ids = []
+    for tx_id in transaction_ids:
+        if not tx_id:
+            continue
+
+        # Handle Firestore paths like "users/{uid}/transactions/{txId}" or similar
+        if isinstance(tx_id, str) and "/" in tx_id:
+            # Extract the last part of the path (the actual transaction ID)
+            parts = tx_id.split("/")
+            normalized_id = parts[-1] if parts else None
+        else:
+            normalized_id = tx_id
+
+        if normalized_id:
+            normalized_ids.append(normalized_id)
+
+    # 3) Attempt to delete from Firebase
+    try:
+        db = get_db_client()
+    except FirebaseUnavailable as e:
+        logger.error(f"Firebase unavailable in mass_delete_transactions for uid={uid}: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
+
+    deleted_count = 0
+    errors = []
+
+    try:
+        # Use batched delete helper to minimize Firestore API calls
+        deleted_count = delete_user_transactions_batched(uid, normalized_ids)
+    except FirebaseUnavailable as e:
+        logger.error(f"Firebase unavailable in mass_delete_transactions for uid={uid}: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
+    except HTTPException:
+        # re-raise explicit HTTP exceptions if any
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error in mass_delete_transactions for uid={uid}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error during deletion: {str(e)}"
+        )
+
+    if deleted_count == 0:
+        # No documents were processed for deletion
+        raise HTTPException(
+            status_code=404,
+            detail=f"No transactions found to delete. Attempted to delete {len(normalized_ids)} IDs."
+        )
+
+    message = f"{deleted_count} transaction(s) deleted successfully"
+
+    return {
+        "success": True,
+        "message": message,
+        "deleted_count": deleted_count,
+        "errors": None,
+    }
+
 # --- PUT egy tranzakcióhoz
 @router.put("/transactions")
 async def put_transaction(
@@ -90,11 +191,38 @@ async def put_transaction(
             description=transaction_data.get('description', ''),
             for_who=transaction_data.get('for_who', ''),
             tran_type=transaction_data['tran_type'],
-            user_id=uid
+            user_id=uid,
+            transaction_id=transaction_data.get('transaction_id')
         )
+
+        # FIX 2: Check for duplicates before saving (manual entry warning)
+        tx_dict = transaction.to_dict()
+        fp = _tx_fingerprint_for_matching(tx_dict)
+
+        try:
+            existing_txs = get_user_transactions(uid) or []
+            for existing_tx in existing_txs:
+                try:
+                    if _tx_fingerprint_for_matching(existing_tx) == fp:
+                        # Duplicate found - log warning and return with warning status
+                        logger.warning(f"Duplicate transaction detected for uid={uid}, fp={fp}")
+                        return {
+                            "status": "warning",
+                            "message": "This transaction appears to be a duplicate of an existing transaction.",
+                            "duplicate_warning": True,
+                            "transaction": tx_dict
+                        }
+                except Exception:
+                    continue  # skip problematic existing transaction
+        except Exception as e:
+            # If we can't check for duplicates, log and continue with save
+            logger.warning(f"Could not check for duplicates in put_transaction: {e}")
+
         # Mentés Firebase-be
-        save_user_transaction(uid, transaction.to_dict())
-        return {"status": "success", "transaction": transaction.to_dict()}
+        doc_id = save_user_transaction(uid, tx_dict)
+        # Add the Firebase document ID to the response
+        tx_dict['transaction_id'] = doc_id
+        return {"status": "success", "transaction": tx_dict}
     except FirebaseUnavailable as e:
         logger.error(f"Firebase unavailable in put_transaction: {e}")
         raise HTTPException(status_code=503, detail=str(e))
@@ -115,13 +243,20 @@ async def mass_import_transactions(
     errors = []           # sikertelen sorok: (index, message)
     skipped_duplicates = []  # duplikáltak (index, reason, row)
 
-    # --- Lekérjük a meglévő tranzakciókat a felhasználótól és előállítjuk a fingerprint set-et ---
+    # Mass import should persist to Firestore (not silently local-only)
     try:
-        existing_txs = get_user_transactions(uid) or []
+        db = get_db_client()
+    except FirebaseUnavailable as e:
+        logger.error(f"Firebase unavailable in mass_import_transactions for uid={uid}: {e}")
+        raise HTTPException(status_code=503, detail=f"Firebase unavailable, mass import aborted: {e}")
+
+    # --- Existing transactions for dedup are fetched from Firestore directly ---
+    try:
+        docs = db.collection("users").document(uid).collection("transactions").stream()
+        existing_txs = [doc.to_dict() | {"transaction_id": doc.id} for doc in docs]
     except Exception as e:
-        # ha a get_user_transactions hibázik, logoljuk, de próbáljuk folytatni (később mentésnél lehet gond)
-        existing_txs = []
-        print(f"⚠️ get_user_transactions hiba (folytatom importot): {e}")
+        logger.exception(f"Failed to fetch existing Firestore transactions for uid={uid}")
+        raise HTTPException(status_code=500, detail=f"Could not read existing transactions from Firestore: {e}")
 
     existing_fps = set()
     for et in existing_txs:
@@ -171,6 +306,7 @@ async def mass_import_transactions(
                 for_who=tx_data["for_who"],
                 tran_type=tx_data["tran_type"],
                 user_id=uid,
+                transaction_id=tx_data.get("transaction_id"),
                 internal_transfer=tx_data.get("internal_transfer", None),
             )
             imported_transactions.append(tx.to_dict())
@@ -182,7 +318,10 @@ async def mass_import_transactions(
     # persistálás: csak a sikereseket mentjük
     if imported_transactions:
         try:
-            save_user_transactions(uid, imported_transactions)
+            save_user_transactions(uid, imported_transactions, allow_local_fallback=False)
+        except FirebaseUnavailable as e:
+            logger.error(f"Firebase unavailable while saving mass import for uid={uid}: {e}")
+            raise HTTPException(status_code=503, detail=f"Firebase unavailable while saving import: {e}")
         except Exception as e:
             # ha a mentés hibázik, visszajelzünk és nem veszítjük el az információt
             raise HTTPException(status_code=500, detail=f"Mentés sikertelen: {e}")
@@ -410,13 +549,14 @@ def classify_internal_transfer(description: str, tran_type: str, for_who: str, a
 # --- helper: tranzakció fingerprint előállítása ---
 def _tx_fingerprint_for_matching(tx: Dict[str, Any]) -> str:
     """
-    Egyszerű, determinisztikus fingerprint: date(YYYY-MM-DD), amount(2 dec), normalized description,
+    Determinisztikus fingerprint: FULL date (including time), amount(2 dec), normalized description,
     category, tran_type, internal_transfer.
-    Ezzel kiszűrhetjük a pontos duplikációkat (és a legtöbb tipikus bank-export duplát).
+    UPDATED: Now uses full timestamp instead of just date to better detect duplicates.
     """
-    # date: csak a nap rész (ha "YYYY-MM-DD HH:MM:SS" formátumú)
+    # date: FULL timestamp including time (not just YYYY-MM-DD)
     date_raw = str(tx.get("date", "")).strip()
-    date_day = date_raw.split(" ")[0] if date_raw else ""
+    # Keep the full timestamp to better detect duplicates with same date but different times
+    date_full = date_raw if date_raw else ""
     # amount: szám -> kerekítve 2 tizedesre stringként
     try:
         amount_val = float(tx.get("amount", 0.0) or 0.0)
@@ -430,7 +570,7 @@ def _tx_fingerprint_for_matching(tx: Dict[str, Any]) -> str:
     internal = _normalize_text(tx.get("internal_transfer", ""))
 
     # join: egyértelmű separatorral
-    return "|".join([date_day, amount_s, desc, cat, ttype, internal])
+    return "|".join([date_full, amount_s, desc, cat, ttype, internal])
 
 
 
