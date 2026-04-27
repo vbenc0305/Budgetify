@@ -2,6 +2,21 @@ import React, { useState, useEffect } from "react";
 import { useUser } from "../stores/useUser";
 import { useNavigate } from "react-router-dom";
 import "./styles/CompleteProfile.css";
+import {
+  normalizeAgeInput,
+  toAgePayloadValue,
+  validateAge,
+} from "../utils/profileValidation";
+
+const REQUIRED_FIELDS = [
+  "age",
+  "country",
+  "education",
+  "gender",
+  "housing_status",
+  "marital_status",
+  "occupation",
+];
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
@@ -12,43 +27,37 @@ export default function CompleteProfile() {
   const success = useUser((s) => s.success);
   const updateProfile = useUser((s) => s.updateProfile);
 
-  const requiredFields = [
-    "age",
-    "country",
-    "education",
-    "gender",
-    "housing_status",
-    "marital_status",
-    "occupation",
-  ];
-
   const [form, setForm] = useState({});
-  const [missingFields, setMissingFields] = useState(requiredFields);
+  const [missingFields, setMissingFields] = useState(REQUIRED_FIELDS);
   const [countryOptions, setCountryOptions] = useState([]);
+  const [showConsentHelp, setShowConsentHelp] = useState(false);
+  const [ageError, setAgeError] = useState("");
+  const hasStoredConsent = typeof usrInfo?.analytics_consent === "boolean";
 
   // Betöltjük a formot a store-ból
   useEffect(() => {
     if (!usrInfo) {
       setForm({});
-      setMissingFields(requiredFields);
+      setMissingFields(REQUIRED_FIELDS);
       return;
     }
 
     const initialForm = {};
-    requiredFields.forEach((f) => {
+    REQUIRED_FIELDS.forEach((f) => {
       initialForm[f] = usrInfo[f] ?? "";
     });
+    initialForm.analytics_consent = Boolean(usrInfo.analytics_consent);
     setForm(initialForm);
 
-    const missing = requiredFields.filter(
+    const missing = REQUIRED_FIELDS.filter(
         (f) => !usrInfo[f] || usrInfo[f] === ""
     );
     setMissingFields(missing);
 
-    if (missing.length === 0) {
+    if (missing.length === 0 && hasStoredConsent) {
       navigate("/");
     }
-  }, [usrInfo, navigate]);
+  }, [usrInfo, navigate, hasStoredConsent]);
 
   // Országlista betöltése
   useEffect(() => {
@@ -86,8 +95,26 @@ export default function CompleteProfile() {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const nextValue =
+      name === "age" ? normalizeAgeInput(value) : type === "checkbox" ? checked : value;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: nextValue,
+    }));
+
+    if (name === "age") {
+      if (!nextValue) {
+        setAgeError("");
+        return;
+      }
+      setAgeError(validateAge(nextValue));
+    }
+  };
+
+  const handleAgeBlur = () => {
+    setAgeError(validateAge(form.age));
   };
 
   const handleSubmit = async (e) => {
@@ -102,20 +129,37 @@ export default function CompleteProfile() {
     const updateData = {};
     let hasUpdates = false;
 
+    if (missingFields.includes("age")) {
+      const nextAgeError = validateAge(form.age);
+      setAgeError(nextAgeError);
+      if (nextAgeError) return;
+    }
+
     // Csak a hiányzó és kitöltött mezőket mentjük el
     missingFields.forEach((f) => {
       if (form[f] && form[f] !== "") {
-        updateData[f] = form[f];
+        if (f === "age") {
+          const ageValue = toAgePayloadValue(form[f]);
+          if (ageValue === null) return;
+          updateData[f] = ageValue;
+        } else {
+          updateData[f] = form[f];
+        }
         hasUpdates = true;
       }
     });
+
+    if (!hasStoredConsent) {
+      updateData.analytics_consent = Boolean(form.analytics_consent);
+      hasUpdates = true;
+    }
 
     if (!hasUpdates) return;
 
     try {
       const updatedUsr = await updateProfile(updateData);
 
-      const newMissing = requiredFields.filter(
+      const newMissing = REQUIRED_FIELDS.filter(
           (f) => !updatedUsr[f] || updatedUsr[f] === ""
       );
       setMissingFields(newMissing);
@@ -153,13 +197,24 @@ export default function CompleteProfile() {
               <label>
                 Életkor:
                 <input
-                    type="number"
+                    type="text"
                     name="age"
-                    value={form.age}
+                    value={form.age ?? ""}
                     onChange={handleChange}
+                    onBlur={handleAgeBlur}
                     required
-                    min={0}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={3}
+                    placeholder="pl. 27"
+                    aria-invalid={Boolean(ageError)}
+                    aria-describedby={ageError ? "age-error" : undefined}
                 />
+                {ageError && (
+                    <span id="age-error" className="complete-profile-field-error" role="alert">
+                      {ageError}
+                    </span>
+                )}
               </label>
           )}
 
@@ -294,6 +349,47 @@ export default function CompleteProfile() {
                     required
                 />
               </label>
+          )}
+
+          {!hasStoredConsent && (
+              <fieldset className="consent-block">
+                <legend>Anonim statisztika</legend>
+
+                <label className="consent-checkbox-row" htmlFor="analytics_consent">
+                  <input
+                      id="analytics_consent"
+                      type="checkbox"
+                      name="analytics_consent"
+                      checked={Boolean(form.analytics_consent)}
+                      onChange={handleChange}
+                      aria-describedby="consent-helper-text"
+                  />
+                  <span>
+                    Engedélyezem, hogy a kiadási adataimból anonim statisztika készüljön.
+                  </span>
+                </label>
+
+                <p id="consent-helper-text" className="consent-helper-text">
+                  Ez segít a szolgáltatás fejlesztésében, és később bármikor visszavonható.
+                </p>
+
+                <button
+                    type="button"
+                    className="consent-help-toggle"
+                    onClick={() => setShowConsentHelp((prev) => !prev)}
+                    aria-expanded={showConsentHelp}
+                    aria-controls="consent-extra-info"
+                >
+                  Miért kérjük ezt?
+                </button>
+
+                {showConsentHelp && (
+                    <p id="consent-extra-info" className="consent-extra-info" role="status">
+                      A hozzájárulás csak összesített, anonim trendekhez használható,
+                      személyes azonosítás nélkül.
+                    </p>
+                )}
+              </fieldset>
           )}
 
           <button type="submit" disabled={loading}>

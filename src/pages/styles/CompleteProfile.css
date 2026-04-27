@@ -118,8 +118,87 @@
     text-align: center;
 }
 
+.complete-profile-field-error {
+    color: #fca5a5;
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin-top: -0.2rem;
+}
+
 *,
 *::before,
 *::after {
     box-sizing: border-box; /* Garancia arra, hogy a padding nem növeli meg a width-et */
+}
+
+.consent-block {
+    border: 1px solid rgba(226, 232, 240, 0.2);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    margin: 0;
+}
+
+.consent-block legend {
+    padding: 0 0.35rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.consent-checkbox-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.consent-checkbox-row input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.2rem;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+    appearance: auto;
+    /* Ensure checkbox displays with solid border and background */
+    border: 2px solid rgba(226, 232, 240, 0.3);
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+.consent-checkbox-row input[type="checkbox"]:checked {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.consent-checkbox-row input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.consent-helper-text,
+.consent-extra-info {
+    margin: 0.6rem 0 0;
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.consent-help-toggle {
+    margin-top: 0.6rem;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--accent-primary);
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.consent-help-toggle:hover,
+.consent-help-toggle:focus-visible {
+    color: var(--accent-secondary);
+    text-decoration: underline;
 }

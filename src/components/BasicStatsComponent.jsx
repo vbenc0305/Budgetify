@@ -41,8 +41,9 @@ export default function BasicStats({ userId }) {
         if (!isMounted) return;
         setError(err.message || String(err));
       } finally {
-        if (!isMounted) return;
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 

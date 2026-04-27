@@ -9,6 +9,9 @@ import {
 import { useTransaction } from "./useTransaction";
 import isEqual from "lodash/isEqual";
 
+const unsupportedConsentResponsePattern =
+  /analytics_consent|unknown|unexpected|column|schema|not allowed|validation/i;
+
 export const useUser = create(
   persist(
     (set, get) => ({
@@ -69,6 +72,12 @@ export const useUser = create(
           }
 
           const data = await res.json();
+          if (
+            typeof data.analytics_consent !== "boolean" &&
+            typeof get().usrInfo?.analytics_consent === "boolean"
+          ) {
+            data.analytics_consent = get().usrInfo.analytics_consent;
+          }
           const currentUsrInfo = get().usrInfo;
           const isDataContentChanged = !isEqual(data, currentUsrInfo);
           const isFetchedStatusChanged = !get().fetched;
@@ -158,10 +167,22 @@ export const useUser = create(
           // --- 2) Ha age csatolva, konvertáld számra vagy null-ra
           if (payload.age !== undefined) {
             const n = Number(payload.age);
-            payload.age = Number.isFinite(n)
-              ? Math.max(0, Math.floor(n))
-              : null;
+            if (!Number.isInteger(n) || n < 0 || n > 120) {
+              delete payload.age;
+            } else {
+              payload.age = n;
+            }
           }
+
+          const sendUpdate = (idToken, bodyPayload) =>
+            fetch(`/api/usr_info/${encodeURIComponent(current.uid)}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + idToken,
+              },
+              body: JSON.stringify(bodyPayload),
+            });
 
           // --- 4) Ha van displayName vagy photoURL, frissítsük Firebase user objectet is
           const { displayName, photoURL } = payload;
@@ -176,57 +197,80 @@ export const useUser = create(
 
           // --- 5) Token és backend hívás
           const token = await current.getIdToken();
-          // endpoint: PUT /api/usr_info/:userId  (alakítsd a backend elvárásaihoz)
-          const res = await fetch(
-            `/api/usr_info/${encodeURIComponent(current.uid)}`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + token,
-              },
-              body: JSON.stringify(payload),
-            },
-          );
-
+          let res = await sendUpdate(token, payload);
           if (res.status === 401) {
-            // próbáljuk újra friss tokennel
             const fresh = await current.getIdToken(true);
-            const retry = await fetch(
-              `/api/usr_info/${encodeURIComponent(current.uid)}`,
-              {
-                method: "PUT",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: "Bearer " + fresh,
-                },
-                body: JSON.stringify(payload),
-              },
-            );
-            if (!retry.ok) {
-              const txt = await retry.text().catch(() => "");
-              throw new Error(`Backend hibára futott: ${retry.status} ${txt}`);
-            }
-            const updatedRetry = await retry.json();
-            set({
-              usrInfo: { ...(get().usrInfo || {}), ...updatedRetry },
-              fetched: true,
-              success: "Profil sikeresen frissítve.",
-              loading: false,
-            });
-            return updatedRetry;
+            res = await sendUpdate(fresh, payload);
           }
 
           if (!res.ok) {
             const txt = await res.text().catch(() => "");
-            throw new Error(`Backend hibára futott: ${res.status} ${txt}`);
+            const canRetryWithoutConsent =
+              Object.prototype.hasOwnProperty.call(payload, "analytics_consent") &&
+              unsupportedConsentResponsePattern.test(txt || "") &&
+              [400, 404, 409, 422, 500].includes(res.status);
+
+            if (!canRetryWithoutConsent) {
+              throw new Error(`Backend hibára futott: ${res.status} ${txt}`);
+            }
+
+            const { analytics_consent, ...fallbackPayload } = payload;
+
+            if (Object.keys(fallbackPayload).length === 0) {
+              const localOnly = {
+                ...(get().usrInfo || {}),
+                analytics_consent,
+              };
+              set({
+                usrInfo: localOnly,
+                fetched: true,
+                // TODO: remove local fallback once backend persists analytics_consent.
+                success: "Profil sikeresen frissítve.",
+                loading: false,
+              });
+              return localOnly;
+            }
+
+            let retryRes = await sendUpdate(token, fallbackPayload);
+            if (retryRes.status === 401) {
+              const fresh = await current.getIdToken(true);
+              retryRes = await sendUpdate(fresh, fallbackPayload);
+            }
+
+            if (!retryRes.ok) {
+              const retryTxt = await retryRes.text().catch(() => "");
+              throw new Error(
+                `Backend hibára futott: ${retryRes.status} ${retryTxt}`,
+              );
+            }
+
+            const fallbackData = await retryRes.json();
+            const mergedFallback = {
+              ...(get().usrInfo || {}),
+              ...(fallbackData.data || fallbackData),
+              analytics_consent,
+            };
+            set({
+              usrInfo: mergedFallback,
+              fetched: true,
+              // TODO: remove local fallback once backend persists analytics_consent.
+              success: "Profil sikeresen frissítve.",
+              loading: false,
+            });
+            return mergedFallback;
           }
 
           const updatedData = await res.json();
           const merged = {
             ...(get().usrInfo || {}),
-            ...updatedData.data,
+            ...(updatedData.data || updatedData),
           };
+          if (
+            typeof merged.analytics_consent !== "boolean" &&
+            typeof payload.analytics_consent === "boolean"
+          ) {
+            merged.analytics_consent = payload.analytics_consent;
+          }
           set({
             usrInfo: merged,
             fetched: true,

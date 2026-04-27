@@ -8,6 +8,30 @@ import { useNavigate } from "react-router-dom";
 import "./styles/Register.css";
 import { getFirebaseErrorMessage } from "../utils/firebaseErrorHandler";
 import { useUser } from "../stores/useUser";
+import {
+    normalizePhoneInput,
+    sanitizeRegisterForm,
+    validateRegisterField,
+    validateRegisterForm,
+} from "../utils/registerValidation";
+
+const REQUIRED_FIELDS = ["name", "email", "password", "confirmPassword", "phone", "birthdate"];
+
+const PASSWORD_STRENGTH_TEXT = {
+    empty: "",
+    weak: "Jelszóerősség: gyenge",
+    medium: "Jelszóerősség: közepes",
+    strong: "Jelszóerősség: erős",
+};
+
+const INITIAL_FORM_STATE = {
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+    birthdate: "",
+};
 
 export default function Register() {
     const navigate = useNavigate();
@@ -15,43 +39,95 @@ export default function Register() {
     // Zustand selector: csak a függvényeket és szükséges állapotot kérjük le
     const { setUser, fetchProfile } = useUser();
 
-    const [form, setForm] = useState({
-        name: "",
-        email: "",
-        password: "",
-        phone: "",
-        birthdate: "",
-        // opcionális: age, country, gender, stb.
-    });
+    const [form, setForm] = useState(INITIAL_FORM_STATE);
+    const [touched, setTouched] = useState({});
+    const [submitAttempted, setSubmitAttempted] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
 
+    const validation = validateRegisterForm(form);
+    const passwordStrengthText = PASSWORD_STRENGTH_TEXT[validation.passwordStrength] || "";
+
+    const visibleFieldErrors = REQUIRED_FIELDS.reduce((acc, field) => {
+        if ((submitAttempted || touched[field]) && fieldErrors[field]) {
+            acc[field] = fieldErrors[field];
+        }
+        return acc;
+    }, {});
+
     const handleChange = (e) => {
-        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        const nextValue = name === "phone" ? normalizePhoneInput(value) : value;
+        const nextForm = { ...form, [name]: nextValue };
+
+        setForm(nextForm);
+
+        // Frissítsük azonnal a hibákat a már érintett mezőknél, és submit után minden mezőnél.
+        if (submitAttempted || touched[name] || (name === "password" && touched.confirmPassword)) {
+            const nextValidation = validateRegisterForm(nextForm);
+            setFieldErrors(nextValidation.errors);
+        }
+    };
+
+    const handlePhoneFocus = () => {
+        if (!form.phone) {
+            setForm((prev) => ({ ...prev, phone: "+" }));
+        }
+    };
+
+    const handleBlur = (e) => {
+        const { name } = e.target;
+        const nextTouched = { ...touched, [name]: true };
+        setTouched(nextTouched);
+
+        const nextErrors = { ...fieldErrors, [name]: validateRegisterField(name, form) };
+        if (name === "password" && (nextTouched.confirmPassword || form.confirmPassword)) {
+            nextErrors.confirmPassword = validateRegisterField("confirmPassword", form);
+        }
+        setFieldErrors(nextErrors);
     };
 
     const handleRegister = async (e) => {
         e.preventDefault();
         setError("");
         setSuccess("");
+
+        const sanitizedForm = sanitizeRegisterForm(form);
+        setForm(sanitizedForm);
+
+        const currentValidation = validateRegisterForm(sanitizedForm);
+        setFieldErrors(currentValidation.errors);
+        setSubmitAttempted(true);
+        setTouched(
+            REQUIRED_FIELDS.reduce((acc, field) => {
+                acc[field] = true;
+                return acc;
+            }, {}),
+        );
+
+        if (!currentValidation.isValid) {
+            return;
+        }
+
         setLoading(true);
 
         try {
             // 1) Firebase Auth - user létrehozása
             const userCredential = await createUserWithEmailAndPassword(
                 auth,
-                form.email,
-                form.password
+                sanitizedForm.email,
+                sanitizedForm.password
             );
             const firebaseUser = userCredential.user;
 
             // 2) Alap user dokumentum a 'users' kollekcióban
             const userData = {
-                name: form.name || "",
-                email: form.email || "",
-                phone: form.phone || "",
-                birthdate: form.birthdate || "",
+                name: sanitizedForm.name || "",
+                email: sanitizedForm.email || "",
+                phone: sanitizedForm.phone || "",
+                birthdate: sanitizedForm.birthdate || "",
                 role: "user",
                 last_login: dayjs().format("YYYY-MM-DD HH:mm:ss"),
                 uid: firebaseUser.uid,
@@ -62,13 +138,13 @@ export default function Register() {
             // 3) usr_info dokumentum létrehozása (ha szükséges mezők vannak)
             const usrInfoData = {
                 user_id: firebaseUser.uid,
-                age: form.age ?? null,
-                country: form.country ?? "",
-                education: form.education ?? "",
-                gender: form.gender ?? "",
-                housing_status: form.housing_status ?? "",
-                marital_status: form.marital_status ?? "",
-                occupation: form.occupation ?? "",
+                age: sanitizedForm.age ?? null,
+                country: sanitizedForm.country ?? "",
+                education: sanitizedForm.education ?? "",
+                gender: sanitizedForm.gender ?? "",
+                housing_status: sanitizedForm.housing_status ?? "",
+                marital_status: sanitizedForm.marital_status ?? "",
+                occupation: sanitizedForm.occupation ?? "",
             };
 
             // csak ha van bármilyen értelmes mező, különben létrehozhatunk üres dokumentumot is – döntésed szerint
@@ -106,51 +182,153 @@ export default function Register() {
         <div className="register-container">
             <form onSubmit={handleRegister} className="register-form" aria-live="polite">
                 <h2>Fiók létrehozása</h2>
+                <p className="register-required-hint">A * jelölt mezők kitöltése kötelező.</p>
 
-                <input
-                    name="name"
-                    placeholder="Név"
-                    onChange={handleChange}
-                    value={form.name}
-                    required
-                    autoComplete="name"
-                />
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Email"
-                    onChange={handleChange}
-                    value={form.email}
-                    required
-                    autoComplete="email"
-                />
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Jelszó"
-                    onChange={handleChange}
-                    value={form.password}
-                    required
-                    autoComplete="new-password"
-                />
-                <input
-                    name="phone"
-                    placeholder="Telefonszám"
-                    onChange={handleChange}
-                    value={form.phone}
-                    autoComplete="tel"
-                />
-                <input
-                    type="date"
-                    name="birthdate"
-                    onChange={handleChange}
-                    value={form.birthdate}
-                />
+                <div className="register-form-group">
+                    <label htmlFor="name">Név *</label>
+                    <input
+                        id="name"
+                        name="name"
+                        placeholder="pl. Kiss Péter"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        value={form.name}
+                        required
+                        autoComplete="name"
+                        aria-invalid={Boolean(visibleFieldErrors.name)}
+                        aria-describedby={visibleFieldErrors.name ? "name-error" : undefined}
+                    />
+                    {visibleFieldErrors.name && (
+                        <p id="name-error" className="field-error-text" role="alert">
+                            {visibleFieldErrors.name}
+                        </p>
+                    )}
+                </div>
+
+                <div className="register-form-group">
+                    <label htmlFor="email">E-mail *</label>
+                    <input
+                        id="email"
+                        type="email"
+                        name="email"
+                        placeholder="pl. valaki@email.com"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        value={form.email}
+                        required
+                        autoComplete="email"
+                        aria-invalid={Boolean(visibleFieldErrors.email)}
+                        aria-describedby={visibleFieldErrors.email ? "email-error" : undefined}
+                    />
+                    {visibleFieldErrors.email && (
+                        <p id="email-error" className="field-error-text" role="alert">
+                            {visibleFieldErrors.email}
+                        </p>
+                    )}
+                </div>
+
+                <div className="register-form-group">
+                    <label htmlFor="password">Jelszó *</label>
+                    <input
+                        id="password"
+                        type="password"
+                        name="password"
+                        placeholder="Legalább 8 karakter, kis/nagybetű, szám, speciális karakter"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        value={form.password}
+                        required
+                        autoComplete="new-password"
+                        aria-invalid={Boolean(visibleFieldErrors.password)}
+                        aria-describedby={`password-helper${visibleFieldErrors.password ? " password-error" : ""}`}
+                    />
+                    <p id="password-helper" className="field-helper-text">
+                        {passwordStrengthText || "A biztonságos jelszó véd az illetéktelen belépés ellen."}
+                    </p>
+                    {visibleFieldErrors.password && (
+                        <p id="password-error" className="field-error-text" role="alert">
+                            {visibleFieldErrors.password}
+                        </p>
+                    )}
+                </div>
+
+                <div className="register-form-group">
+                    <label htmlFor="confirmPassword">Jelszó újra *</label>
+                    <input
+                        id="confirmPassword"
+                        type="password"
+                        name="confirmPassword"
+                        placeholder="Írd be újra a jelszót"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        value={form.confirmPassword}
+                        required
+                        autoComplete="new-password"
+                        aria-invalid={Boolean(visibleFieldErrors.confirmPassword)}
+                        aria-describedby={
+                            visibleFieldErrors.confirmPassword ? "confirm-password-error" : undefined
+                        }
+                    />
+                    {visibleFieldErrors.confirmPassword && (
+                        <p id="confirm-password-error" className="field-error-text" role="alert">
+                            {visibleFieldErrors.confirmPassword}
+                        </p>
+                    )}
+                </div>
+
+                <div className="register-form-group">
+                    <label htmlFor="phone">Telefonszám *</label>
+                    <input
+                        id="phone"
+                        type="tel"
+                        name="phone"
+                        placeholder="pl. +36301234567"
+                        onChange={handleChange}
+                        onFocus={handlePhoneFocus}
+                        onBlur={handleBlur}
+                        value={form.phone}
+                        required
+                        autoComplete="tel"
+                        inputMode="numeric"
+                        pattern="\+[0-9]{8,15}"
+                        aria-invalid={Boolean(visibleFieldErrors.phone)}
+                        aria-describedby={`phone-helper${visibleFieldErrors.phone ? " phone-error" : ""}`}
+                    />
+                    <p id="phone-helper" className="field-helper-text">
+                        Formátum: + és utána 8-15 számjegy (pl. +36301234567).
+                    </p>
+                    {visibleFieldErrors.phone && (
+                        <p id="phone-error" className="field-error-text" role="alert">
+                            {visibleFieldErrors.phone}
+                        </p>
+                    )}
+                </div>
+
+                <div className="register-form-group">
+                    <label htmlFor="birthdate">Születési dátum *</label>
+                    <input
+                        id="birthdate"
+                        type="date"
+                        name="birthdate"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        value={form.birthdate}
+                        max={new Date().toISOString().split("T")[0]}
+                        required
+                        aria-invalid={Boolean(visibleFieldErrors.birthdate)}
+                        aria-describedby={visibleFieldErrors.birthdate ? "birthdate-error" : undefined}
+                    />
+                    {visibleFieldErrors.birthdate && (
+                        <p id="birthdate-error" className="field-error-text" role="alert">
+                            {visibleFieldErrors.birthdate}
+                        </p>
+                    )}
+                </div>
 
                 {/* optional: további mezők, ha szeretnéd regisztrációkor bekérni */}
                 {/* <input type="number" name="age" placeholder="Életkor" onChange={handleChange} /> */}
 
-                <button type="submit" disabled={loading}>
+                <button type="submit" disabled={loading || !validation.isValid}>
                     {loading ? "Regisztráció folyamatban..." : "Regisztráció"}
                 </button>
 

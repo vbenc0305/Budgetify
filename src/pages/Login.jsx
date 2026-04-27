@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useUser } from "../stores/useUser";
-import { useTransaction } from "../stores/useTransaction.js";
 import "./styles/Login.css";
 
 export default function Login() {

@@ -25,7 +25,8 @@ export default function Home() {
   ];
 
   const needsProfile = usrInfo
-    ? requiredFields.some((field) => !usrInfo[field])
+    ? requiredFields.some((field) => !usrInfo[field]) ||
+      typeof usrInfo.analytics_consent !== "boolean"
     : true;
 
   if (!authChecked || loading) {

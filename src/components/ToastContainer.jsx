@@ -1,10 +1,26 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import "./styles/Toast.css";
 
 export default function ToastContainer() {
   const [toasts, setToasts] = useState([]);
   const timeouts = useRef(new Map());
+
+  const startRemoveToast = useCallback((id) => {
+    // mark removing to trigger CSS animation
+    setToasts((t) => t.map((x) => (x.id === id ? { ...x, removing: true } : x)));
+    // clear scheduled timeout if exists
+    const to = timeouts.current.get(id);
+    if (to) {
+      clearTimeout(to);
+      timeouts.current.delete(id);
+    }
+    // after animation duration, remove it from state
+    const ANIM_MS = 260;
+    setTimeout(() => {
+      setToasts((t) => t.filter((x) => x.id !== id));
+    }, ANIM_MS);
+  }, []);
 
   useEffect(() => {
     // expose a global helper to show toasts from anywhere
@@ -38,23 +54,7 @@ export default function ToastContainer() {
       timeoutsMap.clear();
     };
      
-  }, []);
-
-  const startRemoveToast = (id) => {
-    // mark removing to trigger CSS animation
-    setToasts((t) => t.map((x) => (x.id === id ? { ...x, removing: true } : x)));
-    // clear scheduled timeout if exists
-    const to = timeouts.current.get(id);
-    if (to) {
-      clearTimeout(to);
-      timeouts.current.delete(id);
-    }
-    // after animation duration, remove it from state
-    const ANIM_MS = 260;
-    setTimeout(() => {
-      setToasts((t) => t.filter((x) => x.id !== id));
-    }, ANIM_MS);
-  };
+  }, [startRemoveToast]);
 
   if (!toasts.length) return null;
 

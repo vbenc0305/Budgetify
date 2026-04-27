@@ -54,26 +54,30 @@ export function ThemeProvider({ children }) {
     }
   });
 
-  const [resolvedTheme, setResolvedTheme] = useState(() =>
-    applyThemeToDocument(themePreference),
+  const [systemTheme, setSystemTheme] = useState(getSystemTheme);
+
+  const resolvedTheme = useMemo(
+    () => (themePreference === "system" ? systemTheme : themePreference),
+    [themePreference, systemTheme],
   );
 
   useEffect(() => {
-    const nextResolvedTheme = applyThemeToDocument(themePreference);
-    setResolvedTheme(nextResolvedTheme);
+    applyThemeToDocument(resolvedTheme);
 
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, themePreference);
     } catch {
       // Ignore persistence failures (private mode / storage restrictions).
     }
+  }, [themePreference, resolvedTheme]);
 
+  useEffect(() => {
     if (themePreference !== "system" || typeof window.matchMedia !== "function")
       return undefined;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
-      setResolvedTheme(applyThemeToDocument("system"));
+      setSystemTheme(getSystemTheme());
     };
 
     if (typeof mediaQuery.addEventListener === "function") {
@@ -106,6 +110,7 @@ export function ThemeProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
