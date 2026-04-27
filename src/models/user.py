@@ -8,7 +8,7 @@ class User:
        """
 
     def __init__(self, name: str, email: str, phone: str, pwd: str, role: str,
-                 birthdate: datetime, last_login: datetime):
+                 birthdate: datetime, last_login: datetime, anonymous_stats_consent: bool = False):
         """
         Inicializálja az osztály attribútumait.
 
@@ -28,6 +28,7 @@ class User:
         self._role = role
         self._birthdate = birthdate
         self._last_login = last_login
+        self.anonymous_stats_consent = anonymous_stats_consent
 
     # name
     @property
@@ -175,3 +176,14 @@ class User:
         if not isinstance(value, datetime):
             raise ValueError("Az utolsó bejelentkezési dátumnak datetime típusúnak kell lennie.")
         self._last_login = value
+
+    @property
+    def anonymous_stats_consent(self) -> bool:
+        return self._anonymous_stats_consent
+
+    @anonymous_stats_consent.setter
+    def anonymous_stats_consent(self, value: bool):
+        if not isinstance(value, bool):
+            raise ValueError("anonymous_stats_consent must be a boolean.")
+        self._anonymous_stats_consent = value
+

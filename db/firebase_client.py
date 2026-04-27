@@ -473,6 +473,7 @@ def get_user_doc(uid: str):
 
     # Merge: user_data felülírja az usr_info-t ha ütköznek a kulcsok
     merged = {**usr_info, **user_data}
+    merged.setdefault("anonymous_stats_consent", False)
 
     return merged
 
@@ -482,9 +483,12 @@ def update_user_doc(uid: str, data: dict):
     users_data_to_save = {}
     usr_info_data_to_save = {}
 
-    USERS_FIELDS = ["name", "phone", "birthdate"]
+    USERS_FIELDS = ["name", "phone", "birthdate", "anonymous_stats_consent"]
     USR_INFO_FIELDS = ["country", "education", "gender", "housing_status", "marital_status",
                        "occupation"]
+
+    if "anonymous_stats_consent" in data and not isinstance(data.get("anonymous_stats_consent"), bool):
+        raise ValueError("anonymous_stats_consent must be a boolean")
 
     for key, value in data.items():
         if key == 'email':

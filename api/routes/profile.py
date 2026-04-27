@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Body, HTTPException
+from pydantic import BaseModel, ConfigDict, StrictBool, model_validator
 from api.dependencies import get_current_user_uid
 from db.firebase_client import get_user_doc, update_user_doc, get_usr_info_doc, update_usr_info_doc, FirebaseUnavailable
 import logging
@@ -8,20 +9,46 @@ logger.debug("api.routes.profile imported")
 
 router = APIRouter()
 
+
+class ProfileUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    anonymous_stats_consent: StrictBool | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_consent(cls, data):
+        if isinstance(data, dict) and "anonymous_stats_consent" in data and data.get("anonymous_stats_consent") is None:
+            raise ValueError("anonymous_stats_consent cannot be null")
+        return data
+
+
+class ProfileResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    anonymous_stats_consent: bool = False
+
 @router.get("/profile")
 async def get_profile(uid: str = Depends(get_current_user_uid)):
     try:
         user_doc = get_user_doc(uid)
-        return user_doc or {}
+        if not user_doc:
+            return ProfileResponse().model_dump()
+        user_doc.setdefault("anonymous_stats_consent", False)
+        return ProfileResponse(**user_doc).model_dump()
     except FirebaseUnavailable as e:
         logger.error(f"Firebase unavailable in get_profile: {e}")
         raise HTTPException(status_code=503, detail=str(e))
 
 @router.post("/profile")
-async def update_profile(update_data: dict = Body(...), uid: str = Depends(get_current_user_uid)):
+async def update_profile(update_data: ProfileUpdateRequest = Body(...), uid: str = Depends(get_current_user_uid)):
     try:
-        updated_doc = update_user_doc(uid, update_data)
-        return updated_doc
+        payload = update_data.model_dump(exclude_none=True)
+        updated_doc = update_user_doc(uid, payload)
+        if not updated_doc:
+            return ProfileResponse().model_dump()
+        updated_doc.setdefault("anonymous_stats_consent", False)
+        return ProfileResponse(**updated_doc).model_dump()
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except FirebaseUnavailable as e:
         logger.error(f"Firebase unavailable in update_profile: {e}")
         raise HTTPException(status_code=503, detail=str(e))
