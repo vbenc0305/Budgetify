@@ -1,5 +1,5 @@
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, auth
 from typing import Optional, Any
 import threading
 import logging
@@ -980,4 +980,76 @@ def delete_user_transactions_batched(uid: str, transaction_ids: list[str], batch
         logger.exception("Failed to sync local cache after delete_user_transactions_batched")
 
     return total_processed
+
+
+def delete_user_account(uid: str, batch_size: int = 500) -> dict:
+    """Delete a user's Firestore data, local cached files, and Firebase Auth account.
+
+    Order matters:
+      1) delete transactions subcollection in batches,
+      2) delete users/{uid} and usr_info/{uid},
+      3) remove local cache/marker files,
+      4) delete Firebase Auth user.
+    """
+    if not uid or not str(uid).strip():
+        raise ValueError("uid is required")
+
+    db = get_db_client()
+    uid = str(uid).strip()
+
+    user_ref = db.collection("users").document(uid)
+    usr_info_ref = db.collection("usr_info").document(uid)
+    transactions_ref = user_ref.collection("transactions")
+
+    deleted_transactions = 0
+    pending_batch = db.batch()
+    pending_ops = 0
+
+    docs = transactions_ref.stream()
+    for doc in docs:
+        pending_batch.delete(doc.reference)
+        pending_ops += 1
+        if pending_ops >= batch_size:
+            pending_batch.commit()
+            deleted_transactions += pending_ops
+            pending_batch = db.batch()
+            pending_ops = 0
+
+    if pending_ops:
+        pending_batch.commit()
+        deleted_transactions += pending_ops
+
+    user_ref.delete()
+    usr_info_ref.delete()
+
+    local_cache_deleted = False
+    fetch_marker_deleted = False
+
+    local_cache_path = _local_tx_path(uid)
+    if local_cache_path.exists():
+        local_cache_path.unlink()
+        local_cache_deleted = True
+
+    fetch_marker_path = _fetch_marker_path(uid)
+    if fetch_marker_path.exists():
+        fetch_marker_path.unlink()
+        fetch_marker_deleted = True
+
+    auth_deleted = False
+    try:
+        auth.delete_user(uid)
+        auth_deleted = True
+    except auth.UserNotFoundError:
+        logger.info("Firebase Auth user already missing for uid=%s during delete_user_account", uid)
+
+    return {
+        "uid": uid,
+        "deleted_transactions": deleted_transactions,
+        "deleted_user_doc": True,
+        "deleted_usr_info_doc": True,
+        "deleted_local_cache": local_cache_deleted,
+        "deleted_fetch_marker": fetch_marker_deleted,
+        "deleted_auth_user": auth_deleted,
+    }
+
 

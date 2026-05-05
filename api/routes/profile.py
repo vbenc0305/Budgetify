@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Body, HTTPException
 from pydantic import BaseModel, ConfigDict, StrictBool, model_validator
 from api.dependencies import get_current_user_uid
-from db.firebase_client import get_user_doc, update_user_doc, get_usr_info_doc, update_usr_info_doc, FirebaseUnavailable
+from db.firebase_client import get_user_doc, update_user_doc, get_usr_info_doc, update_usr_info_doc, delete_user_account, FirebaseUnavailable
 import logging
 
 logger = logging.getLogger(__name__)
@@ -68,3 +68,28 @@ async def update_usr_info(id: str, update_data: dict = Body(...), uid: str = Dep
     except FirebaseUnavailable as e:
         logger.error(f"Firebase unavailable in update_usr_info: {e}")
         raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.delete("/usr_info/{id}")
+async def delete_usr_info(id: str, uid: str = Depends(get_current_user_uid)):
+    try:
+        requested_uid = (id or "").strip()
+        if not requested_uid:
+            raise HTTPException(status_code=400, detail="uid is required")
+
+        if requested_uid != uid:
+            raise HTTPException(status_code=403, detail="You can only delete your own user account")
+
+        result = delete_user_account(requested_uid)
+        return {"status": "success", "data": result}
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FirebaseUnavailable as e:
+        logger.error(f"Firebase unavailable in delete_usr_info: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        logger.exception("Unexpected error in delete_usr_info")
+        raise HTTPException(status_code=500, detail=f"Failed to delete user account: {e}")
+
