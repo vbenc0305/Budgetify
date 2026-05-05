@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { updatePassword } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 import { useUser } from "../stores/useUser";
+import { auth } from "../firebase";
+import { getFirebaseErrorMessage } from "../utils/firebaseErrorHandler";
+import { validateRegisterField } from "../utils/registerValidation";
 import "../pages/styles/Profile.css";
 
 const EDUCATION_OPTIONS = [
@@ -20,19 +25,37 @@ const EDUCATION_OPTIONS = [
   "Ismeretlen / Nem kíván válaszolni",
 ];
 
+const INITIAL_PASSWORD_FORM = {
+  newPassword: "",
+  confirmNewPassword: "",
+};
+
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const usrInfo = useUser((state) => state.usrInfo);
   const loading = useUser((state) => state.loading);
   const error = useUser((state) => state.error);
   const success = useUser((state) => state.success);
   const updateProfile = useUser((state) => state.updateProfile);
+  const deleteAccountProfile = useUser((state) => state.deleteAccountProfile);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({});
   const [countryOptions, setCountryOptions] = useState([]);
   const [showConsentHelp, setShowConsentHelp] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPasswordFormVisible, setIsPasswordFormVisible] = useState(false);
+  const [passwordForm, setPasswordForm] = useState(INITIAL_PASSWORD_FORM);
+  const [passwordTouched, setPasswordTouched] = useState({});
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [passwordSubmitAttempted, setPasswordSubmitAttempted] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Initialize form data from usrInfo
   useEffect(() => {
@@ -93,12 +116,59 @@ export default function ProfilePage() {
     }));
   };
 
+  const getPasswordValidationErrors = (nextPasswordForm = passwordForm) => {
+    const validationSource = {
+      name: formData.name || usrInfo?.name || "",
+      email: formData.email || usrInfo?.email || "",
+      password: nextPasswordForm.newPassword,
+      confirmPassword: nextPasswordForm.confirmNewPassword,
+    };
+
+    return {
+      newPassword: validateRegisterField("password", validationSource),
+      confirmNewPassword: validateRegisterField("confirmPassword", validationSource),
+    };
+  };
+
+  const visiblePasswordErrors = {
+    newPassword:
+      (passwordSubmitAttempted || passwordTouched.newPassword) && passwordErrors.newPassword
+        ? passwordErrors.newPassword
+        : "",
+    confirmNewPassword:
+      (passwordSubmitAttempted || passwordTouched.confirmNewPassword) &&
+      passwordErrors.confirmNewPassword
+        ? passwordErrors.confirmNewPassword
+        : "",
+  };
+
+  const resetPasswordFormState = ({ keepSuccess = false } = {}) => {
+    setPasswordForm(INITIAL_PASSWORD_FORM);
+    setPasswordTouched({});
+    setPasswordErrors({});
+    setPasswordSubmitAttempted(false);
+    setPasswordError("");
+
+    if (!keepSuccess) {
+      setPasswordSuccess("");
+    }
+  };
+
+  const resetDeleteAccountState = () => {
+    setIsDeleteConfirmVisible(false);
+    setDeleteAccountError("");
+    setIsDeletingAccount(false);
+  };
+
   const handleEditClick = () => {
     setIsEditMode(true);
   };
 
   const handleCancelClick = () => {
     setIsEditMode(false);
+    setIsPasswordFormVisible(false);
+    resetPasswordFormState();
+    resetDeleteAccountState();
     if (usrInfo) {
       setFormData({
         name: usrInfo.name || "",
@@ -114,6 +184,131 @@ export default function ProfilePage() {
         occupation: usrInfo.occupation || "",
         analytics_consent: Boolean(usrInfo.analytics_consent),
       });
+    }
+  };
+
+  const handlePasswordToggle = () => {
+    if (isPasswordFormVisible) {
+      resetPasswordFormState({ keepSuccess: true });
+    } else {
+      setPasswordError("");
+      setPasswordSuccess("");
+    }
+
+    setIsPasswordFormVisible((prev) => !prev);
+  };
+
+  const handlePasswordInputChange = (e) => {
+    const { name, value } = e.target;
+    const nextPasswordForm = {
+      ...passwordForm,
+      [name]: value,
+    };
+
+    setPasswordForm(nextPasswordForm);
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (
+      passwordSubmitAttempted ||
+      passwordTouched[name] ||
+      (name === "newPassword" && passwordTouched.confirmNewPassword)
+    ) {
+      setPasswordErrors(getPasswordValidationErrors(nextPasswordForm));
+    }
+  };
+
+  const handlePasswordBlur = (e) => {
+    const { name } = e.target;
+    setPasswordTouched((prev) => ({
+      ...prev,
+      [name]: true,
+    }));
+    setPasswordErrors(getPasswordValidationErrors(passwordForm));
+  };
+
+  const handlePasswordCancel = () => {
+    resetPasswordFormState({ keepSuccess: true });
+    setIsPasswordFormVisible(false);
+  };
+
+  const handleDeleteAccountToggle = () => {
+    setDeleteAccountError("");
+    setIsDeleteConfirmVisible((prev) => !prev);
+  };
+
+  const handleDeleteAccountCancel = () => {
+    if (isDeletingAccount) {
+      return;
+    }
+
+    setIsDeleteConfirmVisible(false);
+    setDeleteAccountError("");
+  };
+
+  const handleDeleteAccountConfirm = async () => {
+    setDeleteAccountError("");
+    setIsDeletingAccount(true);
+
+    try {
+      const { deletionPromise } = await deleteAccountProfile();
+
+      navigate("/login", { replace: true });
+
+      void deletionPromise.catch((err) => {
+        console.error("Profiltörlés kijelentkezés után sikertelen:", err);
+      });
+    } catch (err) {
+      console.error("Hiba a fiók törlésekor:", err);
+      setDeleteAccountError(
+        getFirebaseErrorMessage(err?.code) ||
+          err?.message ||
+          "A fiók törlése nem sikerült.",
+      );
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+    setPasswordSubmitAttempted(true);
+    setPasswordTouched({
+      newPassword: true,
+      confirmNewPassword: true,
+    });
+
+    const nextErrors = getPasswordValidationErrors(passwordForm);
+    setPasswordErrors(nextErrors);
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        setPasswordError("Nem található bejelentkezett felhasználó.");
+        return;
+      }
+
+      await updatePassword(currentUser, passwordForm.newPassword);
+      resetPasswordFormState({ keepSuccess: false });
+      setPasswordSuccess("A jelszó sikeresen módosítva lett.");
+      setIsPasswordFormVisible(false);
+    } catch (err) {
+      console.error("Hiba a jelszó módosításakor:", err);
+      setPasswordError(
+        getFirebaseErrorMessage(err?.code) ||
+          err?.message ||
+          "A jelszó módosítása nem sikerült.",
+      );
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -144,6 +339,9 @@ export default function ProfilePage() {
       }
 
       setIsEditMode(false);
+      setIsPasswordFormVisible(false);
+      resetPasswordFormState();
+      resetDeleteAccountState();
     } catch (err) {
       console.error("Hiba a profil mentésekor:", err);
     } finally {
@@ -193,14 +391,14 @@ export default function ProfilePage() {
               <button
                 className="profile-save-button"
                 onClick={handleSaveClick}
-                disabled={isSaving}
+                disabled={isSaving || isDeletingAccount}
               >
                 {isSaving ? "Mentés..." : "Mentés"}
               </button>
               <button
                 className="profile-cancel-button"
                 onClick={handleCancelClick}
-                disabled={isSaving}
+                disabled={isSaving || isDeletingAccount}
               >
                 Mégse
               </button>
@@ -486,6 +684,177 @@ export default function ProfilePage() {
               </fieldset>
             </div>
           </form>
+        )}
+
+        {isEditMode && (
+          <div className="profile-section profile-password-section">
+            <div className="profile-password-header">
+              <div>
+                <h3>Jelszó módosítása</h3>
+                <p className="profile-password-description">
+                  Add meg kétszer az új jelszavad a módosításhoz.
+                </p>
+              </div>
+
+              {!isPasswordFormVisible ? (
+                <button
+                  type="button"
+                  className="profile-password-toggle-button"
+                  onClick={handlePasswordToggle}
+                  disabled={isChangingPassword || isDeletingAccount}
+                >
+                  Jelszó cseréje
+                </button>
+              ) : null}
+            </div>
+
+            {passwordError && (
+              <p className="profile-inline-error-text" role="alert">
+                {passwordError}
+              </p>
+            )}
+
+            {passwordSuccess && (
+              <p className="profile-inline-success-text" role="status">
+                {passwordSuccess}
+              </p>
+            )}
+
+            {isPasswordFormVisible && (
+              <form className="profile-password-form" onSubmit={handlePasswordSubmit} noValidate>
+                <div className="form-group">
+                  <label htmlFor="newPassword">Új jelszó:</label>
+                  <input
+                    id="newPassword"
+                    type="password"
+                    name="newPassword"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordInputChange}
+                    onBlur={handlePasswordBlur}
+                    autoComplete="new-password"
+                    placeholder="Adj meg egy új, erős jelszót"
+                    aria-invalid={Boolean(visiblePasswordErrors.newPassword)}
+                    aria-describedby={`new-password-helper${
+                      visiblePasswordErrors.newPassword ? " new-password-error" : ""
+                    }`}
+                  />
+                  <p id="new-password-helper" className="profile-password-helper-text">
+                    Legalább 8 karakter, kis- és nagybetű, szám, valamint speciális karakter.
+                  </p>
+                  {visiblePasswordErrors.newPassword && (
+                    <p id="new-password-error" className="profile-field-error-text" role="alert">
+                      {visiblePasswordErrors.newPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmNewPassword">Új jelszó újra:</label>
+                  <input
+                    id="confirmNewPassword"
+                    type="password"
+                    name="confirmNewPassword"
+                    value={passwordForm.confirmNewPassword}
+                    onChange={handlePasswordInputChange}
+                    onBlur={handlePasswordBlur}
+                    autoComplete="new-password"
+                    placeholder="Írd be újra az új jelszót"
+                    aria-invalid={Boolean(visiblePasswordErrors.confirmNewPassword)}
+                    aria-describedby={
+                      visiblePasswordErrors.confirmNewPassword
+                        ? "confirm-new-password-error"
+                        : undefined
+                    }
+                  />
+                  {visiblePasswordErrors.confirmNewPassword && (
+                    <p
+                      id="confirm-new-password-error"
+                      className="profile-field-error-text"
+                      role="alert"
+                    >
+                      {visiblePasswordErrors.confirmNewPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div className="profile-password-actions">
+                  <button
+                    type="submit"
+                    className="profile-save-button"
+                    disabled={isChangingPassword || isDeletingAccount}
+                  >
+                    {isChangingPassword ? "Jelszó mentése..." : "Új jelszó mentése"}
+                  </button>
+                  <button
+                    type="button"
+                    className="profile-secondary-button"
+                    onClick={handlePasswordCancel}
+                    disabled={isChangingPassword || isDeletingAccount}
+                  >
+                    Mégse
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {isEditMode && (
+          <div className="profile-section profile-danger-section">
+            <div className="profile-danger-header">
+              <div>
+                <h3>Fiók törlése</h3>
+                <p className="profile-danger-description">
+                  A megerősítés után kijelentkeztetünk, átirányítunk a bejelentkezéshez,
+                  majd töröljük a profilodat.
+                </p>
+              </div>
+
+              {!isDeleteConfirmVisible ? (
+                <button
+                  type="button"
+                  className="profile-danger-button"
+                  onClick={handleDeleteAccountToggle}
+                  disabled={isSaving || isChangingPassword || isDeletingAccount}
+                >
+                  Fiók törlése
+                </button>
+              ) : null}
+            </div>
+
+            {deleteAccountError && (
+              <p className="profile-inline-error-text" role="alert">
+                {deleteAccountError}
+              </p>
+            )}
+
+            {isDeleteConfirmVisible && (
+              <div className="profile-danger-confirmation" role="alert">
+                <p className="profile-danger-confirmation-text">
+                  Biztosan törölni szeretnéd a fiókodat? Ez a művelet nem vonható vissza.
+                </p>
+
+                <div className="profile-password-actions">
+                  <button
+                    type="button"
+                    className="profile-danger-button"
+                    onClick={handleDeleteAccountConfirm}
+                    disabled={isDeletingAccount}
+                  >
+                    {isDeletingAccount ? "Fiók törlése..." : "Igen, törlöm a fiókom"}
+                  </button>
+                  <button
+                    type="button"
+                    className="profile-secondary-button"
+                    onClick={handleDeleteAccountCancel}
+                    disabled={isDeletingAccount}
+                  >
+                    Mégsem
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

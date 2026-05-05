@@ -14,12 +14,14 @@ export function getFirebaseErrorMessage(errorCode) {
             return "Hálózati hiba: ellenőrizd az internetkapcsolatot!";
         case "auth/user-disabled":
             return "A felhasználó fiókja le van tiltva. Fordulj az ügyfélszolgálathoz.";
+        case "auth/invalid-credential":
         case "auth/user-not-found":
-            return "Ilyen email-címmel nem található felhasználó.";
         case "auth/wrong-password":
-            return "Hibás jelszó.";
+            return "Hibás email vagy jelszó.";
         case "auth/too-many-requests":
             return "Túl sok sikertelen próbálkozás. Kérlek, próbáld később.";
+        case "auth/requires-recent-login":
+            return "A jelszó módosításához biztonsági okból jelentkezz be újra.";
 
         // Firestore hibák:
         case "permission-denied":
@@ -33,6 +35,6 @@ export function getFirebaseErrorMessage(errorCode) {
 
         // Alapértelmezett hibaüzenet
         default:
-            return "Valami hiba történt: " + errorCode;
+            return "Valami hiba történt. Kérlek, próbáld újra később.";
     }
 }

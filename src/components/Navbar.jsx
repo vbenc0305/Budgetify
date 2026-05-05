@@ -4,12 +4,11 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { FaMoon, FaSun } from "react-icons/fa";
 import MenuItem from "./MenuItem";
 import { useUser } from "../stores/useUser";
-import { useTheme } from "../contexts/ThemeContext";
+import { useTheme } from "../contexts/useTheme";
 import { FaPiggyBank } from "react-icons/fa";
 import "./styles/Navbar.css";
 
 export default function Navbar() {
-  // Külön hívjuk a store-t user és logout miatt
   const user = useUser((s) => s.user);
   const logout = useUser((s) => s.logout);
   const authChecked = useUser((s) => s.authChecked);
@@ -19,8 +18,8 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await logout(); // store-ban lévő logout
-      navigate("/"); // vissza a Home-ra
+      await logout();
+      navigate("/");
     } catch (err) {
       console.error("❌ Hiba kijelentkezéskor:", err);
     }
@@ -54,6 +53,7 @@ export default function Navbar() {
               <MenuItem to="/profile" label="Profilom" />
               <MenuItem to="/predict" label="Predikció" />
               <MenuItem to="/transactions" label="Tranzakciók" />
+              <MenuItem to="/county-insights" label="Megyei térkép" />
 
               <li>
                 <button className="logout-button" onClick={handleLogout}>

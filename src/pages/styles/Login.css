@@ -12,56 +12,96 @@
     color: var(--text-primary);
 }
 
-.login-container h1 {
+.login-container h2 {
     text-align: center;
     font-size: 1.8rem;
+    font-weight: 700;
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 2rem;
+    margin: 0 0 2rem;
 }
 
 .login-form {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.25rem;
+}
+
+.login-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
 }
 
 .login-form label {
-    display: flex;
-    flex-direction: column;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
-    gap: 0.5rem;
+    letter-spacing: 0.01em;
 }
 
 .login-form input {
-    padding: 0.75rem;
-    border-radius: 10px;
-    border: 1px solid rgba(226, 232, 240, 0.1);
+    padding: 0.95rem 1rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
     font-size: 1rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
-    transition: all 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.login-form input::placeholder {
+    color: var(--text-muted);
+}
+
+.login-form input:hover {
+    border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border));
 }
 
 .login-form input:focus {
     outline: none;
     border-color: var(--accent-primary);
-    background: rgba(99, 102, 241, 0.1);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    background: color-mix(in srgb, var(--accent-primary) 14%, rgba(255, 255, 255, 0.1));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 18%, transparent),
+        0 10px 24px color-mix(in srgb, var(--accent-primary) 16%, transparent);
+    transform: translateY(-1px);
+}
+
+.login-form input[aria-invalid="true"] {
+    border-color: color-mix(in srgb, var(--error) 70%, white);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--error) 16%, transparent);
 }
 
 .login-form button {
-    padding: 0.75rem;
+    padding: 0.85rem;
     font-size: 1rem;
-    margin-top: 1rem;
+    margin-top: 0.75rem;
+}
+
+.login-form button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.error-text {
+    color: var(--error);
+    font-size: 0.85rem;
+    text-align: center;
+    margin: 0;
+}
+
+.success-text {
+    color: var(--success);
+    font-size: 0.85rem;
+    text-align: center;
+    margin: 0;
 }
 
 .register-prompt {
     margin-top: 1.5rem;
     text-align: center;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
 }
 
@@ -75,5 +115,33 @@
 .register-link:hover {
     color: var(--accent-secondary);
     text-decoration: underline;
+}
+
+[data-theme="light"] .login-container {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 255, 0.92));
+    border-color: rgba(99, 102, 241, 0.12);
+    box-shadow: 0 20px 48px rgba(79, 70, 229, 0.12);
+}
+
+[data-theme="light"] .login-form label {
+    color: #1f2937;
+}
+
+[data-theme="light"] .login-form input {
+    background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+    border: 1px solid rgba(99, 102, 241, 0.24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 18px rgba(148, 163, 184, 0.14);
+}
+
+[data-theme="light"] .login-form input:hover {
+    background: #ffffff;
+    border-color: rgba(99, 102, 241, 0.38);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 10px 22px rgba(99, 102, 241, 0.12);
+}
+
+[data-theme="light"] .login-form input:focus {
+    background: #ffffff;
+    border-color: rgba(79, 70, 229, 0.75);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.16), 0 14px 30px rgba(99, 102, 241, 0.18);
 }
 

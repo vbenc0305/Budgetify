@@ -102,11 +102,6 @@
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: white;
-    color: var(--fg);
-}
 
 /* Skeleton and error tweaks for this card */
 .mini-forecast-card .loading-skeleton {
@@ -120,9 +115,6 @@
 /* Recharts small theming nits */
 .mini-forecast-card .recharts-cartesian-grid-horizontal line,
 .mini-forecast-card .recharts-cartesian-grid-vertical line {
-    /* fallback */
-    stroke: var(--border);
-    /* modern */
     stroke: color-mix(in srgb, var(--border), #000 10%);
 }
 

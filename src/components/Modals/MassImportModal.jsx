@@ -1,9 +1,9 @@
 // src/components/MassImportModal.jsx
 import React, { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
 import PreviewTable from "../PreviewTable.jsx"; // külön komponens a previewhoz
 import "../styles/MassImportModal.css";
 import { useTransaction } from "../../stores/useTransaction";
+import { readExcelRowsFromFile } from "../../utils/excelImport";
 
 const EXPECTED_COLUMNS = [
   "Tranzakció dátuma",
@@ -22,10 +22,28 @@ const EXPECTED_COLUMNS = [
 
 export default function MassImportModal({ onClose, onImport, isOpen, user }) {
   const [file, setFile] = useState(null);
+  const [parsedRows, setParsedRows] = useState([]);
   const [previewRows, setPreviewRows] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const hasAuthUser = !!user && typeof user.getIdToken === "function";
+
+  const getImportValidationError = (rows) => {
+    if (!rows.length) {
+      return "A fájl üres.";
+    }
+
+    const sheetColumns = Object.keys(rows[0]);
+    const missingCols = EXPECTED_COLUMNS.filter(
+      (col) => !sheetColumns.includes(col),
+    );
+
+    if (missingCols.length > 0) {
+      return "Hiányzó oszlopok: " + missingCols.join(", ");
+    }
+
+    return "";
+  };
 
   // We'll obtain the massImport function at call time from the store to avoid
   // selector/timing issues that can cause `undefined` during initial render.
@@ -41,43 +59,36 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const f = e.target.files[0];
     setFile(f);
+    setParsedRows([]);
     setError("");
     setPreviewRows([]);
 
     if (!f) return;
-    if (!f.name.endsWith(".xlsx")) {
+    if (!f.name.toLowerCase().endsWith(".xlsx")) {
       setError("Csak .xlsx fájl feltöltése engedélyezett!");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const data = evt.target.result;
-      const workbook = XLSX.read(data, { type: "binary" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-      if (!json.length) {
-        setError("A fájl üres.");
+    try {
+      const rows = await readExcelRowsFromFile(f);
+      const validationError = getImportValidationError(rows);
+      if (validationError) {
+        setError(validationError);
         return;
       }
 
-      const sheetColumns = Object.keys(json[0]);
-      const missingCols = EXPECTED_COLUMNS.filter(
-        (col) => !sheetColumns.includes(col),
+      setParsedRows(rows);
+      setPreviewRows(rows.slice(0, 5)); // preview az első 5 sor
+    } catch (err) {
+      setError(
+        err && err.message
+          ? err.message
+          : "A fájl feldolgozása sikertelen.",
       );
-      if (missingCols.length > 0) {
-        setError("Hiányzó oszlopok: " + missingCols.join(", "));
-        return;
-      }
-
-      setPreviewRows(json.slice(0, 5)); // preview az első 5 sor
-    };
-    reader.readAsBinaryString(f);
+    }
   };
 
   const handleImport = async () => {
@@ -92,14 +103,13 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
 
     setLoading(true);
     try {
-      // Use async File API instead of FileReader callbacks so errors bubble to this try/catch
-      const arrayBuffer = await file.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(arrayBuffer), {
-        type: "array",
-      });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      const json =
+        parsedRows.length > 0 ? parsedRows : await readExcelRowsFromFile(file);
+      const validationError = getImportValidationError(json);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
 
       // use store action to perform the network request with auth
       const result = await massImportFn(json, user);

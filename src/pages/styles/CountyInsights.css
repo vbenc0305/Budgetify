@@ -1,0 +1,131 @@
+.county-insights-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.county-insights-header h1 {
+  margin-bottom: 0.35rem;
+}
+
+.county-insights-header p {
+  margin-top: 0;
+  color: var(--text-secondary);
+}
+
+.county-insights-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.county-map-shell {
+  position: relative;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.7rem;
+  height: 100%;
+}
+
+.hungary-county-map {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.county-path {
+  fill: color-mix(in srgb, var(--accent-secondary) 18%, var(--surface-elevated));
+  stroke: color-mix(in srgb, var(--accent-primary) 46%, var(--border));
+  stroke-width: 0.95;
+  cursor: pointer;
+  transition: fill 0.14s ease, stroke-width 0.14s ease;
+}
+
+.county-path:hover,
+.county-path:focus {
+  fill: color-mix(in srgb, var(--accent-primary) 40%, var(--surface-elevated));
+  stroke-width: 1.35;
+  outline: none;
+}
+
+.county-path.selected {
+  fill: color-mix(in srgb, var(--accent-primary) 62%, var(--surface-elevated));
+  stroke: var(--accent-primary);
+  stroke-width: 1.6;
+}
+
+.county-map-tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent-primary) 24%, transparent);
+  border-radius: 8px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.county-map-caption {
+  margin: 0.65rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.county-map-error,
+.county-ranking-error {
+  color: #b91c1c;
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  border: 1px solid color-mix(in srgb, #ef4444 26%, transparent);
+  border-radius: 10px;
+  padding: 0.8rem;
+}
+
+.county-ranking-card {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  height: 100%;
+}
+
+.county-ranking-card h2 {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+}
+
+.county-ranking-source {
+  margin-top: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.county-ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.county-ranking-table th,
+.county-ranking-table td {
+  text-align: left;
+  padding: 0.45rem 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.county-ranking-empty {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .county-insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

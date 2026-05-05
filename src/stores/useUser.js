@@ -12,6 +12,53 @@ import isEqual from "lodash/isEqual";
 const unsupportedConsentResponsePattern =
   /analytics_consent|unknown|unexpected|column|schema|not allowed|validation/i;
 
+const clearUserSessionState = (set) => {
+  set({
+    user: null,
+    usrInfo: null,
+    fetched: false,
+    authChecked: true,
+  });
+  useTransaction.getState().resetTransactions();
+};
+
+const deleteProfileWithToken = async (idToken, uid) => {
+  const sendDeleteRequest = (url) =>
+    fetch(url, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+
+  let primaryResponse = await sendDeleteRequest(
+    `/api/usr_info/${encodeURIComponent(uid)}`,
+  );
+
+  if (primaryResponse.ok || primaryResponse.status === 404) {
+    return true;
+  }
+
+  if (![401, 403, 405].includes(primaryResponse.status)) {
+    const primaryText = await primaryResponse.text().catch(() => "");
+    throw new Error(
+      `Profiltörlés sikertelen: ${primaryResponse.status} ${primaryText}`,
+    );
+  }
+
+  const fallbackResponse = await sendDeleteRequest("/api/profile");
+
+  if (fallbackResponse.ok || fallbackResponse.status === 404) {
+    return true;
+  }
+
+  const fallbackText = await fallbackResponse.text().catch(() => "");
+  throw new Error(
+    `Profiltörlés sikertelen: ${fallbackResponse.status} ${fallbackText}`,
+  );
+};
+
 export const useUser = create(
   persist(
     (set, get) => ({
@@ -26,6 +73,8 @@ export const useUser = create(
       listenerAttached: false,
 
       setUser: (u) => set({ user: u }),
+
+      clearStatus: () => set({ error: null, success: null }),
 
       fetchProfile: async () => {
         const { user, fetched, fetchingProfile } = get();
@@ -106,8 +155,59 @@ export const useUser = create(
       logout: async () => {
         const auth = getAuth();
         await firebaseSignOut(auth);
-        set({ user: null, usrInfo: null, fetched: false, authChecked: true });
-        useTransaction.getState().resetTransactions();
+        clearUserSessionState(set);
+      },
+
+      deleteAccountProfile: async () => {
+        set({ error: null, success: null, loading: true });
+        const auth = getAuth();
+        const current = auth.currentUser;
+
+        if (!current) {
+          const errMsg = "Nincs élő Firebase user a fiók törléséhez.";
+          set({ error: errMsg, loading: false });
+          throw new Error(errMsg);
+        }
+
+        const uid = current.uid;
+
+        try {
+          const idToken = await current.getIdToken(true);
+
+          await firebaseSignOut(auth);
+          clearUserSessionState(set);
+          set({ loading: false, error: null, success: null });
+
+          const deletionPromise = (async () => {
+            try {
+              await deleteProfileWithToken(idToken, uid);
+              set({
+                error: null,
+                success: "A profil sikeresen törölve lett.",
+                loading: false,
+              });
+              return true;
+            } catch (err) {
+              console.error("store.deleteAccountProfile error:", err);
+              set({
+                error: "Hiba a profil törlésekor: " + (err.message || err),
+                success: null,
+                loading: false,
+              });
+              throw err;
+            }
+          })();
+
+          return { deletionPromise };
+        } catch (err) {
+          console.error("store.deleteAccountProfile bootstrap error:", err);
+          set({
+            error: "Hiba a fiók törlésekor: " + (err.message || err),
+            success: null,
+            loading: false,
+          });
+          throw err;
+        }
       },
 
       initAuthListener: () => {

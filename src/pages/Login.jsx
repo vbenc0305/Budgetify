@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useUser } from "../stores/useUser";
+import { getFirebaseErrorMessage } from "../utils/firebaseErrorHandler";
 import "./styles/Login.css";
 
 export default function Login() {
@@ -11,8 +12,10 @@ export default function Login() {
   const user = useUser((s) => s.user);
   const setUser = useUser((s) => s.setUser);
   const fetchProfile = useUser((s) => s.fetchProfile);
+  const clearStatus = useUser((s) => s.clearStatus);
   const storeLoading = useUser((s) => s.loading);
   const storeError = useUser((s) => s.error);
+  const storeSuccess = useUser((s) => s.success);
 
   // Lokális state a loginhoz
   const [email, setEmail] = useState("");
@@ -26,6 +29,12 @@ export default function Login() {
       navigate("/");
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    return () => {
+      clearStatus();
+    };
+  }, [clearStatus]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,10 +61,8 @@ export default function Login() {
     } catch (err) {
       console.error("Login error:", err);
       setLocalError(
-        err?.code === "auth/wrong-password" ||
-          err?.code === "auth/user-not-found"
-          ? "Hibás email vagy jelszó."
-          : err?.message || "Hiba történt a bejelentkezés során.",
+        getFirebaseErrorMessage(err?.code) ||
+          "Hiba történt a bejelentkezés során.",
       );
     } finally {
       setLocalLoading(false);
@@ -70,27 +77,33 @@ export default function Login() {
       <h2>Bejelentkezés</h2>
 
       <form onSubmit={handleSubmit} className="login-form" aria-live="polite">
-        <label>
-          Email:
+        <div className="login-form-group">
+          <label htmlFor="login-email">Email</label>
           <input
+            id="login-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
+            placeholder="pl. valaki@email.com"
+            aria-invalid={Boolean(displayedError)}
           />
-        </label>
+        </div>
 
-        <label>
-          Jelszó:
+        <div className="login-form-group">
+          <label htmlFor="login-password">Jelszó</label>
           <input
+            id="login-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
+            placeholder="Add meg a jelszavad"
+            aria-invalid={Boolean(displayedError)}
           />
-        </label>
+        </div>
 
         <button type="submit" disabled={isLoading}>
           {isLoading ? "Belépés..." : "Belépés"}
@@ -99,6 +112,11 @@ export default function Login() {
         {displayedError && (
           <p className="error-text" role="alert">
             {displayedError}
+          </p>
+        )}
+        {!displayedError && storeSuccess && (
+          <p className="success-text" role="status">
+            {storeSuccess}
           </p>
         )}
       </form>

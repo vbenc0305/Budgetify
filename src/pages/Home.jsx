@@ -16,6 +16,7 @@ export default function Home() {
   // Ellenőrizzük, hogy hiányzik-e valami a profilból
   const requiredFields = [
     "age",
+    "county",
     "country",
     "education",
     "gender",
