@@ -6,6 +6,7 @@ Walk-forward cross-validation and model evaluation.
 
 import pandas as pd
 import numpy as np
+import warnings
 from typing import List, Tuple
 
 from statsmodels.tsa.arima.model import ARIMA
@@ -13,7 +14,8 @@ from statsmodels.tsa.holtwinters import SimpleExpSmoothing, Holt
 from sklearn.metrics import mean_squared_error, r2_score
 
 from src.Generation.config import ARIMA_ORDER, MAX_TEST_SIZE
-from src.Generation.models import fit_and_forecast_autoreg
+from src.Generation.models import fit_and_forecast_autoreg, fit_and_forecast_behavioral_boosted
+from src.Generation.utils import ensure_monthly_freq
 
 
 def walk_forward_1step(
@@ -35,26 +37,23 @@ def walk_forward_1step(
     if n_test >= len(series):
         raise ValueError("n_test túl nagy a sorozathoz.")
 
-    history = series.iloc[:-n_test].copy()
-
-    # ensure frequency is present to avoid statsmodels inferring warnings
-    try:
-        history = history.asfreq('ME')
-    except Exception:
-        pass
+    history = ensure_monthly_freq(series.iloc[:-n_test].copy())
 
     test = series.iloc[-n_test:].tolist()
     preds = []
 
     for t in range(len(test)):
         try:
-            model = ARIMA(history, order=model_order).fit()
-            yhat = float(model.forecast(steps=1).iloc[0])
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                model = ARIMA(history, order=model_order).fit()
+                yhat = float(model.forecast(steps=1).iloc[0])
         except Exception:
             yhat = float(history.iloc[-1])
         preds.append(yhat)
         next_idx = history.index[-1] + pd.offsets.MonthEnd(1)
         history = pd.concat([history, pd.Series([test[t]], index=[next_idx])])
+        history = ensure_monthly_freq(history)
 
     mse = mean_squared_error(test, preds)
     r2 = r2_score(test, preds) if len(test) > 1 else float("nan")
@@ -76,20 +75,23 @@ def walk_forward_ses(
     Returns:
         Tuple of (MSE, predictions)
     """
-    history = series.iloc[:-n_test].tolist()
+    history = ensure_monthly_freq(series.iloc[:-n_test].copy())
     ses_preds = []
     test = series.iloc[-n_test:].tolist()
 
     for t in range(len(test)):
         try:
-            series = series.clip(upper=series.mean() + 2 * series.std())
-            s = SimpleExpSmoothing(pd.Series(history)).fit(    smoothing_level=0.2,
-    optimized=False)
-            yhat = float(s.forecast(1).iloc[0])
+            history_clip = history.clip(upper=history.mean() + 2 * history.std())
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                s = SimpleExpSmoothing(history_clip).fit(smoothing_level=0.2, optimized=False)
+                yhat = float(s.forecast(1).iloc[0])
         except Exception:
-            yhat = float(history[-1])
+            yhat = float(history.iloc[-1])
         ses_preds.append(yhat)
-        history.append(test[t])
+        next_idx = history.index[-1] + pd.offsets.MonthEnd(1)
+        history = pd.concat([history, pd.Series([test[t]], index=[next_idx])])
+        history = ensure_monthly_freq(history)
 
     mse = mean_squared_error(test, ses_preds)
     return mse, ses_preds
@@ -109,19 +111,22 @@ def walk_forward_holt(
     Returns:
         Tuple of (MSE, predictions)
     """
-    history = series.iloc[:-n_test].copy()
+    history = ensure_monthly_freq(series.iloc[:-n_test].copy())
     holt_preds = []
     test = series.iloc[-n_test:].tolist()
 
     for t in range(len(test)):
         try:
-            hmod = Holt(history).fit(optimized=True)
-            yhat = float(hmod.forecast(1).iloc[0])
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                hmod = Holt(history, exponential=False, damped_trend=True).fit(optimized=True)
+                yhat = float(hmod.forecast(1).iloc[0])
         except Exception:
             yhat = float(history.iloc[-1])
         holt_preds.append(yhat)
         next_idx = history.index[-1] + pd.offsets.MonthEnd(1)
         history = pd.concat([history, pd.Series([test[t]], index=[next_idx])])
+        history = ensure_monthly_freq(history)
 
     mse = mean_squared_error(test, holt_preds)
     return mse, holt_preds
@@ -144,11 +149,86 @@ def walk_forward_autoreg(
         Tuple of (MSE, predictions)
     """
     try:
-        _, ar_preds_wf, _ = fit_and_forecast_autoreg(series.iloc[:-n_test],
-                                                     lags=lags, steps=n_test)
+        if n_test >= len(series):
+            raise ValueError("n_test túl nagy a sorozathoz.")
+
+        history = ensure_monthly_freq(series.iloc[:-n_test].copy())
         test = series.iloc[-n_test:].tolist()
-        mse = mean_squared_error(test, ar_preds_wf.values)
-        return mse, ar_preds_wf.tolist()
+        preds = []
+
+        for t in range(len(test)):
+            try:
+                _, pred_series, _ = fit_and_forecast_autoreg(history, lags=lags, steps=1)
+                if pred_series is None or len(pred_series) == 0:
+                    raise ValueError("AutoReg forecast unavailable")
+                yhat = float(pred_series.iloc[0])
+            except Exception:
+                yhat = float(history.iloc[-1])
+
+            preds.append(yhat)
+            next_idx = history.index[-1] + pd.offsets.MonthEnd(1)
+            history = pd.concat([history, pd.Series([test[t]], index=[next_idx])])
+            history = ensure_monthly_freq(history)
+
+        mse = mean_squared_error(test, preds)
+        return mse, preds
     except Exception:
         return float("inf"), []
+
+
+def walk_forward_behavioral(
+    series: pd.Series,
+    n_test: int = MAX_TEST_SIZE,
+    lags: int = 4,
+    exog: pd.DataFrame | None = None,
+    exog_forecast: pd.DataFrame | None = None,
+) -> Tuple[float, List[float]]:
+    """
+    Walk-forward validation for the behavior-aware boosting model.
+    """
+    try:
+        if n_test >= len(series):
+            raise ValueError("n_test túl nagy a sorozathoz.")
+
+        history = ensure_monthly_freq(series.iloc[:-n_test].copy())
+        test = series.iloc[-n_test:].tolist()
+        preds: List[float] = []
+
+        for t in range(len(test)):
+            try:
+                exog_hist = None
+                exog_fc = None
+                if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty:
+                    exog_hist = exog.reindex(history.index).ffill().fillna(0.0)
+                    if exog_forecast is not None and isinstance(exog_forecast, pd.DataFrame) and not exog_forecast.empty:
+                        future_idx = pd.date_range(
+                            start=history.index[-1] + pd.offsets.MonthEnd(1),
+                            periods=1,
+                            freq="ME",
+                        )
+                        exog_fc = exog_forecast.reindex(future_idx).ffill().fillna(0.0)
+
+                _, pred_series, _ = fit_and_forecast_behavioral_boosted(
+                    history,
+                    lags=lags,
+                    steps=1,
+                    exog=exog_hist,
+                    exog_forecast=exog_fc,
+                )
+                if pred_series is None or len(pred_series) == 0:
+                    raise ValueError("Behavioral forecast unavailable")
+                yhat = float(pred_series.iloc[0])
+            except Exception:
+                yhat = float(history.iloc[-1])
+
+            preds.append(yhat)
+            next_idx = history.index[-1] + pd.offsets.MonthEnd(1)
+            history = pd.concat([history, pd.Series([test[t]], index=[next_idx])])
+            history = ensure_monthly_freq(history)
+
+        mse = mean_squared_error(test, preds)
+        return mse, preds
+    except Exception:
+        return float("inf"), []
+
 

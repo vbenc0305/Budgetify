@@ -44,6 +44,7 @@ USER_TX_DIR.mkdir(parents=True, exist_ok=True)
 OFFLINE_DIR = USER_TX_DIR
 
 FALLBACK_DATASET_PATH = PROJECT_ROOT / "datasets" / "Dataset.csv"
+COUNTY_INDEX_PATH = USER_TX_DIR / "county_index.json"
 _fallback_rows: list[dict] | None = None
 _fallback_rows_mtime: float | None = None
 _fallback_lock = threading.Lock()
@@ -370,6 +371,7 @@ def _read_local_txs(uid: str) -> list:
     if not p.exists():
         return []
     out = []
+    filtered_invalid = False
     try:
         with p.open("r", encoding="utf-8") as fh:
             for line in fh:
@@ -377,10 +379,18 @@ def _read_local_txs(uid: str) -> list:
                 if not line:
                     continue
                 try:
-                    out.append(json.loads(line))
+                    parsed = json.loads(line)
+                    normalized = normalize_transaction_record_current_schema(parsed)
+                    if normalized is None:
+                        filtered_invalid = True
+                        continue
+                    out.append(normalized)
                 except Exception:
                     logger.exception(f"Skipping invalid JSON line in {p}")
         logger.debug(f"Read {len(out)} local txs for uid={uid} from {p}")
+        if filtered_invalid:
+            _write_local_txs_overwrite(uid, out)
+            logger.info("Removed stale pre-refresh transactions from local cache for uid=%s", uid)
     except Exception:
         logger.exception(f"Failed to read local txs for uid={uid}")
     return out
@@ -567,7 +577,8 @@ def _normalize_dataset_row(row: dict, idx: int) -> dict:
         "date": _normalize_date_value(date_value),
         "description": row.get("Közlemény") or row.get("Partner neve") or "",
         "for_who": row.get("Partner neve") or "",
-        "tran_type": row.get("Típus") or row.get("Bejövő/Kimenő") or "Ismeretlen",
+        "transaction_direction": row.get("Bejövő/Kimenő") or "",
+        "tran_type": row.get("Típus") or "Ismeretlen",
         "internal_transfer": "none",
         "data_source": "dataset",
     }
@@ -616,6 +627,126 @@ def get_fallback_transactions(uid: str) -> list[dict]:
     return output
 
 
+def normalize_transaction_record_current_schema(transaction: Any) -> dict | None:
+    if not isinstance(transaction, dict):
+        return None
+
+    transaction_direction = transaction.get("transaction_direction")
+    if transaction_direction is None or str(transaction_direction).strip() == "":
+        return None
+
+    normalized = dict(transaction)
+    normalized["transaction_direction"] = str(transaction_direction)
+    normalized["for_who"] = str(normalized.get("for_who") or "")
+    normalized.setdefault("internal_transfer", "none")
+    return normalized
+
+
+def is_current_transaction_schema(transaction: Any) -> bool:
+    return normalize_transaction_record_current_schema(transaction) is not None
+
+
+def _normalize_county_name(value: str | None) -> str:
+    if not value:
+        return ""
+    text = str(value).strip().lower()
+    replacements = {
+        "á": "a",
+        "é": "e",
+        "í": "i",
+        "ó": "o",
+        "ö": "o",
+        "ő": "o",
+        "ú": "u",
+        "ü": "u",
+        "ű": "u",
+    }
+    for src, dst in replacements.items():
+        text = text.replace(src, dst)
+    return re.sub(r"\s+", " ", text)
+
+
+def _load_local_county_index() -> dict[str, str]:
+    if not COUNTY_INDEX_PATH.exists():
+        return {}
+    try:
+        raw = json.loads(COUNTY_INDEX_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        logger.exception("Failed to load county index from %s", COUNTY_INDEX_PATH)
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    return {
+        str(uid): _normalize_county_name(county)
+        for uid, county in raw.items()
+        if uid is not None and county is not None
+    }
+
+
+def _get_user_ids_for_county_firestore(county: str) -> list[str]:
+    normalized = _normalize_county_name(county)
+    if not normalized:
+        return []
+
+    db = get_db_client()
+    user_ids: list[str] = []
+    seen: set[str] = set()
+
+    for collection_name in ("usr_info", "users"):
+        try:
+            docs = db.collection(collection_name).stream()
+        except Exception:
+            logger.exception("Failed to read county data from %s", collection_name)
+            continue
+
+        for doc in docs:
+            data = doc.to_dict() or {}
+            county_value = data.get("county") or data.get("megye")
+            if _normalize_county_name(county_value) != normalized:
+                continue
+            uid = str(data.get("uid") or doc.id)
+            if uid and uid not in seen:
+                seen.add(uid)
+                user_ids.append(uid)
+
+    return user_ids
+
+
+def _get_user_ids_for_county_local_index(county: str) -> list[str]:
+    normalized = _normalize_county_name(county)
+    if not normalized:
+        return []
+    county_index = _load_local_county_index()
+    return [uid for uid, stored_county in county_index.items() if stored_county == normalized]
+
+
+def get_county_transactions(county: str) -> dict:
+    normalized = _normalize_county_name(county)
+    if not normalized:
+        return {"matched_users": 0, "transactions": [], "data_source": "firestore"}
+
+    data_source = "firestore"
+    try:
+        user_ids = _get_user_ids_for_county_firestore(normalized)
+    except FirebaseUnavailable:
+        user_ids = _get_user_ids_for_county_local_index(normalized)
+        data_source = "local_county_index"
+
+    transactions: list[dict] = []
+    for uid in user_ids:
+        for tx in get_user_transactions(uid) or []:
+            tx_payload = dict(tx)
+            tx_payload.setdefault("user_id", uid)
+            tx_payload.setdefault("transaction_id", tx_payload.get("id"))
+            transactions.append(tx_payload)
+
+    return {
+        "matched_users": len(user_ids),
+        "transactions": transactions,
+        "data_source": data_source,
+    }
+
+
 def get_user_transactions(uid: str):
     """Return user's transactions from Firestore. Also set `fetch_needed` when local offline stash is stale.
 
@@ -635,8 +766,10 @@ def get_user_transactions(uid: str):
             mtime = datetime.fromtimestamp(local_path.stat().st_mtime, tz=timezone.utc)
             age = datetime.now(timezone.utc) - mtime
             if age <= timedelta(days=7):
-                logger.info(f"Using fresh local stash for uid={uid} (age_days={age.days}) - skipping Firestore")
-                return _read_local_txs(uid)
+                local = _read_local_txs(uid)
+                if local:
+                    logger.info(f"Using fresh local stash for uid={uid} (age_days={age.days}) - skipping Firestore")
+                    return local
     except Exception:
         # If anything goes wrong when inspecting the local file, continue with normal logic
         logger.exception("Error while checking local userTransactions stash; falling back to normal fetch logic")
@@ -679,7 +812,17 @@ def get_user_transactions(uid: str):
         user_ref = db.collection("users").document(uid)
         transactions_ref = user_ref.collection("transactions")
         docs = transactions_ref.stream()
-        res = [doc.to_dict() | {"transaction_id": doc.id} for doc in docs]
+        raw_res = [doc.to_dict() | {"transaction_id": doc.id} for doc in docs]
+        res = []
+        skipped_stale = 0
+        for tx in raw_res:
+            normalized = normalize_transaction_record_current_schema(tx)
+            if normalized is None:
+                skipped_stale += 1
+                continue
+            res.append(normalized)
+        if skipped_stale:
+            logger.info("Skipped %s stale transactions without transaction_direction for uid=%s", skipped_stale, uid)
     except Exception as e:
         logger.exception(f"Hiba a felhasználó tranzakcióinak lekérésekor for uid={uid}: {e} — falling back to local stash")
         local = _read_local_txs(uid)
@@ -777,7 +920,9 @@ def save_user_transaction(uid: str, transaction_data: dict, allow_local_fallback
     # ensure we have an id for local fallback
     import uuid
     doc_id = transaction_data.get("id") or str(uuid.uuid4())
-    transaction_data = dict(transaction_data)
+    transaction_data = normalize_transaction_record_current_schema(transaction_data)
+    if transaction_data is None:
+        raise ValueError("transaction_direction is required for transaction storage")
     transaction_data["id"] = doc_id
 
     try:
@@ -820,7 +965,9 @@ def save_user_transactions(uid: str, transactions: list[dict], allow_local_fallb
     import uuid
     txs = []
     for tx in transactions:
-        tx_copy = dict(tx)
+        tx_copy = normalize_transaction_record_current_schema(tx)
+        if tx_copy is None:
+            raise ValueError("transaction_direction is required for transaction storage")
         if not tx_copy.get("id"):
             tx_copy["id"] = str(uuid.uuid4())
         txs.append(tx_copy)

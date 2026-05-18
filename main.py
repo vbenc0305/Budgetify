@@ -2,7 +2,7 @@ import os
 import logging
 import uvicorn
 from fastapi import FastAPI
-from api.routes import router, profile, transactions
+from api.routes import router, profile, transactions, stats
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -26,6 +26,7 @@ async def firebase_unavailable_handler(request: Request, exc: FirebaseUnavailabl
 logger.debug("Including routers")
 app.include_router(profile.router, prefix="/api", tags=["profile"])
 app.include_router(transactions.router, prefix="/api", tags=["transactions"])
+app.include_router(stats.router, prefix="/api", tags=["stats"])
 
 origins = [
     "http://localhost:5173",

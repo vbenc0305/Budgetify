@@ -6,7 +6,8 @@ import pandas as pd
 from firebase_admin import credentials, firestore
 
 from src.DAO.DAOimpl import FirebaseDAO
-from src.Generation.helper import for_who
+
+for_who = ""
 
 # A 'conninfo.json' útvonalának beállítása a DAOImpl.py alapján.
 # Ha ez a fájl nem létezik, a szkript futása hibát dob!
@@ -25,7 +26,7 @@ except Exception as e:
 # CSV fájl beolvasása
 # csv_path = "../../datasets/Dataset.csv" # Eredeti
 csv_path = "../../datasets/Dataset_Magyar.csv" # A feltételezett, magyarosított fájl
-df = pd.read_csv(csv_path)
+df = pd.read_csv(str(csv_path))
 
 # 1. Dátum konverzió: 'D/M/YY' -> ISO 8601
 # Megadjuk a formátumot: '%d/%m/%y'
@@ -113,7 +114,8 @@ def build_transaction_record(date_input,
                              category_type,
                              email,
                              user_id,
-                             for_who=''):
+                             for_who='',
+                             transaction_direction=''):
     """
     Visszaadja a Firebase-kompatibilis tranzakció dict-et.
     """
@@ -130,6 +132,7 @@ def build_transaction_record(date_input,
         "tran_type": tran_type,               # "outgoing" vagy "incoming"
         "email": email,
         "for_who": for_who or "",
+        "transaction_direction": transaction_direction or "",
         "user_id": user_id
     }
     return transaction_data
@@ -162,6 +165,7 @@ def process_row(datarow):
 
     # 5. Category type: kisbetűs string (income vagy expense)
     category_type = str(datarow['Kategória Típus'])
+    transaction_direction = _map_tran_type(category_type)
 
 
     category = datarow['Kategória']
@@ -175,7 +179,8 @@ def process_row(datarow):
         category= category,
         sub_category=sub_category,
         category_type= category_type,
-        for_who=for_who,# income vagy expense
+        for_who=for_who,
+        transaction_direction=transaction_direction,
         email= "aliciacantu@gmail.com",
         user_id="wXIqQmSZ1gc8SCe1crg4gf9ImmB2"
     )  # Új felhasználó azonosítója

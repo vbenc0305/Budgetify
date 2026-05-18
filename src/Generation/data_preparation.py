@@ -35,6 +35,33 @@ def _description_is_persely(description: Any) -> bool:
     return "persely" in normalized
 
 
+def _normalize_text(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip().lower()
+    replacements = {
+        "á": "a",
+        "é": "e",
+        "í": "i",
+        "ó": "o",
+        "ö": "o",
+        "ő": "o",
+        "ú": "u",
+        "ü": "u",
+        "ű": "u",
+    }
+    for src, dst in replacements.items():
+        text = text.replace(src, dst)
+    return re.sub(r"\s+", "", text)
+
+
+def _has_internal_transfer_hint(*values: Any) -> bool:
+    joined = _normalize_text(" ".join(str(v or "") for v in values))
+    if not joined:
+        return False
+    return any(keyword in joined for keyword in ("persely", "kerek", "felkerek", "rounding"))
+
+
 def prepare_transaction_data(
     uid: str,
     tx_list: Optional[List[Dict[str, Any]]] = None,
@@ -104,6 +131,8 @@ def prepare_transaction_data(
 
         if 'direction' in df_tx.columns:
             df_tx['direction'] = df_tx['direction'].fillna('')
+        if 'transaction_direction' in df_tx.columns:
+            df_tx['transaction_direction'] = df_tx['transaction_direction'].fillna('')
         if 'for_who' in df_tx.columns:
             df_tx['for_who'] = df_tx['for_who'].fillna('')
 
@@ -143,7 +172,36 @@ def prepare_transaction_data(
 
         if 'internal_transfer' not in df_tx.columns:
             df_tx['internal_transfer'] = 'none'
-        df_tx['internal_transfer'] = df_tx['internal_transfer'].fillna('none')
+        df_tx['internal_transfer'] = (
+            df_tx['internal_transfer']
+            .fillna('none')
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .replace({'': 'none', 'nan': 'none', 'null': 'none', 'none': 'none'})
+        )
+
+        valid_internal_transfer_values = {'none', 'jar_in', 'jar_out', 'rounding'}
+        invalid_internal = ~df_tx['internal_transfer'].isin(valid_internal_transfer_values)
+        if invalid_internal.any():
+            df_tx.loc[invalid_internal, 'internal_transfer'] = 'none'
+            print(f"ℹ️ internal_transfer normalize: reset {int(invalid_internal.sum())} invalid values to 'none'")
+
+        hint_mask = df_tx.apply(
+            lambda row: _has_internal_transfer_hint(
+                row.get('description', ''),
+                row.get('tran_type', ''),
+                row.get('for_who', ''),
+            ),
+            axis=1,
+        )
+        stale_internal_mask = (
+            df_tx['internal_transfer'].isin({'jar_in', 'jar_out', 'rounding'})
+            & ~hint_mask
+        )
+        if stale_internal_mask.any():
+            df_tx.loc[stale_internal_mask, 'internal_transfer'] = 'none'
+            print(f"ℹ️ internal_transfer repair: reset {int(stale_internal_mask.sum())} stale labels to 'none'")
 
         # Apply feature engineering
         try:
@@ -153,14 +211,14 @@ def prepare_transaction_data(
         _log_amount_stats(df_tx, "after feature engineering")
 
         # Normalize and filter transaction direction
-        if 'direction' in df_tx.columns:
-            df_tx['direction_norm'] = df_tx['direction'].astype(str).str.strip().str.lower()
-        elif 'for_who' in df_tx.columns:
-            df_tx['direction_norm'] = df_tx['for_who'].astype(str).str.strip().str.lower()
+        if 'transaction_direction' in df_tx.columns:
+            df_tx['direction_norm'] = df_tx['transaction_direction'].apply(_normalize_text)
+        elif 'direction' in df_tx.columns:
+            df_tx['direction_norm'] = df_tx['direction'].apply(_normalize_text)
         else:
             df_tx['direction_norm'] = ''
 
-        outgoing_mask = df_tx['direction_norm'] == 'kimenő'
+        outgoing_mask = df_tx['direction_norm'].str.contains('kimen', na=False)
         before_direction = len(df_tx)
         df_tx = df_tx[outgoing_mask].copy()
         print(f"ℹ️ direction filter (Kimenő): {before_direction} -> {len(df_tx)}")

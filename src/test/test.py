@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from src.Generation.Case_one_has_enough_Transact_arima import ForecastPipeline
+from src.Generation.Case_one_has_enough_Transact_arima_refactored import ForecastPipeline
 from src.models.company import Company  # Importáljuk a Company osztályt
 from src.DAO.DAOimpl import FirebaseDAO
 from src.models.user import User
@@ -176,10 +176,10 @@ class TestUser(unittest.TestCase):
 
 def make_tx_example():
     return [
-        {"date":"2024-01-05", "amount": 100.0, "for_who":"out", "user_id":"u1"},
-        {"date":"2024-02-12", "amount": 150.0, "for_who":"out", "user_id":"u1"},
-        {"date":"2024-03-01", "amount": 120.0, "for_who":"out", "user_id":"u1"},
-        {"date":"2024-04-10", "amount": 200.0, "for_who":"out", "user_id":"u1"},
+        {"date":"2024-01-05", "amount": 100.0, "transaction_direction":"Kimenő", "for_who":"", "user_id":"u1"},
+        {"date":"2024-02-12", "amount": 150.0, "transaction_direction":"Kimenő", "for_who":"", "user_id":"u1"},
+        {"date":"2024-03-01", "amount": 120.0, "transaction_direction":"Kimenő", "for_who":"", "user_id":"u1"},
+        {"date":"2024-04-10", "amount": 200.0, "transaction_direction":"Kimenő", "for_who":"", "user_id":"u1"},
     ]
 
 def test_run_with_tx_list():

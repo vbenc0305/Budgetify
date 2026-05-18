@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 import logging
 
 from api.dependencies import get_current_user_uid
-from db.firebase_client import FirebaseUnavailable, get_county_transactions as load_county_transactions
+from api.transaction_payloads import serialize_transactions_for_api
+from db import firebase_client
+from db.firebase_client import FirebaseUnavailable
 
 logger = logging.getLogger(__name__)
 logger.debug("api.routes.stats imported")
@@ -20,8 +22,8 @@ async def get_county_transactions(
         raise HTTPException(status_code=400, detail="county path parameter is required")
 
     try:
-        county_data = load_county_transactions(county)
-        transactions = county_data.get("transactions", [])
+        county_data = firebase_client.get_county_transactions(county)
+        transactions = serialize_transactions_for_api(county_data.get("transactions", []))
         return {
             "county": county,
             "matched_users": county_data.get("matched_users", 0),

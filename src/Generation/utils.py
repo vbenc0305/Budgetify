@@ -8,9 +8,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Optional
-from pathlib import Path
 
-from src.Generation.config import FLATNESS_TOLERANCE, WINSORIZE_LOWER_Q, WINSORIZE_UPPER_Q
+from src.Generation.config import WINSORIZE_LOWER_Q, WINSORIZE_UPPER_Q
 
 
 def is_flat(series: pd.Series, rel_tol: float = 0.05) -> bool:
@@ -23,6 +22,38 @@ def is_flat(series: pd.Series, rel_tol: float = 0.05) -> bool:
 
     cv = series.std() / abs(mean)
     return cv < rel_tol
+
+
+def ensure_monthly_freq(series: Optional[pd.Series]) -> Optional[pd.Series]:
+    """
+    Restore a contiguous month-end frequency metadata when possible.
+
+    This avoids repeated statsmodels frequency inference warnings without
+    changing the actual values of the series.
+    """
+    if series is None:
+        return None
+
+    s = series.copy()
+    if not isinstance(s.index, pd.DatetimeIndex):
+        return s
+
+    try:
+        s = s.sort_index()
+        idx = pd.DatetimeIndex(pd.to_datetime(s.index))
+        if len(idx) >= 2:
+            expected = pd.date_range(start=idx[0], periods=len(idx), freq="ME")
+            if expected.equals(idx):
+                s.index = pd.DatetimeIndex(idx, freq="ME")
+                return s
+
+        inferred = pd.infer_freq(idx)
+        if inferred is not None:
+            s.index = pd.DatetimeIndex(idx, freq=inferred)
+    except Exception:
+        pass
+
+    return s
 
 def prepare_monthly_series_from_df(
     df: pd.DataFrame,
@@ -63,7 +94,8 @@ def prepare_monthly_series_from_df(
     df = df.set_index(date_col).sort_index()
     monthly = df[amount_col].resample("ME").sum().fillna(0)
     monthly = monthly.asfreq("ME", fill_value=0.0)
-    return monthly
+    monthly = ensure_monthly_freq(monthly)
+    return monthly if monthly is not None else pd.Series(dtype=float)
 
 
 def inspect_series(

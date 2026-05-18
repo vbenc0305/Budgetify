@@ -16,6 +16,7 @@ class Transaction:
                  date: str,
                  description: str,
                  for_who: str,
+                 transaction_direction: str,
                  tran_type: str,
                  user_id: str,
                  transaction_id: Optional[str] = None,
@@ -28,7 +29,8 @@ class Transaction:
             category (str): A tranzakció kategóriája (pl. 'food').
             date (str): A tranzakció dátuma (ISO 8601 formátumban, pl. "2025-06-02 01:48:16").
             description (str): A tranzakció leírása.
-            for_who (str): Kinek vagy mire vonatkozik a tranzakció.
+            for_who (str): A partner neve.
+            transaction_direction (str): A tranzakció iránya a banki exportból ('Bejövő'/'Kimenő').
             tran_type (str): A tranzakció típusa (banki leírás/pl. 'VÁSÁRLÁS KÁRTYÁVAL').
             user_id (str): A tranzakcióhoz tartozó felhasználó azonosítója.
             transaction_id (Optional[str]): A tranzakció Firebase dokumentum azonosítója.
@@ -39,6 +41,7 @@ class Transaction:
         self._date = date
         self._description = description
         self._for_who = for_who
+        self._transaction_direction = transaction_direction
         self._tran_type = tran_type
         self._user_id = user_id
         self._transaction_id = transaction_id
@@ -94,13 +97,25 @@ class Transaction:
 
     @property
     def for_who(self) -> str:
-        """Visszaadja, hogy a tranzakció kinek vagy mire vonatkozik."""
+        """Visszaadja a partner nevét."""
         return self._for_who
 
     @for_who.setter
     def for_who(self, value: str):
-        """Beállítja, hogy a tranzakció kinek vagy mire vonatkozik."""
+        """Beállítja a partner nevét."""
         self._for_who = value
+
+    @property
+    def transaction_direction(self) -> str:
+        """Visszaadja a tranzakció irányát (pl. 'Bejövő' vagy 'Kimenő')."""
+        return self._transaction_direction
+
+    @transaction_direction.setter
+    def transaction_direction(self, value: str):
+        """Beállítja a tranzakció irányát."""
+        if value is None or str(value).strip() == "":
+            raise ValueError("A transaction_direction nem lehet üres.")
+        self._transaction_direction = value
 
     @property
     def tran_type(self) -> str:
@@ -164,6 +179,7 @@ class Transaction:
             'date': self._date,
             'description': self._description,
             'for_who': self._for_who,
+            'transaction_direction': self._transaction_direction,
             'tran_type': self._tran_type,
             'user_id': self._user_id,
             'internal_transfer': self._internal_transfer,

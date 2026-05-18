@@ -1,13 +1,12 @@
 import math
-from tabnanny import verbose
-
-import pandas as pd
 from starlette.responses import JSONResponse
 
 from api.dependencies import get_current_user_uid
-from db.firebase_client import get_user_transactions, save_user_transaction, save_user_transactions, FirebaseUnavailable, is_quota_exceeded, get_quota_status, get_db_client, delete_user_transactions_batched
+from api.transaction_payloads import serialize_transaction_for_api, serialize_transactions_for_api
+from db import firebase_client
+from db.firebase_client import get_user_transactions, save_user_transaction, save_user_transactions, FirebaseUnavailable, get_db_client, delete_user_transactions_batched
 from src.models.transactions import Transaction
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Protocol, cast
 from fastapi import Body, Depends, HTTPException, APIRouter
 import re
 import asyncio
@@ -19,15 +18,20 @@ import logging
 logger = logging.getLogger(__name__)
 logger.debug("api.routes.transactions imported")
 
+
+class ForecastPipelineProtocol(Protocol):
+    def run(self, uid: str, plot: bool = False, verbose: bool = False) -> Any: ...
+
+
 router = APIRouter()
 # Do not initialize pipeline at import time; create lazily on first request
 _pipeline_lock = threading.Lock()
-_pipeline: Optional[object] = None
+_pipeline: Optional[ForecastPipelineProtocol] = None
 
 EXPECTED_KEYS = {"összeg", "tranzakció", "tranzakció dátuma", "közlemény", "típus", "bejövő", "kimenő", "bejövő/kimenő", "költési kategória"}
 
 
-async def _get_pipeline() -> object:
+async def _get_pipeline() -> ForecastPipelineProtocol:
     """Asynchronously return a cached ForecastPipeline instance.
     Creation is performed in a worker thread to avoid blocking the running event loop.
     Lazy-imports the Generation module to avoid import-time side-effects.
@@ -47,7 +51,7 @@ async def _get_pipeline() -> object:
                 gen_mod = importlib.import_module("src.Generation.Case_one_has_enough_Transact_arima_refactored")
                 ForecastPipeline = getattr(gen_mod, "ForecastPipeline")
                 # instantiate the pipeline (may be heavy) in worker thread
-                instance = ForecastPipeline()
+                instance = cast(ForecastPipelineProtocol, ForecastPipeline())
                 _pipeline = instance
                 return _pipeline
             except Exception as e:
@@ -59,7 +63,9 @@ async def _get_pipeline() -> object:
         await asyncio.to_thread(_create_pipeline)
         if _pipeline is None:
             raise HTTPException(status_code=500, detail="Failed to initialize ForecastPipeline")
-        return _pipeline
+        pipeline = _pipeline
+        assert pipeline is not None
+        return pipeline
     except HTTPException:
         raise
     except Exception as e:
@@ -70,7 +76,7 @@ async def _get_pipeline() -> object:
 async def get_transactions(uid: str = Depends(get_current_user_uid)):
     try:
         transaction_doc = get_user_transactions(uid)
-        return transaction_doc or []
+        return serialize_transactions_for_api(transaction_doc)
     except FirebaseUnavailable as e:
         logger.error(f"Firebase unavailable in get_transactions: {e}")
         raise HTTPException(status_code=503, detail=str(e))
@@ -190,6 +196,7 @@ async def put_transaction(
             date=transaction_data['date'],
             description=transaction_data.get('description', ''),
             for_who=transaction_data.get('for_who', ''),
+            transaction_direction=transaction_data['transaction_direction'],
             tran_type=transaction_data['tran_type'],
             user_id=uid,
             transaction_id=transaction_data.get('transaction_id')
@@ -210,7 +217,7 @@ async def put_transaction(
                             "status": "warning",
                             "message": "This transaction appears to be a duplicate of an existing transaction.",
                             "duplicate_warning": True,
-                            "transaction": tx_dict
+                            "transaction": serialize_transaction_for_api(tx_dict)
                         }
                 except Exception:
                     continue  # skip problematic existing transaction
@@ -222,7 +229,7 @@ async def put_transaction(
         doc_id = save_user_transaction(uid, tx_dict)
         # Add the Firebase document ID to the response
         tx_dict['transaction_id'] = doc_id
-        return {"status": "success", "transaction": tx_dict}
+        return {"status": "success", "transaction": serialize_transaction_for_api(tx_dict)}
     except FirebaseUnavailable as e:
         logger.error(f"Firebase unavailable in put_transaction: {e}")
         raise HTTPException(status_code=503, detail=str(e))
@@ -253,7 +260,10 @@ async def mass_import_transactions(
     # --- Existing transactions for dedup are fetched from Firestore directly ---
     try:
         docs = db.collection("users").document(uid).collection("transactions").stream()
-        existing_txs = [doc.to_dict() | {"transaction_id": doc.id} for doc in docs]
+        existing_txs = [
+            tx for tx in (doc.to_dict() | {"transaction_id": doc.id} for doc in docs)
+            if firebase_client.is_current_transaction_schema(tx)
+        ]
     except Exception as e:
         logger.exception(f"Failed to fetch existing Firestore transactions for uid={uid}")
         raise HTTPException(status_code=500, detail=f"Could not read existing transactions from Firestore: {e}")
@@ -304,6 +314,7 @@ async def mass_import_transactions(
                 date=tx_data["date"],
                 description=tx_data["description"],
                 for_who=tx_data["for_who"],
+                transaction_direction=tx_data["transaction_direction"],
                 tran_type=tx_data["tran_type"],
                 user_id=uid,
                 transaction_id=tx_data.get("transaction_id"),
@@ -327,14 +338,14 @@ async def mass_import_transactions(
             raise HTTPException(status_code=500, detail=f"Mentés sikertelen: {e}")
 
     # válasz: részletes eredmény (importált, kihagyott duplikátok, hibák)
-    return {
+    return _serialize_mass_import_response_for_api({
         "status": "success" if not errors and not skipped_duplicates else ("partial_success" if imported_transactions else "failed"),
         "imported_count": len(imported_transactions),
         "skipped_duplicates_count": len(skipped_duplicates),
         "skipped_duplicates": skipped_duplicates[:50],  # csak az első 50-et küldjük vissza, hogy ne terheljük a választ
         "failed_count": len(errors),
         "errors": errors,
-    }
+    })
 
 
 @router.get("/predict/transactions", response_class=JSONResponse)
@@ -352,7 +363,7 @@ async def predict_future_transactions(uid: str = Depends(get_current_user_uid)):
     # 2) pipeline futtatása háttérszálon, tx_list-tel (így nem duplikáljuk a feature-engineeringet)
     try:
         # ensure pipeline is initialized (initialization runs in a worker thread)
-        pipeline = await _get_pipeline()
+        pipeline: ForecastPipelineProtocol = await _get_pipeline()
         # run the pipeline.run in a worker thread to avoid blocking the event loop
         result = await asyncio.to_thread(pipeline.run, uid=uid, plot=False, verbose=True)
     except ValueError as e:
@@ -414,7 +425,7 @@ def _parse_amount(value: Any) -> float:
     # bank exports sometimes use comma as thousands or decimal sep; replace comma with dot
     s = s.replace(",", ".")
     # remove currency labels and anything non-digit except dot and minus
-    s_clean = re.sub(r"[^\d\.\-]", "", s)
+    s_clean = re.sub(r"[^\d.-]", "", s)
 
     if s_clean in ("", ".", "-"):
         return 0.0
@@ -473,9 +484,9 @@ def _fuzzy_pattern_for_keyword(kw: str) -> str:
     """
     Létrehoz egy regex mintát, ami engedi, hogy a kw karakterei között
     tetszőleges nem-alfanumerikus karakter(ek) legyenek (pl. szóköz, pont, vessző).
-    Példa: 'persely' -> r'\bp\W*e\W*r\W*s\W*e\W*l\W*y\b'
+    Példa: 'persely' -> r'\bp\\W*e\\W*r\\W*s\\W*e\\W*l\\W*y\b'
     """
-    # escape a keyword minden karakterét, majd illesszünk közé \W* mintát
+    # escape a keyword minden karakterét, majd illesszünk közé \\W* mintát
     parts = [re.escape(ch) for ch in kw]
     body = r"\W*".join(parts)
     # word boundary a széleken
@@ -492,15 +503,15 @@ def _fuzzy_search_any(s: str, keywords: List[str]) -> str | None:
 
 
 # új classify függvény
-def classify_internal_transfer(description: str, tran_type: str, for_who: str, amount: float) -> str:
+def classify_internal_transfer(description: str, tran_type: str, transaction_direction: str, for_who: str, amount: float) -> str:
     """
     Robosztusabb bedlső-átutalás osztályozás:
       - először explicit kulcsszavakat keresünk (kifiz, befiz, kerek)
       - utána fuzzy keresést futtatunk a JAR_KEYWORDS-en (szóköz/írásjel-tűrés)
-      - fallbackként a tran_type alapján döntünk ('income'/'bejövő' -> jar_in, 'outgoing'/'kimenő' -> jar_out)
+      - fallbackként a transaction_direction / tran_type alapján döntünk
     """
     # összeállítjuk a vizsgálandó szöveget
-    s = " ".join([description or "", tran_type or "", for_who or ""])
+    s = " ".join([description or "", tran_type or "", transaction_direction or "", for_who or ""])
     s_norm = _normalize_text(s)
 
     # 1) Explicit irány meghatározás, ha a leírásban ott van a 'kifiz' vagy 'befiz'
@@ -520,29 +531,24 @@ def classify_internal_transfer(description: str, tran_type: str, for_who: str, a
     jar_kw_list = [kw for kw in JAR_KEYWORDS]  # eredeti kulcsszavak
     found = _fuzzy_search_any(s_norm, jar_kw_list)
     if found:
-        # tran_type normalizálása (pl. 'Bejövő' -> 'bejovo' stb.)
+        dnorm = _normalize_text(transaction_direction or "")
         tnorm = _normalize_text(tran_type or "")
-        if any(k in tnorm for k in ["bejov", "income", "in", "azon", "befiz"]):
+        # Persely semantics:
+        # - Kimenő from the main account means money is going INTO the jar -> jar_in
+        # - Bejövő to the main account means money is coming OUT of the jar -> jar_out
+        if "kimen" in dnorm or "perselybe" in tnorm or "atvezetesperselybe" in tnorm:
             return "jar_in"
-        if any(k in tnorm for k in ["kimen", "out", "ki", "kolt"]):
+        if "bejov" in dnorm or "perselybol" in tnorm or "perselyből" in tnorm:
             return "jar_out"
-        # ha tran_type nem segít, próbáljuk a 'for_who' mezőt
+        # ha direction/tran_type nem segít, próbáljuk a partner nevét
         fnorm = _normalize_text(for_who or "")
-        if any(k in fnorm for k in ["befiz", "bejov", "jar", "persely"]):
+        if "persely" in fnorm:
             return "jar_in"
         if any(k in fnorm for k in ["kifiz", "kivet", "kifizes"]):
             return "jar_out"
-        # végső fallback: ha semmi nincs, jar_out lehet gyakoribb (de te döntesz)
-        return "jar_out"
+        return "none"
 
-    # 4) se kerek, se jar kulcsszó — fallback tran_type alapján
-    tnorm = _normalize_text(tran_type or "")
-    if any(k in tnorm for k in ["bejov", "income", "in"]):
-        return "jar_in"
-    if any(k in tnorm for k in ["kimen", "out", "ki"]):
-        return "jar_out"
-
-    # 5) teljes fallback: none (nem belső)
+    # 4) se kerek, se jar kulcsszó — nem belső átvezetés
     return "none"
 
 
@@ -637,24 +643,25 @@ def transform_excel_row(row: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Kisebb normalizáció: néha a kulcsoknak nincs ékezetük vagy más a név,
     # itt egyszerű megközelítéssel több variánst is ellenőrzünk.
-    def get_field(possible_keys, default=""):
+    def get_field(possible_keys: List[str], default: str = "") -> str:
         for k in possible_keys:
             if k in row:
-                return row.get(k)
+                return cast(str, str(row.get(k) or default))
         # próbáljuk meg a kisbetűsített kulcsot is
         for k in list(row.keys()):
             if isinstance(k, str) and k.strip().lower() in [pk.lower() for pk in possible_keys]:
-                return row.get(k)
-        return default
+                return cast(str, str(row.get(k) or default))
+        return cast(str, default)
 
     parsed_amount = _parse_amount(get_field(["Összeg"]))
     parsed_date = _parse_date(get_field(["Tranzakció dátuma"]))
-    description = get_field(["Közlemény"])
-    tran_type = get_field(["Típus"])
-    for_who = get_field(["Bejövő/Kimenő"])
-    category = get_field(["Költési kategória"])
+    description: str = cast(str, get_field(["Közlemény"]))
+    tran_type: str = cast(str, get_field(["Típus"]))
+    for_who: str = cast(str, get_field(["Partner neve"]))
+    transaction_direction: str = cast(str, get_field(["Bejövő/Kimenő"]))
+    category: str = cast(str, get_field(["Költési kategória"]))
 
-    internal = classify_internal_transfer(description, tran_type, for_who, parsed_amount)
+    internal = classify_internal_transfer(description, tran_type, transaction_direction, for_who, parsed_amount)
 
     return {
         "amount": parsed_amount,
@@ -662,6 +669,33 @@ def transform_excel_row(row: Dict[str, Any]) -> Dict[str, Any]:
         "date": parsed_date,
         "description": description,
         "for_who": for_who,
+        "transaction_direction": transaction_direction,
         "tran_type": tran_type,
         "internal_transfer": internal,
     }
+
+
+def _serialize_row_field_for_api(value: Any) -> Any:
+    if isinstance(value, dict) and any(key in value for key in ("for_who", "transaction_direction", "transfer_type", "Transfer type")):
+        return serialize_transaction_for_api(value)
+    return value
+
+
+def _serialize_mass_import_response_for_api(payload: Dict[str, Any]) -> Dict[str, Any]:
+    serialized = dict(payload)
+    serialized["skipped_duplicates"] = [
+        {
+            **item,
+            "row": _serialize_row_field_for_api(item.get("row")),
+        }
+        for item in payload.get("skipped_duplicates", [])
+    ]
+    serialized["errors"] = [
+        {
+            **item,
+            "row": _serialize_row_field_for_api(item.get("row")),
+        }
+        for item in payload.get("errors", [])
+    ]
+    return serialized
+

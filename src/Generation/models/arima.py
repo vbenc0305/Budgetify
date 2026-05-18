@@ -6,6 +6,7 @@ ARIMA and SARIMAX model fitting and forecasting.
 
 import numpy as np
 import pandas as pd
+import warnings
 from typing import Optional, Tuple
 
 from statsmodels.tsa.arima.model import ARIMA
@@ -15,7 +16,7 @@ from src.Generation.config import (
     ARIMA_ORDER, SEASONAL_ORDER, CI_ALPHA,
     FORECAST_STEPS
 )
-from src.Generation.utils import safe_expm1_arr
+from src.Generation.utils import ensure_monthly_freq, safe_expm1_arr
 
 
 def fit_and_forecast_arima(
@@ -38,7 +39,9 @@ def fit_and_forecast_arima(
     Returns:
         Tuple of (fitted_model, forecast_mean, confidence_interval)
     """
-    s = series.copy().astype(float)
+    s = ensure_monthly_freq(series.copy().astype(float))
+    if s is None:
+        return None, None, None
     apply_log = bool(use_log)
 
     if apply_log:
@@ -52,9 +55,11 @@ def fit_and_forecast_arima(
         s_t = s
 
     try:
-        model = ARIMA(s_t, order=order)
-        fit = model.fit()
-        fc = fit.get_forecast(steps=steps)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            model = ARIMA(s_t, order=order)
+            fit = model.fit()
+            fc = fit.get_forecast(steps=steps)
         mean_fc = fc.predicted_mean
         ci = fc.conf_int(alpha=CI_ALPHA)
 
@@ -120,7 +125,9 @@ def fit_and_forecast_sarimax(
     Returns:
         Tuple of (fitted_model, forecast_mean, confidence_interval)
     """
-    s = series.copy().astype(float)
+    s = ensure_monthly_freq(series.copy().astype(float))
+    if s is None:
+        return None, None, None
     transform = False
 
     if use_log:
@@ -138,10 +145,12 @@ def fit_and_forecast_sarimax(
             # coerce exog to numeric, drop non-numeric columns
             exog_train = exog_train.apply(pd.to_numeric, errors='coerce').ffill().fillna(0.0).values
 
-        model = SARIMAX(s, order=order, seasonal_order=seasonal_order,
-                        exog=exog_train, enforce_stationarity=False,
-                        enforce_invertibility=False)
-        fit = model.fit(disp=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            model = SARIMAX(s, order=order, seasonal_order=seasonal_order,
+                            exog=exog_train, enforce_stationarity=False,
+                            enforce_invertibility=False)
+            fit = model.fit(disp=False)
 
         # exog_forecast: DataFrame indexed by future months
         if exog_forecast is not None:
@@ -149,9 +158,13 @@ def fit_and_forecast_sarimax(
                 pd.date_range(start=s.index[-1] + pd.offsets.MonthEnd(1),
                              periods=steps, freq="ME"))
             exog_fc = exog_fc.apply(pd.to_numeric, errors='coerce').ffill().fillna(0.0).values
-            fc = fit.get_forecast(steps=steps, exog=exog_fc)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                fc = fit.get_forecast(steps=steps, exog=exog_fc)
         else:
-            fc = fit.get_forecast(steps=steps)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                fc = fit.get_forecast(steps=steps)
 
         mean = fc.predicted_mean
         ci = fc.conf_int(alpha=CI_ALPHA)

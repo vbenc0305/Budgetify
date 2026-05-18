@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 import pandas as pd
 import numpy as np
@@ -64,7 +64,7 @@ def add_salary_related_features(
 
     return df
 
-def clip_outliers_zscore(df: pd.DataFrame, columns: list = None, threshold: float = 3.0,
+def clip_outliers_zscore(df: pd.DataFrame, columns: Optional[list] = None, threshold: float = 3.0,
                          exclude: Optional[list] = None) -> pd.DataFrame:
     exclude = set(exclude or [])
     if columns is None:
@@ -135,6 +135,27 @@ def build_monthly_panel_from_tx(df: pd.DataFrame, uid_local: Optional[str] = Non
     # biztosítsuk a year/month oszlopokat (ha engineer_all_features generálta, ok)
     df['year'] = df[date_col].dt.year
     df['month'] = df[date_col].dt.month
+    df['day'] = df[date_col].dt.day
+    df['days_in_month'] = df[date_col].dt.days_in_month
+    df['tx_day'] = df[date_col].dt.normalize()
+    df['is_payday_window'] = ((df['day'] <= 5) | (df['day'] >= 25)).astype(int)
+    df['is_month_boundary'] = ((df['day'] <= 3) | (df['days_in_month'] - df['day'] <= 2)).astype(int)
+    df['is_weekend_num'] = pd.to_numeric(df.get('is_weekend', 0), errors='coerce').fillna(0.0)
+
+    gap_days = (
+        df.sort_values([uid_col, date_col])
+        .groupby([uid_col, 'year', 'month'])[date_col]
+        .diff()
+        .dt.total_seconds()
+        .div(86400.0)
+    )
+    df['gap_days'] = gap_days.fillna(0.0)
+    amount_abs = pd.to_numeric(df[amount_col], errors='coerce').fillna(0.0).abs()
+    user_month_keys = [uid_col, 'year', 'month']
+    monthly_amount_mean = amount_abs.groupby([df[k] for k in user_month_keys]).transform('mean')
+    amount_q75 = amount_abs.groupby([df[k] for k in user_month_keys]).transform(lambda s: s.quantile(0.75))
+    df['is_large_tx'] = (amount_abs >= amount_q75.fillna(monthly_amount_mean)).astype(int)
+
     # alap aggregációk per user-month
     agg = df.groupby([uid_col, 'year', 'month']).agg(
         y_sum=(amount_col, 'sum'),
@@ -142,7 +163,39 @@ def build_monthly_panel_from_tx(df: pd.DataFrame, uid_local: Optional[str] = Non
         y_count=(amount_col, 'count'),
         y_max=(amount_col, 'max'),
         y_min=(amount_col, 'min'),
+        amount_std=(amount_col, 'std'),
+        active_days=('tx_day', 'nunique'),
+        payday_spend_share=('is_payday_window', 'mean'),
+        boundary_spend_share=('is_month_boundary', 'mean'),
+        weekend_tx_share=('is_weekend_num', 'mean'),
+        avg_gap_days=('gap_days', 'mean'),
+        gap_days_std=('gap_days', 'std'),
+        large_tx_share=('is_large_tx', 'mean'),
     ).reset_index()
+
+    weekday_entropy = (
+        df.groupby([uid_col, 'year', 'month', 'day_of_week'])
+        .size()
+        .rename('cnt')
+        .reset_index()
+    )
+    if not weekday_entropy.empty:
+        weekday_entropy['p'] = weekday_entropy.groupby([uid_col, 'year', 'month'])['cnt'].transform(
+            lambda s: s / max(float(s.sum()), 1.0)
+        )
+        weekday_entropy['entropy_component'] = -weekday_entropy['p'] * np.log(weekday_entropy['p'].clip(lower=1e-9))
+        weekday_entropy = weekday_entropy.groupby([uid_col, 'year', 'month'])['entropy_component'].sum().reset_index()
+        weekday_entropy = weekday_entropy.rename(columns={'entropy_component': 'weekday_entropy'})
+        agg = agg.merge(weekday_entropy, on=[uid_col, 'year', 'month'], how='left')
+
+    agg['days_in_month'] = pd.to_datetime(agg[['year', 'month']].assign(day=1)).dt.days_in_month
+    agg['transaction_density'] = agg['y_count'] / agg['days_in_month'].clip(lower=1)
+    agg['active_day_ratio'] = agg['active_days'] / agg['days_in_month'].clip(lower=1)
+    agg['avg_ticket_size'] = agg['y_sum'] / agg['y_count'].clip(lower=1)
+    agg['intramonth_volatility'] = agg['amount_std'].fillna(0.0) / (agg['avg_ticket_size'].abs() + 1.0)
+    agg['gap_days_std'] = agg['gap_days_std'].fillna(0.0)
+    agg['amount_std'] = agg['amount_std'].fillna(0.0)
+    agg['weekday_entropy'] = agg.get('weekday_entropy', 0.0)
 
     # kiegészítő jellemzők, ha elérhetők a raw trxn-ben
     # pl. user_avg_monthly_expense, user_transaction_count_month már lehet engineered mező
@@ -240,7 +293,7 @@ def fit_and_forecast_time_regression_with_exog(series: pd.Series, exog_df: pd.Da
         X = df[feat_cols].values
         y = df['y'].values
 
-        reg = Ridge(alpha=alpha, fit_intercept=True, random_state=42).fit(X, y)
+        reg = cast(Ridge, Ridge(alpha=alpha, fit_intercept=True, random_state=42).fit(X, y))
 
         # forecasting iteratív módon
         last_vals = list(series.values[-used_lags:])
@@ -279,7 +332,11 @@ def make_exog_forecast_from_last_known(exog_shifted: pd.DataFrame, steps: int = 
 
     # regenerate deterministic time-based cols if present
     if 'month_sin' in exog_shifted.columns or 'month_cos' in exog_shifted.columns or 'month' in exog_shifted.columns:
-        months = future_idx.month
+        future_idx_series = pd.Series(future_idx, index=future_idx)
+        months = future_idx_series.dt.month.to_numpy()
+        day_vals = future_idx_series.dt.day.to_numpy()
+        days_in_month = future_idx_series.dt.days_in_month.to_numpy()
+        is_month_end = future_idx_series.dt.is_month_end.to_numpy()
         if 'month_sin' in fut.columns:
             fut['month_sin'] = np.sin(2 * np.pi * (months - 1) / 12.0)
         if 'month_cos' in fut.columns:
@@ -289,9 +346,9 @@ def make_exog_forecast_from_last_known(exog_shifted: pd.DataFrame, steps: int = 
 
     # boolean deterministics
     if 'is_start_of_month' in fut.columns:
-        fut['is_start_of_month'] = (future_idx.day <= 5).astype(int)
+        fut['is_start_of_month'] = (day_vals <= 5).astype(int)
     if 'is_end_of_month' in fut.columns:
-        fut['is_end_of_month'] = ((future_idx.is_month_end) | ((future_idx.days_in_month - future_idx.day) <= 5)).astype(int)
+        fut['is_end_of_month'] = (is_month_end | ((days_in_month - day_vals) <= 5)).astype(int)
 
     # ffill többi mezőt a legutolsó ismert értékkel
     # take last known row and coerce numeric values

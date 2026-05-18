@@ -1,4 +1,6 @@
 """transcationController.py"""
+from typing import Optional
+
 from src.models.transactions import Transaction
 from src.DAO.DAOimpl import FirebaseDAO
 
@@ -18,7 +20,7 @@ class TransactionController:
         self.user_id = user_id
         self.dao = FirebaseDAO("transactions")
 
-    def create_transaction(self, amount: float, category: str, date: str, description: str,tran_type:str,userid:str,for_who:str) -> bool:
+    def create_transaction(self, amount: float, category: str, date: str, description: str, tran_type: str, userid: str, for_who: str, transaction_direction: str) -> bool:
         """
         Létrehoz egy új tranzakciót.
 
@@ -34,11 +36,21 @@ class TransactionController:
             :param category: Tranzakcio kategoriaja
             :param amount: Tranzakcio mennyisége
             :param description: a tranzakcio leirasa
-            :param for_who: Kinek szol a tranzakcio
+            :param for_who: A partner neve
+            :param transaction_direction: A tranzakcio iranya (Bejövő/Kimenő)
             :param userid: melyik felh-hoz tartozik a tranzakcio
             :param tran_type: Milyen tipusu a tranzakcio
         """
-        transaction = Transaction( amount, category, date, description,tran_type, for_who, userid)
+        transaction = Transaction(
+            amount=amount,
+            category=category,
+            date=date,
+            description=description,
+            for_who=for_who,
+            transaction_direction=transaction_direction,
+            tran_type=tran_type,
+            user_id=userid,
+        )
         success = self.dao.create(transaction.to_dict())
         return success
 
@@ -74,8 +86,8 @@ class TransactionController:
         else:
             raise ValueError(f"A tranzakció nem található a következő azonosítóval: {transaction_id}")
 
-    def update_transaction(self, transaction_id: str, amount: float = None, category: str = None,
-                           date: str = None, description: str = None) -> bool:
+    def update_transaction(self, transaction_id: str, amount: Optional[float] = None, category: Optional[str] = None,
+                           date: Optional[str] = None, description: Optional[str] = None) -> bool:
         """
         Frissíti a tranzakciót a megadott paraméterek alapján.
 
