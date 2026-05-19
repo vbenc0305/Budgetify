@@ -51,9 +51,6 @@ export default function Home() {
       <h1 className="home-title">
         Üdv a Budgetify-ban, {usrInfo?.name || usrInfo?.email || "Felhasználó"}!
       </h1>
-      <p className="home-paragraph">
-        Itt ténylegesen megjelenik a Home tartalom.
-      </p>
     </div>
   );
 }

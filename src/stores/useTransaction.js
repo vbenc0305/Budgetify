@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { getAuth } from "firebase/auth";
+import { normalizeTransactionCollection } from "../utils/transactionType";
 
 const hasTokenMethod = (candidate) =>
   !!candidate && typeof candidate.getIdToken === "function";
@@ -83,8 +84,13 @@ export const useTransaction = create(
           }
 
           const data = await response.json();
-          set({ transactions: data, fetched: true, loading: false });
-          console.log("✅ fetchTransactions sikeres", data);
+          const normalizedTransactions = normalizeTransactionCollection(data);
+          set({
+            transactions: normalizedTransactions,
+            fetched: true,
+            loading: false,
+          });
+          console.log("✅ fetchTransactions sikeres", normalizedTransactions);
         } catch (err) {
           set({
             error: err.message || "Hiba a tranzakciók lekérésekor",
@@ -128,16 +134,16 @@ export const useTransaction = create(
 
           const result = await response.json();
 
+          const importedTransactions = normalizeTransactionCollection(
+            result?.imported_transactions,
+          );
+
           if (
             result &&
-            Array.isArray(result.imported_transactions) &&
-            result.imported_transactions.length > 0
+            importedTransactions.length > 0
           ) {
             set((state) => ({
-              transactions: [
-                ...state.transactions,
-                ...result.imported_transactions,
-              ],
+              transactions: [...state.transactions, ...importedTransactions],
             }));
           }
 

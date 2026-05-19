@@ -1,0 +1,24 @@
+export const HUNGARIAN_COUNTIES = [
+  "Bács-Kiskun",
+  "Baranya",
+  "Békés",
+  "Borsod-Abaúj-Zemplén",
+  "Budapest",
+  "Csongrád-Csanád",
+  "Fejér",
+  "Győr-Moson-Sopron",
+  "Hajdú-Bihar",
+  "Heves",
+  "Jász-Nagykun-Szolnok",
+  "Komárom-Esztergom",
+  "Nógrád",
+  "Pest",
+  "Somogy",
+  "Szabolcs-Szatmár-Bereg",
+  "Tolna",
+  "Vas",
+  "Veszprém",
+  "Zala",
+];
+
+

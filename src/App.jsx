@@ -11,13 +11,14 @@ import { useUser } from "./stores/useUser";
 import { useTransaction } from "./stores/useTransaction.js";
 import Transactions from "./pages/Transactions.jsx"; // <-- zustand store import
 import Statistics from "./pages/Statistics.jsx";
+import CountyInsights from "./pages/CountyInsights.jsx";
 import ToastContainer from "./components/ToastContainer";
 
 function App() {
-  window.useUser = useUser;
-  window.useTransaction = useTransaction;
-
   useEffect(() => {
+    window.useUser = useUser;
+    window.useTransaction = useTransaction;
+
     // egyszer csatoljuk az auth listener-t, és visszakapjuk az unsubscribe függvényt
     const unsubscribe = useUser.getState().initAuthListener();
     return () => {
@@ -38,6 +39,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/predict" element={<Statistics />} />
+            <Route path="/county-insights" element={<CountyInsights />} />
           </Routes>
         </main>
       </AuthProvider>
