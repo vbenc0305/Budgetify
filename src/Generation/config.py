@@ -43,6 +43,15 @@ MAX_NORMALIZED_MSE: float = 1e3  # threshold for very unstable models
 FORECAST_SCALE_FACTOR: float = 10.0  # max allowed forecast / max historical value
 MAX_OUTPUT_CAP: float = 1e7  # absolute max forecast value
 BASELINE_REL_IMPROVEMENT: float = 0.05  # require 5% improvement over seasonal naive
+SELECTION_CLOSE_MARGIN: float = 0.03  # treat close model scores as effectively tied
+SELECTION_SMOOTH_VOL_FLOOR: float = 0.78  # below this vol ratio the candidate is considered too smooth
+SELECTION_SHAPE_IMPROVEMENT: float = 0.05  # minimum shape-score gain to override a tied winner
+
+# --- ETS seasonal-signature adjustment ---
+ETS_SIGNATURE_MIN_POINTS: int = 18
+ETS_SIGNATURE_MIN_LAG12_AUTOCORR: float = 0.18
+ETS_SIGNATURE_MAX_REL_ADJ: float = 0.18
+ETS_SIGNATURE_DECAY: float = 0.97
 
 # --- Ridge regression configuration ---
 RIDGE_ALPHA: float = 0.8

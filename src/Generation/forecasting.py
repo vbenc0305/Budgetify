@@ -15,6 +15,7 @@ from src.Generation.config import (
     SHORT_SERIES_COMPLEX_MODEL_MIN_POINTS, SARIMAX_EXOG_MIN_POINTS,
     DEFAULT_LAG_ORDER, SHORT_SERIES_MAX_AUTOREG_LAGS, ETS_MIN_POINTS,
     BEHAVIORAL_MAX_LAGS, BEHAVIORAL_VARIANCE_TOLERANCE,
+    SELECTION_CLOSE_MARGIN, SELECTION_SMOOTH_VOL_FLOOR, SELECTION_SHAPE_IMPROVEMENT,
 )
 from src.Generation.utils import winsorize_series, inspect_series, is_flat, ensure_monthly_freq
 from src.Generation.validation import (
@@ -365,6 +366,18 @@ def run_short_series_pipeline(
             + 0.05 * spike_penalty
         )
 
+    def _shape_score(candidate: dict[str, Any]) -> float:
+        turn_score = _as_opt_float(candidate.get("turn_score"))
+        spike_recall = _as_opt_float(candidate.get("spike_recall"))
+        vol_ratio = _as_opt_float(candidate.get("vol_ratio"))
+        turn_penalty = 1.0 - turn_score if turn_score is not None else 0.45
+        spike_penalty = 1.0 - spike_recall if spike_recall is not None else 0.45
+        if vol_ratio is None or not np.isfinite(vol_ratio) or vol_ratio <= 0:
+            vol_penalty = 0.45
+        else:
+            vol_penalty = max(0.0, abs(vol_ratio - 1.0) - BEHAVIORAL_VARIANCE_TOLERANCE)
+        return float(0.45 * turn_penalty + 0.35 * vol_penalty + 0.20 * spike_penalty)
+
     def _regularize_short_forecast(
         base_name: str,
         ses_fc: Optional[pd.Series],
@@ -669,6 +682,45 @@ def run_short_series_pipeline(
                 selection_reason = "seasonality_tiebreak"
                 break
 
+    # If multiple candidates are effectively tied on the primary score, prefer
+    # the one that better preserves month-to-month shape instead of always
+    # collapsing to the smoothest trend line.
+    current_candidate = candidate_by_name.get(chosen)
+    if current_candidate is not None and np.isfinite(selected_score):
+        current_shape_score = _shape_score(current_candidate)
+        current_vol_ratio = _as_opt_float(current_candidate.get("vol_ratio"))
+        current_is_too_smooth = (
+            current_vol_ratio is not None
+            and np.isfinite(current_vol_ratio)
+            and current_vol_ratio < SELECTION_SMOOTH_VOL_FLOOR
+        )
+        close_alternatives = [
+            c for c in eligible_candidates
+            if c["name"] != chosen
+            and np.isfinite(c["selection_score"])
+            and c["selection_score"] <= selected_score * (1.0 + SELECTION_CLOSE_MARGIN)
+        ]
+        best_alternative = None
+        best_alternative_shape = float("inf")
+        for alt in close_alternatives:
+            alt_shape_score = _shape_score(alt)
+            alt_vol_ratio = _as_opt_float(alt.get("vol_ratio"))
+            alt_has_healthier_variance = (
+                alt_vol_ratio is not None
+                and np.isfinite(alt_vol_ratio)
+                and SELECTION_SMOOTH_VOL_FLOOR <= alt_vol_ratio <= 1.55
+            )
+            clearly_better_shape = alt_shape_score + SELECTION_SHAPE_IMPROVEMENT < current_shape_score
+            preferred_smoothness_fix = current_is_too_smooth and alt_has_healthier_variance and alt_shape_score <= current_shape_score + 0.02
+            if (clearly_better_shape or preferred_smoothness_fix) and alt_shape_score < best_alternative_shape:
+                best_alternative = alt
+                best_alternative_shape = alt_shape_score
+
+        if best_alternative is not None:
+            chosen = best_alternative["name"]
+            selected_score = best_alternative["selection_score"]
+            selection_reason = "shape_tiebreak"
+
     # Safety: check if chosen model's normalized MSE is unstable
     chosen_norm_mse = candidate_by_name.get(chosen, {}).get("norm_mse", float("inf"))
     if not np.isfinite(chosen_norm_mse) or chosen_norm_mse > MAX_NORMALIZED_MSE:
@@ -905,9 +957,11 @@ def run_short_series_pipeline(
         mean_forecast = mean_forecast.clip(lower=0.0)
         max_allowed = max(monthly_series_proc.max() * 20.0, MAX_OUTPUT_CAP)
         mean_forecast = mean_forecast.clip(upper=max_allowed)
-        if ci is not None:
-            ci["lower"] = ci["lower"].clip(lower=0.0)
-            ci["upper"] = ci["upper"].clip(upper=max_allowed)
+        ci_df = ci if isinstance(ci, pd.DataFrame) else None
+        if ci_df is not None:
+            ci_df["lower"] = ci_df["lower"].clip(lower=0.0)
+            ci_df["upper"] = ci_df["upper"].clip(upper=max_allowed)
+            ci = ci_df
     except Exception:
         pass
 
