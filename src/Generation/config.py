@@ -16,9 +16,10 @@ MIN_POINTS: int = 3  # minimum points for model fitting (conservative)
 ARIMA_ORDER: Tuple[int, int, int] = (1, 1, 1)
 ARIMA_SHORT_ORDER: Tuple[int, int, int] = (0, 1, 1)
 SEASONAL_ORDER: Tuple[int, int, int, int] = (1, 1, 1, 12)
-SEASONAL_MIN_POINTS: int = 24  # require at least 24 months for seasonal terms
-SHORT_SERIES_COMPLEX_MODEL_MIN_POINTS: int = 18
-SARIMAX_EXOG_MIN_POINTS: int = 24
+SEASONAL_MIN_POINTS: int = 10  # require at least 24 months for seasonal terms
+SHORT_SERIES_COMPLEX_MODEL_MIN_POINTS: int = 10
+SARIMAX_EXOG_MIN_POINTS: int = 10
+ETS_MIN_POINTS: int = 10
 
 # --- Feature engineering configuration ---
 LAGS_FOR_FEATURES: int = 3

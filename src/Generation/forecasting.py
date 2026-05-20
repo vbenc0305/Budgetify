@@ -13,17 +13,17 @@ from src.Generation.config import (
     MAX_NORMALIZED_MSE, FORECAST_SCALE_FACTOR, MAX_OUTPUT_CAP, BASELINE_REL_IMPROVEMENT,
     BACKTEST_MIN, BACKTEST_MAX, SEASONAL_MIN_POINTS,
     SHORT_SERIES_COMPLEX_MODEL_MIN_POINTS, SARIMAX_EXOG_MIN_POINTS,
-    DEFAULT_LAG_ORDER, SHORT_SERIES_MAX_AUTOREG_LAGS,
+    DEFAULT_LAG_ORDER, SHORT_SERIES_MAX_AUTOREG_LAGS, ETS_MIN_POINTS,
     BEHAVIORAL_MAX_LAGS, BEHAVIORAL_VARIANCE_TOLERANCE,
 )
 from src.Generation.utils import winsorize_series, inspect_series, is_flat, ensure_monthly_freq
 from src.Generation.validation import (
     walk_forward_1step, walk_forward_ses, walk_forward_holt, walk_forward_autoreg,
-    walk_forward_behavioral,
+    walk_forward_behavioral, walk_forward_ets,
 )
 from src.Generation.models import (
     fit_and_forecast_arima, fit_and_forecast_sarimax, fit_and_forecast_ses,
-    fit_and_forecast_holt, fit_and_forecast_autoreg, fit_and_forecast_behavioral_boosted,
+    fit_and_forecast_holt, fit_and_forecast_ets, fit_and_forecast_autoreg, fit_and_forecast_behavioral_boosted,
     fit_and_forecast_time_regression_boosted,
 )
 from src.Generation.visualization import plot_results, seasonal_naive
@@ -247,6 +247,23 @@ def run_short_series_pipeline(
     if verbose:
         print(f"Walk-forward (1-step) HOLT MSE: {mse_holt:.3f}")
 
+    # ETS WF
+    ets_eligible = n >= ETS_MIN_POINTS
+    if ets_eligible:
+        mse_ets, ets_preds = walk_forward_ets(monthly_series_proc, n_test=n_test)
+        ets_pred_arr = np.array(ets_preds, dtype=float) if ets_preds else np.array([])
+        mae_ets = _calc_mae(test_arr, ets_pred_arr)
+        smape_ets = _calc_smape(test_arr, ets_pred_arr)
+        if verbose and np.isfinite(mse_ets):
+            print(f"Walk-forward (1-step) ETS MSE: {mse_ets:.3f}")
+    else:
+        mse_ets, ets_preds = float("inf"), []
+        ets_pred_arr = np.array([])
+        mae_ets = None
+        smape_ets = None
+        if verbose:
+            print(f"Walk-forward (1-step) ETS skipped: minimum {ETS_MIN_POINTS} points required (n={n}).")
+
     # AutoReg WF
     if short_series_guard:
         mse_autoreg, ar_preds = float("inf"), []
@@ -288,6 +305,14 @@ def run_short_series_pipeline(
             "Walk-forward (1-step) BEHAVIORAL "
             f"MSE: {mse_behavioral:.3f}, turn={turning_behavioral}, vol_ratio={vol_ratio_behavioral}"
         )
+
+    # Prophet removed from the active pipeline because repeated refits made the
+    # end-to-end forecasting path too slow for production use.
+    prophet_eligible = False
+    mse_prophet, prophet_preds = float("inf"), []
+    prophet_pred_arr = np.array([])
+    mae_prophet = None
+    smape_prophet = None
 
     # --- Model selection: choose robust metric for sparse/skewed series ---
     zero_ratio = float((monthly_series_proc == 0).mean()) if n > 0 else 0.0
@@ -542,6 +567,17 @@ def run_short_series_pipeline(
             "eligible": True,
         },
         {
+            "name": "ets",
+            "mse": mse_ets,
+            "norm_mse": norm(mse_ets),
+            "smape": smape_ets,
+            "rw_mse": _calc_recency_weighted_mse(test_arr, ets_pred_arr),
+            "turn_score": _calc_turning_point_score(test_arr, ets_pred_arr),
+            "vol_ratio": _calc_volatility_ratio(test_arr, ets_pred_arr),
+            "spike_recall": _calc_spike_recall(test_arr, ets_pred_arr),
+            "eligible": ets_eligible,
+        },
+        {
             "name": "autoreg",
             "mse": mse_autoreg,
             "norm_mse": norm(mse_autoreg),
@@ -586,7 +622,8 @@ def run_short_series_pipeline(
     candidates_sorted = sorted(candidates, key=lambda x: x["selection_score"])
     candidate_by_name = {c["name"]: c for c in candidates_sorted}
     eligible_candidates = [c for c in candidates_sorted if c["eligible"]]
-    chosen = eligible_candidates[0]["name"] if eligible_candidates else "baseline"
+    # Fallback to minimal SES model if no eligible candidates (which shouldn't happen)
+    chosen = eligible_candidates[0]["name"] if eligible_candidates else "ses"
 
     # Detect mild annual seasonality signal for tie-breaks on longer monthly series.
     seasonal_strength = float("nan")
@@ -656,6 +693,7 @@ def run_short_series_pipeline(
         selected_score = candidate_by_name.get(chosen, {}).get("selection_score", float("inf"))
 
     # Baseline gating: only upgrade if chosen model beats seasonal-naive by a margin
+    # If not beating baseline, fall back to minimal SES model instead of baseline
     if np.isfinite(baseline_selection_score) and not short_series_guard:
         chosen_selection_score = candidate_by_name.get(chosen, {}).get("selection_score", selected_score)
         improvement_threshold = baseline_selection_score * (1.0 - BASELINE_REL_IMPROVEMENT)
@@ -663,10 +701,10 @@ def run_short_series_pipeline(
             if verbose:
                 print(
                     "⚠️ A választott modell nem veri a baseline-t elég erősen; "
-                    "baseline használata."
+                    "minimális SES modellre váltás."
                 )
-            chosen = "baseline"
-            selected_score = baseline_selection_score
+            chosen = "ses"
+            selected_score = candidate_by_name.get("ses", {}).get("selection_score", baseline_selection_score)
             selection_reason = "baseline_gate"
         else:
             selected_score = chosen_selection_score
@@ -716,6 +754,8 @@ def run_short_series_pipeline(
                     mean_forecast = reg_fc
                     ci = None
                     final_model_name = (reg_fc.name or "short_behavioral_holt")
+        elif model_name == "ets":
+            mean_forecast, ci = fit_and_forecast_ets(monthly_series_proc, steps=FORECAST_STEPS)
         elif model_name == "ses":
             mean_forecast, ci = fit_and_forecast_ses(monthly_series_proc, steps=FORECAST_STEPS)
             if short_series_guard and _FORCE_MODEL is None:
@@ -741,7 +781,6 @@ def run_short_series_pipeline(
                 _, mean_forecast, ci = fit_and_forecast_arima(
                     monthly_series_proc, order=arima_order,
                     steps=FORECAST_STEPS, use_log=False)
-
         return _forecast_is_sane(mean_forecast, monthly_series_proc,
                                 scale_factor=FORECAST_SCALE_FACTOR)
 
@@ -768,6 +807,8 @@ def run_short_series_pipeline(
                  exog=exog, exog_forecast=exog_forecast)),
             (_safe_mse(mse_holt), "holt",
              lambda: (None, *fit_and_forecast_holt(monthly_series_proc, steps=FORECAST_STEPS))),
+            (_safe_mse(mse_ets) if ets_eligible else float("inf"), "ets",
+             lambda: (None, *fit_and_forecast_ets(monthly_series_proc, steps=FORECAST_STEPS))),
             (_safe_mse(mse_ses), "ses",
              lambda: (None, *fit_and_forecast_ses(monthly_series_proc, steps=FORECAST_STEPS))),
             (_safe_mse(mse_autoreg) if not short_series_guard else float("inf"), "autoreg",
@@ -898,21 +939,27 @@ def run_short_series_pipeline(
         "wf_mse_arima": mse_arima,
         "wf_mse_ses": mse_ses,
         "wf_mse_holt": mse_holt,
+        "wf_mse_ets": mse_ets,
         "wf_mse_autoreg": mse_autoreg,
         "wf_mse_behavioral": mse_behavioral,
         "wf_mse_baseline": baseline_mse,
+        "wf_mse_prophet": mse_prophet,
         "wf_mae_arima": mae_arima,
         "wf_mae_ses": mae_ses,
         "wf_mae_holt": mae_holt,
+        "wf_mae_ets": mae_ets,
         "wf_mae_autoreg": mae_autoreg,
         "wf_mae_behavioral": mae_behavioral,
         "wf_mae_baseline": baseline_mae,
+        "wf_mae_prophet": mae_prophet,
         "wf_smape_arima": smape_arima,
         "wf_smape_ses": smape_ses,
         "wf_smape_holt": smape_holt,
+        "wf_smape_ets": smape_ets,
         "wf_smape_autoreg": smape_autoreg,
         "wf_smape_behavioral": smape_behavioral,
         "wf_smape_baseline": baseline_smape,
+        "wf_smape_prophet": smape_prophet,
         "wf_rw_mse_behavioral": rw_mse_behavioral,
         "wf_turning_score_behavioral": turning_behavioral,
         "wf_volatility_ratio_behavioral": vol_ratio_behavioral,
@@ -927,6 +974,8 @@ def run_short_series_pipeline(
         "seasonal_order_used": list(seasonal_order),
         "autoreg_lags_used": int(autoreg_lags),
         "sarimax_exog_used": bool(can_use_exog and (final_model_name == "arima" or "sarimax" in final_model_name)),
+        "prophet_eligible": bool(prophet_eligible),
+        "ets_eligible": bool(ets_eligible),
         "blend_component": None,
         "blend_baseline_weight": None,
         "seasonal_strength_lag12": seasonal_strength if np.isfinite(seasonal_strength) else None,

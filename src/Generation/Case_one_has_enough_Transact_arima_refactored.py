@@ -12,7 +12,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from src.Generation.config import UID_BASE, OUT_PATH, FORECAST_STEPS
+from src.Generation.config import UID_BASE, OUT_PATH
 from src.Generation.data_preparation import prepare_transaction_data
 from src.Generation.forecasting import run_short_series_pipeline
 
@@ -133,6 +133,8 @@ class ForecastPipeline:
         fc_series, fc_ci, metrics = run_short_series_pipeline(
             monthly_series, exog=exog, exog_forecast=exog_forecast,
             plot=plot, verbose=verbose)
+
+
 
         # Step 3: Prepare output
         history_list = self._series_to_date_value_list(monthly_series)

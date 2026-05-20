@@ -38,6 +38,37 @@ BEHAVIORAL_MODEL_NAME = "behavioral_quantile_boost"
 BehavioralTrainingData = Tuple[pd.DataFrame, list[str], np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 
+def _exclude_partial_last_month(series: pd.Series) -> Tuple[pd.Series, bool]:
+    if len(series) < 6:
+        return series, False
+
+    try:
+        last_idx = pd.Timestamp(series.index[-1])
+        today = pd.Timestamp.today()
+    except Exception:
+        return series, False
+
+    # Guard against dropping true historical month-end values.
+    if last_idx.to_period("M") != today.to_period("M"):
+        return series, False
+
+    prev_window = series.iloc[-5:-1].astype(float)
+    if prev_window.empty:
+        return series, False
+
+    last_val = float(series.iloc[-1])
+    prev_mean = float(prev_window.mean())
+    prev_median = float(prev_window.median())
+    is_partial = (
+        last_val < 0.65 * max(prev_mean, 1.0)
+        and last_val < 0.72 * max(prev_median, 1.0)
+    )
+    if not is_partial or len(series) <= 4:
+        return series, False
+
+    return series.iloc[:-1].copy(), True
+
+
 def _coerce_exog(
     series: pd.Series,
     exog: Optional[pd.DataFrame],
@@ -416,16 +447,21 @@ def fit_and_forecast_behavioral_boosted(
         if series_norm is None:
             return None, None, None
         series = series_norm.astype(float)
-        n = len(series)
+        study_series, partial_last_month_excluded = _exclude_partial_last_month(series)
+        if len(study_series) < 4:
+            study_series = series
+            partial_last_month_excluded = False
+
+        n = len(study_series)
         if n < 4:
             return None, None, None
 
         used_lags = _choose_lags(n, lags)
-        exog_hist, exog_future = _coerce_exog(series, exog, steps=steps, exog_forecast=exog_forecast)
-        train_df, feat_cols, X, y, delta_y, weights = _prepare_training_data(series, used_lags, exog_hist)
+        exog_hist, exog_future = _coerce_exog(study_series, exog, steps=steps, exog_forecast=exog_forecast)
+        train_df, feat_cols, X, y, delta_y, weights = _prepare_training_data(study_series, used_lags, exog_hist)
         models = _fit_models(X, y, delta_y, weights)
 
-        history = series.copy()
+        history = study_series.copy()
         preds: list[float] = []
         lowers: list[float] = []
         uppers: list[float] = []
@@ -463,12 +499,12 @@ def fit_and_forecast_behavioral_boosted(
             if history_norm is not None:
                 history = history_norm
 
-        idx = pd.date_range(start=series.index[-1] + pd.offsets.MonthEnd(1), periods=steps, freq="ME")
+        idx = pd.date_range(start=study_series.index[-1] + pd.offsets.MonthEnd(1), periods=steps, freq="ME")
         forecast = pd.Series(preds, index=idx, name=f"{BEHAVIORAL_MODEL_NAME}_forecast").clip(lower=0.0)
         ci = pd.DataFrame({"lower": lowers, "upper": uppers}, index=idx)
         ci["lower"] = ci["lower"].clip(lower=0.0)
         ci["upper"] = np.maximum(ci["upper"], ci["lower"])
-        forecast, ci = _enforce_behavioral_variability(series, forecast, ci)
+        forecast, ci = _enforce_behavioral_variability(study_series, forecast, ci)
 
         model_info: Dict[str, Any] = {
             "name": BEHAVIORAL_MODEL_NAME,
@@ -476,6 +512,8 @@ def fit_and_forecast_behavioral_boosted(
             "feature_columns": feat_cols,
             "training_rows": int(len(train_df)),
             "exog_columns": [c.replace("exog_", "", 1) for c in exog_cols],
+            "partial_last_month_excluded": bool(partial_last_month_excluded),
+            "study_points": int(len(study_series)),
         }
         return model_info, forecast, ci
 

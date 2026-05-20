@@ -1,2 +1,5 @@
-from .profile import router
-from .transactions import router
+"""Live FastAPI route modules."""
+
+from . import profile, stats, transactions
+
+__all__ = ["profile", "stats", "transactions"]

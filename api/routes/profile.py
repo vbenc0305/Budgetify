@@ -21,7 +21,6 @@ class ProfileUpdateRequest(BaseModel):
             raise ValueError("anonymous_stats_consent cannot be null")
         return data
 
-
 class ProfileResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
     anonymous_stats_consent: bool = False
@@ -53,7 +52,6 @@ async def update_profile(update_data: ProfileUpdateRequest = Body(...), uid: str
         logger.error(f"Firebase unavailable in update_profile: {e}")
         raise HTTPException(status_code=503, detail=str(e))
 
-
 @router.put("/usr_info/{id}")
 async def update_usr_info(id: str, update_data: dict = Body(...), uid: str = Depends(get_current_user_uid)):
     try:
@@ -68,7 +66,6 @@ async def update_usr_info(id: str, update_data: dict = Body(...), uid: str = Dep
     except FirebaseUnavailable as e:
         logger.error(f"Firebase unavailable in update_usr_info: {e}")
         raise HTTPException(status_code=503, detail=str(e))
-
 
 @router.delete("/usr_info/{id}")
 async def delete_usr_info(id: str, uid: str = Depends(get_current_user_uid)):

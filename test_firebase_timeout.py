@@ -16,16 +16,17 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def test_firebase_timeout():
-    """Test that Firebase init times out quickly."""
+def _check_firebase_timeout() -> bool:
+    """Return whether Firebase init times out quickly enough."""
     logger.info("=" * 60)
     logger.info("Testing Firebase timeout behavior")
     logger.info("=" * 60)
 
+    from db import firebase_client
+
     start = time.time()
 
     try:
-        from db import firebase_client
         logger.info("Attempting to get Firebase client...")
 
         client = firebase_client.get_db_client()
@@ -50,8 +51,8 @@ def test_firebase_timeout():
         logger.error(f"❌ Unexpected error after {elapsed:.2f}s: {e}", exc_info=True)
         return False
 
-def test_quota_backoff():
-    """Test that subsequent calls after quota exceeded return immediately."""
+def _check_quota_backoff() -> bool:
+    """Return whether subsequent calls after quota exceeded fail fast."""
     logger.info("\n" + "=" * 60)
     logger.info("Testing quota backoff behavior")
     logger.info("=" * 60)
@@ -83,8 +84,8 @@ def test_quota_backoff():
             logger.warning(f"⚠️  Took {elapsed:.2f}s during backoff (expected < 0.1s)")
             return elapsed < 1.0  # Still pass if < 1s
 
-def test_fallback_data():
-    """Test that fallback dataset is accessible."""
+def _check_fallback_data() -> bool:
+    """Return whether fallback dataset is accessible."""
     logger.info("\n" + "=" * 60)
     logger.info("Testing fallback dataset")
     logger.info("=" * 60)
@@ -107,13 +108,28 @@ def test_fallback_data():
         logger.error(f"❌ FAIL: Error loading fallback data: {e}", exc_info=True)
         return False
 
+
+def test_firebase_timeout():
+    """Test that Firebase init times out quickly."""
+    assert _check_firebase_timeout()
+
+
+def test_quota_backoff():
+    """Test that subsequent calls after quota exceeded return immediately."""
+    assert _check_quota_backoff()
+
+
+def test_fallback_data():
+    """Test that fallback dataset is accessible."""
+    assert _check_fallback_data()
+
 if __name__ == "__main__":
     results = []
 
     # Run tests
-    results.append(("Firebase Timeout", test_firebase_timeout()))
-    results.append(("Quota Backoff", test_quota_backoff()))
-    results.append(("Fallback Data", test_fallback_data()))
+    results.append(("Firebase Timeout", _check_firebase_timeout()))
+    results.append(("Quota Backoff", _check_quota_backoff()))
+    results.append(("Fallback Data", _check_fallback_data()))
 
     # Summary
     logger.info("\n" + "=" * 60)

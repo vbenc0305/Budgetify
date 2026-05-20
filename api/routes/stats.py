@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 import logging
 
-from api.dependencies import get_current_user_uid
 from api.transaction_payloads import serialize_transactions_for_api
 from db import firebase_client
 from db.firebase_client import FirebaseUnavailable
@@ -15,7 +14,6 @@ router = APIRouter()
 @router.get("/stats/counties/{county}/categories")
 async def get_county_transactions(
     county: str,
-    uid: str = Depends(get_current_user_uid),
 ):
     """Return transactions for all users whose county matches the path parameter."""
     if not (county or "").strip():

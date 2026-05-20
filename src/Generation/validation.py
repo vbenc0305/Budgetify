@@ -5,7 +5,6 @@ Walk-forward cross-validation and model evaluation.
 """
 
 import pandas as pd
-import numpy as np
 import warnings
 from typing import List, Tuple
 
@@ -14,7 +13,11 @@ from statsmodels.tsa.holtwinters import SimpleExpSmoothing, Holt
 from sklearn.metrics import mean_squared_error, r2_score
 
 from src.Generation.config import ARIMA_ORDER, MAX_TEST_SIZE
-from src.Generation.models import fit_and_forecast_autoreg, fit_and_forecast_behavioral_boosted
+from src.Generation.models import (
+    fit_and_forecast_autoreg,
+    fit_and_forecast_behavioral_boosted,
+    fit_and_forecast_ets,
+)
 from src.Generation.utils import ensure_monthly_freq
 
 
@@ -132,6 +135,43 @@ def walk_forward_holt(
     return mse, holt_preds
 
 
+def walk_forward_ets(
+    series: pd.Series,
+    n_test: int = MAX_TEST_SIZE,
+) -> Tuple[float, List[float]]:
+    """
+    Walk-forward validation for ETS (ExponentialSmoothing).
+    """
+    try:
+        if n_test >= len(series):
+            raise ValueError("n_test tul nagy a sorozathoz.")
+
+        history = ensure_monthly_freq(series.iloc[:-n_test].copy())
+        if history is None:
+            return float("inf"), []
+        test = series.iloc[-n_test:].tolist()
+        preds: List[float] = []
+
+        for t in range(len(test)):
+            try:
+                pred_series, _ = fit_and_forecast_ets(history, steps=1)
+                if pred_series is None or len(pred_series) == 0:
+                    raise ValueError("ETS forecast unavailable")
+                yhat = float(pred_series.iloc[0])
+            except Exception:
+                yhat = float(history.iloc[-1])
+
+            preds.append(yhat)
+            next_idx = history.index[-1] + pd.offsets.MonthEnd(1)
+            history = pd.concat([history, pd.Series([test[t]], index=[next_idx])])
+            history = ensure_monthly_freq(history)
+
+        mse = mean_squared_error(test, preds)
+        return mse, preds
+    except Exception:
+        return float("inf"), []
+
+
 def walk_forward_autoreg(
     series: pd.Series,
     n_test: int = MAX_TEST_SIZE,
@@ -230,5 +270,4 @@ def walk_forward_behavioral(
         return mse, preds
     except Exception:
         return float("inf"), []
-
 

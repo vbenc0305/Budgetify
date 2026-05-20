@@ -2,7 +2,7 @@ import os
 import logging
 import uvicorn
 from fastapi import FastAPI
-from api.routes import router, profile, transactions, stats
+from api.routes import profile, transactions, stats
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Request
 from fastapi.responses import JSONResponse
