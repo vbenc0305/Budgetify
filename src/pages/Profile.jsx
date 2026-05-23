@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { updatePassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../stores/useUser";
@@ -30,6 +30,21 @@ const INITIAL_PASSWORD_FORM = {
   confirmNewPassword: "",
 };
 
+const createProfileFormData = (usrInfo) => ({
+  name: usrInfo?.name || "",
+  email: usrInfo?.email || "",
+  phone: usrInfo?.phone || "",
+  birthdate: usrInfo?.birthdate || "",
+  age: usrInfo?.age || "",
+  country: usrInfo?.country || "",
+  education: usrInfo?.education || "",
+  gender: usrInfo?.gender || "",
+  housing_status: usrInfo?.housing_status || "",
+  marital_status: usrInfo?.marital_status || "",
+  occupation: usrInfo?.occupation || "",
+  analytics_consent: Boolean(usrInfo?.analytics_consent),
+});
+
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -60,20 +75,8 @@ export default function ProfilePage() {
   // Initialize form data from usrInfo
   useEffect(() => {
     if (usrInfo) {
-      setFormData({
-        name: usrInfo.name || "",
-        email: usrInfo.email || "",
-        phone: usrInfo.phone || "",
-        birthdate: usrInfo.birthdate || "",
-        age: usrInfo.age || "",
-        country: usrInfo.country || "",
-        education: usrInfo.education || "",
-        gender: usrInfo.gender || "",
-        housing_status: usrInfo.housing_status || "",
-        marital_status: usrInfo.marital_status || "",
-        occupation: usrInfo.occupation || "",
-        analytics_consent: Boolean(usrInfo.analytics_consent),
-      });
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- preserve the existing store-to-form hydration semantics during profile loading.
+      setFormData(createProfileFormData(usrInfo));
     }
   }, [usrInfo]);
 
@@ -170,20 +173,7 @@ export default function ProfilePage() {
     resetPasswordFormState();
     resetDeleteAccountState();
     if (usrInfo) {
-      setFormData({
-        name: usrInfo.name || "",
-        email: usrInfo.email || "",
-        phone: usrInfo.phone || "",
-        birthdate: usrInfo.birthdate || "",
-        age: usrInfo.age || "",
-        country: usrInfo.country || "",
-        education: usrInfo.education || "",
-        gender: usrInfo.gender || "",
-        housing_status: usrInfo.housing_status || "",
-        marital_status: usrInfo.marital_status || "",
-        occupation: usrInfo.occupation || "",
-        analytics_consent: Boolean(usrInfo.analytics_consent),
-      });
+      setFormData(createProfileFormData(usrInfo));
     }
   };
 
@@ -333,7 +323,6 @@ export default function ProfilePage() {
         }
       });
 
-      // Only save if there are actual changes
       if (hasChanges) {
         await updateProfile(updateData);
       }

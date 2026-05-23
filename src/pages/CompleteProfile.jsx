@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "../stores/useUser";
 import { useNavigate } from "react-router-dom";
 import "./styles/CompleteProfile.css";
@@ -18,6 +18,20 @@ const REQUIRED_FIELDS = [
   "occupation",
 ];
 
+const createProfileForm = (usrInfo) => {
+  const initialForm = {};
+
+  REQUIRED_FIELDS.forEach((field) => {
+    initialForm[field] = usrInfo?.[field] ?? "";
+  });
+
+  initialForm.analytics_consent = Boolean(usrInfo?.analytics_consent);
+  return initialForm;
+};
+
+const getMissingRequiredFields = (usrInfo) =>
+  REQUIRED_FIELDS.filter((field) => !usrInfo?.[field] || usrInfo[field] === "");
+
 export default function CompleteProfile() {
   const navigate = useNavigate();
   const user = useUser((s) => s.user);
@@ -34,24 +48,18 @@ export default function CompleteProfile() {
   const [ageError, setAgeError] = useState("");
   const hasStoredConsent = typeof usrInfo?.analytics_consent === "boolean";
 
-  // Betöltjük a formot a store-ból
   useEffect(() => {
     if (!usrInfo) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- keep the form reset aligned with store-driven profile hydration.
       setForm({});
       setMissingFields(REQUIRED_FIELDS);
       return;
     }
 
-    const initialForm = {};
-    REQUIRED_FIELDS.forEach((f) => {
-      initialForm[f] = usrInfo[f] ?? "";
-    });
-    initialForm.analytics_consent = Boolean(usrInfo.analytics_consent);
+    const initialForm = createProfileForm(usrInfo);
     setForm(initialForm);
 
-    const missing = REQUIRED_FIELDS.filter(
-        (f) => !usrInfo[f] || usrInfo[f] === ""
-    );
+    const missing = getMissingRequiredFields(usrInfo);
     setMissingFields(missing);
 
     if (missing.length === 0 && hasStoredConsent) {
@@ -59,7 +67,6 @@ export default function CompleteProfile() {
     }
   }, [usrInfo, navigate, hasStoredConsent]);
 
-  // Országlista betöltése
   useEffect(() => {
     let mounted = true;
 
@@ -71,14 +78,10 @@ export default function CompleteProfile() {
         if (!res.ok) throw new Error("Hiba az országlista lekérésekor");
         const data = await res.json();
         const options = data
-            // Lekérés, magyar fordítás preferálása
-            .map((c) => c.translations?.hun?.common ?? c.name.common)
-            // 💡 JAVÍTÁS 1: Kiszűrjük azokat az elemeket, amelyek nem stringek.
-            .filter(name => typeof name === 'string')
-            // Duplikátumok eltávolítása (a filter megvédi ezt a lépést a nem-stringektől)
-            .filter((v, i, a) => a.indexOf(v) === i)
-            // 💡 JAVÍTÁS 2: A sort-ban mindkét elemet stringgé kényszerítjük.
-            .sort((a, b) => String(a).localeCompare(String(b), "hu"));
+          .map((c) => c.translations?.hun?.common ?? c.name.common)
+          .filter((name) => typeof name === "string")
+          .filter((value, index, array) => array.indexOf(value) === index)
+          .sort((a, b) => String(a).localeCompare(String(b), "hu"));
 
         if (mounted) setCountryOptions(options);
       } catch (err) {
@@ -177,66 +180,65 @@ export default function CompleteProfile() {
   }
 
   return (
-      <div className="complete-profile-container">
-        <h2>Hiányzó profiladatok kitöltése</h2>
+    <div className="complete-profile-container">
+      <h2>Hiányzó profiladatok kitöltése</h2>
 
-        {/* Hibák és sikerüzenet */}
-        {error && (
-            <p className="error-text" role="alert">
-              {error}
-            </p>
+      {error && (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p className="success-text" role="status">
+          {success}
+        </p>
+      )}
+
+      <form onSubmit={handleSubmit} className="complete-profile-form">
+        {missingFields.includes("age") && (
+          <label>
+            Életkor:
+            <input
+              type="text"
+              name="age"
+              value={form.age ?? ""}
+              onChange={handleChange}
+              onBlur={handleAgeBlur}
+              required
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={3}
+              placeholder="pl. 27"
+              aria-invalid={Boolean(ageError)}
+              aria-describedby={ageError ? "age-error" : undefined}
+            />
+            {ageError && (
+              <span id="age-error" className="complete-profile-field-error" role="alert">
+                {ageError}
+              </span>
+            )}
+          </label>
         )}
-        {success && (
-            <p className="success-text" role="status">
-              {success}
-            </p>
+
+        {missingFields.includes("country") && (
+          <label>
+            Ország:
+            <input
+              type="text"
+              name="country"
+              list="countries"
+              value={form.country}
+              onChange={handleChange}
+              required
+              placeholder="Kezdd el gépelni az ország nevét..."
+            />
+            <datalist id="countries">
+              {countryOptions.map((country) => (
+                <option key={country} value={country} />
+              ))}
+            </datalist>
+          </label>
         )}
-
-        <form onSubmit={handleSubmit} className="complete-profile-form">
-          {missingFields.includes("age") && (
-              <label>
-                Életkor:
-                <input
-                    type="text"
-                    name="age"
-                    value={form.age ?? ""}
-                    onChange={handleChange}
-                    onBlur={handleAgeBlur}
-                    required
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={3}
-                    placeholder="pl. 27"
-                    aria-invalid={Boolean(ageError)}
-                    aria-describedby={ageError ? "age-error" : undefined}
-                />
-                {ageError && (
-                    <span id="age-error" className="complete-profile-field-error" role="alert">
-                      {ageError}
-                    </span>
-                )}
-              </label>
-          )}
-
-          {missingFields.includes("country") && (
-              <label>
-                Ország:
-                <input
-                    type="text"
-                    name="country"
-                    list="countries"
-                    value={form.country}
-                    onChange={handleChange}
-                    required
-                    placeholder="Kezdd el gépelni az ország nevét..."
-                />
-                <datalist id="countries">
-                  {countryOptions.map((country) => (
-                      <option key={country} value={country} />
-                  ))}
-                </datalist>
-              </label>
-          )}
 
           {missingFields.includes("education") && (
               <label>
@@ -392,10 +394,10 @@ export default function CompleteProfile() {
               </fieldset>
           )}
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Mentés..." : "Mentés"}
-          </button>
-        </form>
-      </div>
+        <button type="submit" disabled={loading}>
+          {loading ? "Mentés..." : "Mentés"}
+        </button>
+      </form>
+    </div>
   );
 }

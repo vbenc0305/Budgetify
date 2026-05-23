@@ -36,7 +36,6 @@ const INITIAL_FORM_STATE = {
 export default function Register() {
     const navigate = useNavigate();
 
-    // Zustand selector: csak a függvényeket és szükséges állapotot kérjük le
     const { setUser, fetchProfile } = useUser();
 
     const [form, setForm] = useState(INITIAL_FORM_STATE);
@@ -64,7 +63,6 @@ export default function Register() {
 
         setForm(nextForm);
 
-        // Frissítsük azonnal a hibákat a már érintett mezőknél, és submit után minden mezőnél.
         if (submitAttempted || touched[name] || (name === "password" && touched.confirmPassword)) {
             const nextValidation = validateRegisterForm(nextForm);
             setFieldErrors(nextValidation.errors);
@@ -114,7 +112,6 @@ export default function Register() {
         setLoading(true);
 
         try {
-            // 1) Firebase Auth - user létrehozása
             const userCredential = await createUserWithEmailAndPassword(
                 auth,
                 sanitizedForm.email,
@@ -122,7 +119,6 @@ export default function Register() {
             );
             const firebaseUser = userCredential.user;
 
-            // 2) Alap user dokumentum a 'users' kollekcióban
             const userData = {
                 name: sanitizedForm.name || "",
                 email: sanitizedForm.email || "",
@@ -135,7 +131,6 @@ export default function Register() {
 
             await setDoc(doc(db, "users", firebaseUser.uid), userData);
 
-            // 3) usr_info dokumentum létrehozása (ha szükséges mezők vannak)
             const usrInfoData = {
                 user_id: firebaseUser.uid,
                 age: sanitizedForm.age ?? null,
@@ -147,27 +142,21 @@ export default function Register() {
                 occupation: sanitizedForm.occupation ?? "",
             };
 
-            // csak ha van bármilyen értelmes mező, különben létrehozhatunk üres dokumentumot is – döntésed szerint
             await setDoc(doc(db, "usr_info", firebaseUser.uid), usrInfoData);
 
-            // 4) Frissítjük a Zustand store-t: setUser + fetchProfile (ez a store-on belül cached)
             if (typeof setUser === "function") {
                 setUser(firebaseUser);
             }
 
-            // fetchProfile belső fetched-check-el védett, így nem kér le kétszer semmit
             if (typeof fetchProfile === "function") {
                 try {
                     await fetchProfile();
                 } catch (fetchErr) {
-                    // Ha a profil-fetch elbukik, továbbra is engedjük a regisztrációt;
-                    // a store.error már jelezni fogja a problémát.
                     console.error("Profil lekérése regisztráció után sikertelen:", fetchErr);
                 }
             }
 
-            setSuccess("🎉 Sikeres regisztráció! Átirányítunk a kezdőlapra...");
-            // kis delay, hogy a user lássa a success üzenetet (opcionális)
+            setSuccess("Sikeres regisztráció! Átirányítunk a kezdőlapra...");
             setTimeout(() => navigate("/"), 800);
         } catch (err) {
             console.error("Registration error:", err);
@@ -324,14 +313,9 @@ export default function Register() {
                         </p>
                     )}
                 </div>
-
-                {/* optional: további mezők, ha szeretnéd regisztrációkor bekérni */}
-                {/* <input type="number" name="age" placeholder="Életkor" onChange={handleChange} /> */}
-
                 <button type="submit" disabled={loading || !validation.isValid}>
                     {loading ? "Regisztráció folyamatban..." : "Regisztráció"}
                 </button>
-
                 {error && (
                     <p className="error-text" role="alert">
                         {error}

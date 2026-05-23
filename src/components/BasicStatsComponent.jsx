@@ -8,7 +8,6 @@ export default function BasicStats({ predData, predLoading, predError }) {
   const stats = useMemo(() => {
     const history = Array.isArray(predData?.history) ? predData.history : [];
     if (!history || !history.length) return null;
-    // feltételezem history: [{date: '2025-01', value: 1234}, ...]
     const vals = history
       .map((h) => Number(h.value ?? h.amount ?? 0))
       .filter((v) => !isNaN(v));

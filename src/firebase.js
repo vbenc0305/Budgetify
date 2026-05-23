@@ -16,7 +16,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Export a promise that resolves when persistence is set
 const persistencePromise = setPersistence(auth, browserLocalPersistence);
 
 export { auth, db, persistencePromise };

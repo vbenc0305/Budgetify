@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CountyCategoryRanking from "../components/CountyCategoryRanking";
 import HungaryCountyMap from "../components/HungaryCountyMap";
 import { useUser } from "../stores/useUser";
@@ -25,17 +25,13 @@ export default function CountyInsights() {
     return canonicalizeCountyName(rawCounty) || rawCounty;
   }, [usrInfo]);
 
-  useEffect(() => {
-    if (profileCounty && !selectedCounty) {
-      setSelectedCounty(profileCounty);
-    }
-  }, [profileCounty, selectedCounty]);
+  const effectiveSelectedCounty = selectedCounty || profileCounty;
 
   useEffect(() => {
     let isCancelled = false;
 
     const loadCountyAnalytics = async () => {
-      const normalizedCounty = String(selectedCounty ?? "").trim();
+      const normalizedCounty = String(effectiveSelectedCounty ?? "").trim();
       if (!normalizedCounty) {
         setCountyTransactions([]);
         setMatchedUsers(0);
@@ -74,7 +70,7 @@ export default function CountyInsights() {
     return () => {
       isCancelled = true;
     };
-  }, [selectedCounty, user]);
+  }, [effectiveSelectedCounty, user]);
 
   const topCategories = useMemo(() => {
     return getTopCategoryTotals(countyTransactions, 5);
@@ -98,13 +94,13 @@ export default function CountyInsights() {
 
       <div className="county-insights-grid">
         <HungaryCountyMap
-          selectedCounty={selectedCounty}
+          selectedCounty={effectiveSelectedCounty}
           profileCounty={profileCounty}
           onCountySelect={setSelectedCounty}
         />
 
         <CountyCategoryRanking
-          selectedCounty={selectedCounty}
+          selectedCounty={effectiveSelectedCounty}
           profileCounty={profileCounty}
           loading={loadingAnalytics}
           error={analyticsError}

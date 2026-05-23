@@ -69,7 +69,7 @@ export const useUser = create(
       error: null,
       success: null,
       fetched: false,
-      authChecked: false, // <-- ide
+      authChecked: false,
       listenerAttached: false,
 
       setUser: (u) => set({ user: u }),
@@ -216,7 +216,6 @@ export const useUser = create(
 
         const auth = getAuth();
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-          // Prefer the callback user, but guard against transient null values.
           const effectiveUser =
             firebaseUser && typeof firebaseUser.getIdToken === "function"
               ? firebaseUser
@@ -252,19 +251,15 @@ export const useUser = create(
         }
 
         try {
-          // --- 1) Előkészítés: tiltsd el a nem oda való mezőket
-          // Ne küldjünk jelszót, email-t stb. a usr_info táblának
           const forbidden = ["password", "email", "last_login", "role", "uid"];
           const payload = {};
 
           Object.entries(updateData).forEach(([k, v]) => {
             if (forbidden.includes(k)) return;
-            // ha üres stringet adnak, ne küldd át, hagyd, hogy a backend kezelje null-ként ha kell
             if (v === "" || v === undefined) return;
             payload[k] = v;
           });
 
-          // --- 2) Ha age csatolva, konvertáld számra vagy null-ra
           if (payload.age !== undefined) {
             const n = Number(payload.age);
             if (!Number.isInteger(n) || n < 0 || n > 120) {
@@ -284,18 +279,14 @@ export const useUser = create(
               body: JSON.stringify(bodyPayload),
             });
 
-          // --- 4) Ha van displayName vagy photoURL, frissítsük Firebase user objectet is
           const { displayName, photoURL } = payload;
           if (displayName || photoURL) {
-            // csak a szükséges kulcsokat adjuk át a Firebase updateProfile-nek
             await fbUpdateProfile(current, {
               ...(displayName ? { displayName } : {}),
               ...(photoURL ? { photoURL } : {}),
             });
-            // ne töröld a payloadból a displayName-t — lehet, hogy a backend is tárolja
           }
 
-          // --- 5) Token és backend hívás
           const token = await current.getIdToken();
           let res = await sendUpdate(token, payload);
           if (res.status === 401) {
@@ -324,7 +315,6 @@ export const useUser = create(
               set({
                 usrInfo: localOnly,
                 fetched: true,
-                // TODO: remove local fallback once backend persists analytics_consent.
                 success: "Profil sikeresen frissítve.",
                 loading: false,
               });
@@ -353,7 +343,6 @@ export const useUser = create(
             set({
               usrInfo: mergedFallback,
               fetched: true,
-              // TODO: remove local fallback once backend persists analytics_consent.
               success: "Profil sikeresen frissítve.",
               loading: false,
             });
@@ -393,8 +382,6 @@ export const useUser = create(
       name: "user-storage",
       getStorage: () => localStorage,
       partialize: (state) => ({
-        // Firebase User is non-serializable (methods like getIdToken are lost),
-        // so persist only profile cache-like data.
         usrInfo: state.usrInfo,
         fetched: state.fetched,
       }),

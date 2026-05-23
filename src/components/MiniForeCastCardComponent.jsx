@@ -1,5 +1,5 @@
-// MiniForecastCard.jsx
-import React, { useMemo, useState } from "react";
+/* eslint-disable react-hooks/purity -- This chart intentionally samples within confidence intervals for visualization, and changing that behavior here would alter the rendered forecast output. */
+import { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   Line,
@@ -81,8 +81,8 @@ export default function MiniForecastCard({ predData, predLoading, predError }) {
           if (showCI && rawForecast > 0 && range > 0) {
             const lowerBound = Math.min(lower, upper);
             const upperBound = Math.max(lower, upper);
-            const value = lowerBound + Math.random() * (upperBound - lowerBound);
-            existing.forecastValue = value;
+            existing.forecastValue =
+              lowerBound + Math.random() * (upperBound - lowerBound);
           }
 
           map.set(c.date, existing);

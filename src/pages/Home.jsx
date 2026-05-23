@@ -6,14 +6,12 @@ import NoUserHomePage from "./NoUserHomePage";
 import "./styles/Home.css";
 
 export default function Home() {
-  // Zustand state: külön hívások, így nincs új objektum probléma
   const user = useUser((s) => s.user);
   const usrInfo = useUser((s) => s.usrInfo);
   const loading = useUser((s) => s.loading);
   const authChecked = useUser((s) => s.authChecked);
   const error = useUser((s) => s.error);
 
-  // Ellenőrizzük, hogy hiányzik-e valami a profilból
   const requiredFields = [
     "age",
     "country",

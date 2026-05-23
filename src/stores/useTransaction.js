@@ -90,7 +90,6 @@ export const useTransaction = create(
             fetched: true,
             loading: false,
           });
-          console.log("✅ fetchTransactions sikeres", normalizedTransactions);
         } catch (err) {
           set({
             error: err.message || "Hiba a tranzakciók lekérésekor",
@@ -120,8 +119,6 @@ export const useTransaction = create(
               headers: {
                 "Content-Type": "application/json",
               },
-              // Backend expects a JSON array in the request body (not an object).
-              // Send the parsed rows directly as the top-level array.
               body: JSON.stringify(jsonPayload),
             },
             activeUser,
@@ -147,17 +144,13 @@ export const useTransaction = create(
             }));
           }
 
-          // After successful import, force a fresh fetch from backend to get canonical data
           try {
-            // mark fetched false so fetchTransactions will actually run
             set({ fetched: false });
-            // call the store action to re-fetch; await to ensure transactions updated
             const fetchFn = get().fetchTransactions;
             if (typeof fetchFn === "function") {
               await fetchFn(activeUser);
             }
           } catch (e) {
-            // non-fatal: if refetch fails we still return the import result
             console.error("Refetch after massImport failed:", e);
           }
 
@@ -251,9 +244,6 @@ export const useTransaction = create(
       name: "transaction-storage",
       getStorage: () => localStorage,
       onRehydrateStorage: () => (state) => {
-        console.log("Transaction store rehydrated:", state);
-        // Clear the error after rehydration because it might be stale
-        // (e.g., from a previous session where there was no user)
         if (state && state.error === "Nincs bejelentkezett user.") {
           state.error = null;
           state.fetched = false; // Reset fetched so transactions will be refetched

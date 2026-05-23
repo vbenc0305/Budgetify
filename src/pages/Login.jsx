@@ -8,7 +8,6 @@ import "./styles/Login.css";
 export default function Login() {
   const navigate = useNavigate();
 
-  // Zustand store külön hívásokkal, így nincs destructuring hiba
   const user = useUser((s) => s.user);
   const setUser = useUser((s) => s.setUser);
   const fetchProfile = useUser((s) => s.fetchProfile);
@@ -17,13 +16,11 @@ export default function Login() {
   const storeError = useUser((s) => s.error);
   const storeSuccess = useUser((s) => s.success);
 
-  // Lokális state a loginhoz
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
   const [localLoading, setLocalLoading] = useState(false);
 
-  // Ha már be vagyunk jelentkezve, navigáljunk home-ra
   useEffect(() => {
     if (user) {
       navigate("/");

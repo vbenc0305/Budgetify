@@ -46,11 +46,6 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
     return "";
   };
 
-  // We'll obtain the massImport function at call time from the store to avoid
-  // selector/timing issues that can cause `undefined` during initial render.
-  // (useTransaction.getState() is safe to call outside render.)
-
-  // Close on Escape
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e) => {
@@ -82,7 +77,7 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
       }
 
       setParsedRows(rows);
-      setPreviewRows(rows.slice(0, 5)); // preview az első 5 sor
+      setPreviewRows(rows.slice(0, 5));
     } catch (err) {
       setError(
         err && err.message
@@ -95,7 +90,6 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
   const handleImport = async () => {
     if (!file || error) return;
 
-    // get the function at runtime
     const massImportFn = useTransaction.getState().massImport;
     if (typeof massImportFn !== "function") {
       setError("Import nem elérhető - frissítse az oldalt.");
@@ -112,7 +106,6 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
         return;
       }
 
-      // use store action to perform the network request with auth
       const result = await massImportFn(json, user);
       const importedCount =
         result && typeof result.imported_count !== "undefined"
@@ -147,7 +140,6 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
     <div
       className={`massImportModalOverlay modalOverlay ${isOpen ? "open" : ""}`}
       onClick={(e) => {
-        // close only when clicking on the overlay itself (not the modal content)
         if (e.target === e.currentTarget) onClose();
       }}
       aria-hidden={!isOpen}

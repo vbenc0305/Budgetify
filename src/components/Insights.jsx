@@ -24,10 +24,6 @@ export default function Insights({ predData, predLoading, predError }) {
             fülekre.
           </p>
         </div>
-
-        <div className="controls">
-          {/* ide mehetnek globális kontrollok ha kellnek */}
-        </div>
       </header>
 
       <nav

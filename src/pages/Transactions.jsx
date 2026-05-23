@@ -1,5 +1,4 @@
-// src/components/Transactions.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTransaction } from "../stores/useTransaction";
 import { useUser } from "../stores/useUser";
 import "./styles/Transactions.css";
@@ -21,7 +20,7 @@ const extractTransactionId = (tx) => {
   const str = String(raw).trim();
   if (!str) return null;
 
-  // Firebase path format: users/{uid}/transactions/{txId} (or with leading slash)
+  // Firebase path format: users/{uid}/transactions/{txId}
   const normalizedPath = str.startsWith("/") ? str.slice(1) : str;
   const segments = normalizedPath.split("/").filter(Boolean);
   const txIndex = segments.lastIndexOf("transactions");
@@ -342,6 +341,14 @@ export default function Transactions() {
     }
   };
 
+  const handleImportComplete = () => {
+    const { fetchTransactions } = useTransaction.getState();
+    if (user) {
+      fetchTransactions(user);
+    }
+    setShowImportModal(false);
+  };
+
   if (loading) return <Loading />;
 
   if (!transactions || transactions.length === 0)
@@ -349,12 +356,7 @@ export default function Transactions() {
       <div className="transactionsWrapper noTransactions">
         <MassImportModal
           onClose={() => setShowImportModal(false)}
-          onImport={(count) => {
-            console.log(`${count} tranzakció importálva`);
-            const { fetchTransactions } = useTransaction.getState();
-            if (user) fetchTransactions(user);
-            setShowImportModal(false);
-          }}
+          onImport={handleImportComplete}
           isOpen={showImportModal}
           user={user}
         />
@@ -381,12 +383,7 @@ export default function Transactions() {
     <div className="transactionsWrapper">
       <MassImportModal
         onClose={() => setShowImportModal(false)}
-        onImport={(count) => {
-          console.log(`${count} tranzakció importálva`);
-          const { fetchTransactions } = useTransaction.getState();
-          if (user) fetchTransactions(user);
-          setShowImportModal(false);
-        }}
+        onImport={handleImportComplete}
         isOpen={showImportModal}
         user={user}
       />
