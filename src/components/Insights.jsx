@@ -3,7 +3,7 @@ import React, { useState, Suspense } from "react";
 import MiniForecastCard from "./MiniForeCastCardComponent.jsx";
 import BasicStats from "./BasicStatsComponent.jsx";
 
-export default function Insights({ userId }) {
+export default function Insights({ predData, predLoading, predError }) {
   const tabs = [
     { id: "basic", label: "Alap statisztika" },
     { id: "quarter", label: "Negyedéves bontás" },
@@ -55,7 +55,7 @@ export default function Insights({ userId }) {
 
       <main>
         <Suspense fallback={<div>Betöltés…</div>}>
-          {active === "basic" && <BasicStats userId={userId} />}
+          {active === "basic" && <BasicStats predData={predData} predLoading={predLoading} predError={predError} />}
           {active === "quarter" && (
             <div className="chart-card">
               <div style={{ padding: 20 }}>
@@ -85,7 +85,7 @@ export default function Insights({ userId }) {
               </div>
             </div>
           )}
-          {active === "forecast" && <MiniForecastCard userId={userId} />}
+          {active === "forecast" && <MiniForecastCard predData={predData} predLoading={predLoading} predError={predError} />}
         </Suspense>
       </main>
     </div>

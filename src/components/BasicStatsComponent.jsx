@@ -1,59 +1,12 @@
 // BasicStats.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import { getAuth } from "firebase/auth";
+import React, { useMemo } from "react";
 
-export default function BasicStats({ userId }) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [history, setHistory] = useState([]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchHistory = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user && !userId) {
-        setError("Nincs bejelentkezett felhasználó");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch("/api/predict/transactions", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(`${res.status} ${res.statusText}: ${txt}`);
-        }
-
-        const data = await res.json();
-        if (!isMounted) return;
-        setHistory(Array.isArray(data.history) ? data.history : []);
-      } catch (err) {
-        if (!isMounted) return;
-        setError(err.message || String(err));
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchHistory();
-    return () => {
-      isMounted = false;
-    };
-  }, [userId]);
+export default function BasicStats({ predData, predLoading, predError }) {
+  const loading = predLoading;
+  const error = predError;
 
   const stats = useMemo(() => {
+    const history = Array.isArray(predData?.history) ? predData.history : [];
     if (!history || !history.length) return null;
     // feltételezem history: [{date: '2025-01', value: 1234}, ...]
     const vals = history
@@ -95,7 +48,7 @@ export default function BasicStats({ userId }) {
       maxMonth,
       points: history.length,
     };
-  }, [history]);
+  }, [predData]);
 
   if (loading) return <div className="loading-skeleton" />;
   if (error) return <div className="error-box">Hiba: {error}</div>;

@@ -1,5 +1,5 @@
 // MiniForecastCard.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   Line,
@@ -12,96 +12,42 @@ import {
   Brush,
   ComposedChart,
 } from "recharts";
-import { getAuth } from "firebase/auth";
 import "../pages/styles/Statistics.css";
 import "./styles/MiniForecastCard.css";
 
-export default function MiniForecastCard({ userId }) {
-   const [loading, setLoading] = useState(true);
-   const [error, setError] = useState(null);
-   const [history, setHistory] = useState([]);
-   const [forecast, setForecast] = useState([]);
-   const [ci, setCi] = useState(null);
+export default function MiniForecastCard({ predData, predLoading, predError }) {
+   const loading = predLoading;
+   const error = predError;
 
    const [showCI, setShowCI] = useState(true);
    const [smoothingWindow, setSmoothingWindow] = useState(0);
 
-   // ...existing code...
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchPredictions = async () => {
-      // ha szeretnéd használni a userId prop-ot, cserélheted a Firebase auth check-et
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user && !userId) {
-        setError("Nincs bejelentkezett felhasználó");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch("/api/predict/transactions", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(`${res.status} ${res.statusText}: ${txt}`);
-        }
-
-        const data = await res.json();
-        if (!isMounted) return;
-
-        setHistory(Array.isArray(data.history) ? data.history : []);
-        setForecast(Array.isArray(data.forecast) ? data.forecast : []);
-
-        if (Array.isArray(data.ci)) {
-          setCi(
-            data.ci.map((c) => ({
-              date: c.date,
-              lower: Number(c.lower ?? c.lo ?? c["lower"] ?? 0),
-              upper: Number(c.upper ?? c.hi ?? c["upper"] ?? 0),
-            })),
-          );
-        } else if (data.ci && data.ci.lower && data.ci.upper) {
-          const lowerArr = Array.isArray(data.ci.lower) ? data.ci.lower : [];
-          const upperArr = Array.isArray(data.ci.upper) ? data.ci.upper : [];
-          const mapUpper = new Map(
-            upperArr.map((u) => [u.date, Number(u.value)]),
-          );
-          setCi(
-            lowerArr.map((l) => ({
-              date: l.date,
-              lower: Number(l.value),
-              upper: mapUpper.get(l.date) ?? Number(l.value),
-            })),
-          );
-        } else {
-          setCi(null);
-        }
-      } catch (err) {
-        if (isMounted) setError(err.message || String(err));
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    fetchPredictions();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [userId]);
+   const ci = useMemo(() => {
+     if (!predData) return null;
+     const data = predData;
+     if (Array.isArray(data.ci)) {
+       return data.ci.map((c) => ({
+         date: c.date,
+         lower: Number(c.lower ?? c.lo ?? 0),
+         upper: Number(c.upper ?? c.hi ?? 0),
+       }));
+     } else if (data.ci && data.ci.lower && data.ci.upper) {
+       const lowerArr = Array.isArray(data.ci.lower) ? data.ci.lower : [];
+       const upperArr = Array.isArray(data.ci.upper) ? data.ci.upper : [];
+       const mapUpper = new Map(upperArr.map((u) => [u.date, Number(u.value)]));
+       return lowerArr.map((l) => ({
+         date: l.date,
+         lower: Number(l.value),
+         upper: mapUpper.get(l.date) ?? Number(l.value),
+       }));
+     }
+     return null;
+   }, [predData]);
 
   const merged = useMemo(() => {
+    const history = Array.isArray(predData?.history) ? predData.history : [];
+    const forecast = Array.isArray(predData?.forecast) ? predData.forecast : [];
     const map = new Map();
     const pushPoint = (p, key) => {
       const d = p.date;
@@ -243,7 +189,7 @@ export default function MiniForecastCard({ userId }) {
     }
 
      return arr;
-   }, [history, forecast, ci, smoothingWindow, showCI]);
+   }, [predData, ci, smoothingWindow, showCI]);
 
   const downloadCSV = () => {
     const header =

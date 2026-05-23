@@ -4,6 +4,7 @@ import PreviewTable from "../PreviewTable.jsx"; // külön komponens a previewho
 import "../styles/MassImportModal.css";
 import { useTransaction } from "../../stores/useTransaction";
 import { readExcelRowsFromFile } from "../../utils/excelImport";
+import { showToast } from "../../utils/toast";
 
 const EXPECTED_COLUMNS = [
   "Tranzakció dátuma",
@@ -120,23 +121,11 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
             ? result.imported_transactions.length
             : 0;
 
-      // show a success toast if available
-      try {
-        if (
-          typeof window !== "undefined" &&
-          typeof window.showToast === "function"
-        ) {
-          const msg =
-            importedCount > 0
-              ? `Siker: ${importedCount} tranzakció importálva.`
-              : `Importálás sikeres.`;
-          window.showToast(msg, { type: "success", duration: 4000 });
-        }
-      } catch (toastErr) {
-        // log toast errors to help debugging (avoid unused var eslint error)
-
-        console.warn("Could not show toast:", toastErr);
-      }
+      const successMessage =
+        importedCount > 0
+          ? `Siker: ${importedCount} tranzakció importálva.`
+          : "Importálás sikeres.";
+      showToast(successMessage, { type: "success", duration: 4000 });
 
       if (result && typeof result.imported_count !== "undefined") {
         onImport(result.imported_count);
@@ -146,19 +135,9 @@ export default function MassImportModal({ onClose, onImport, isOpen, user }) {
       onClose();
     } catch (err) {
       setError(err && err.message ? err.message : String(err));
-      // show an error toast if available
-      try {
-        if (
-          typeof window !== "undefined" &&
-          typeof window.showToast === "function"
-        ) {
-          const msg =
-            err && err.message ? err.message : "Importálás sikertelen.";
-          window.showToast(msg, { type: "error", duration: 6000 });
-        }
-      } catch (toastErr) {
-        console.warn("Could not show error toast:", toastErr);
-      }
+      const errorMessage =
+        err && err.message ? err.message : "Importálás sikertelen.";
+      showToast(errorMessage, { type: "error", duration: 6000 });
     } finally {
       setLoading(false);
     }
