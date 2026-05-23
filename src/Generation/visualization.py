@@ -4,10 +4,15 @@
 Visualization utilities for time series and forecasts.
 """
 
+import logging
+from pathlib import Path
+from typing import List, Optional
+
 import pandas as pd
 import matplotlib.pyplot as plt
-from typing import Optional, List
-from pathlib import Path
+
+
+logger = logging.getLogger(__name__)
 
 
 def plot_results(
@@ -65,7 +70,7 @@ def plot_results(
 
     if save_path:
         plt.savefig(save_path)
-        print(f"Plot elmentve: {save_path}")
+        logger.info("Plot elmentve: %s", save_path)
     else:
         plt.show()
 

@@ -6,12 +6,17 @@ Prophet model fitting and forecasting.
 
 from __future__ import annotations
 
-import pandas as pd
 import importlib
+import logging
 from typing import Optional, Tuple
+
+import pandas as pd
 
 from src.Generation.config import CI_ALPHA, FORECAST_STEPS
 from src.Generation.utils import ensure_monthly_freq
+
+
+logger = logging.getLogger(__name__)
 
 
 def fit_and_forecast_prophet(
@@ -87,6 +92,6 @@ def fit_and_forecast_prophet(
         return model, mean_fc, ci
 
     except Exception as e:
-        print(f"⚠️ Prophet fit error: {e}")
+        logger.warning("Prophet fit error: %s", e)
         return None, None, None
 

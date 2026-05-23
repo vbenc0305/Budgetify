@@ -4,6 +4,8 @@
 Main forecasting pipeline orchestration.
 """
 
+import logging
+
 import numpy as np
 import pandas as pd
 from typing import Any, Optional, cast
@@ -16,6 +18,7 @@ from src.Generation.config import (
     DEFAULT_LAG_ORDER, SHORT_SERIES_MAX_AUTOREG_LAGS, ETS_MIN_POINTS,
     BEHAVIORAL_MAX_LAGS, BEHAVIORAL_VARIANCE_TOLERANCE,
     SELECTION_CLOSE_MARGIN, SELECTION_SMOOTH_VOL_FLOOR, SELECTION_SHAPE_IMPROVEMENT,
+    PREVIEW_MIN_HORIZON, PREVIEW_TOP_K, PREVIEW_OVERRIDE_MARGIN, PREVIEW_SCORE_WEIGHT,
 )
 from src.Generation.utils import winsorize_series, inspect_series, is_flat, ensure_monthly_freq
 from src.Generation.validation import (
@@ -28,6 +31,9 @@ from src.Generation.models import (
     fit_and_forecast_time_regression_boosted,
 )
 from src.Generation.visualization import plot_results, seasonal_naive
+
+
+logger = logging.getLogger(__name__)
 
 # ── TEST OVERRIDE ──────────────────────────────────────────────────────────────
 # Set to a model name (e.g. "ses", "holt", "arima", "autoreg", "behavioral") to force that
@@ -76,7 +82,7 @@ def run_short_series_pipeline(
     if len(monthly_series_proc) < SEASONAL_MIN_POINTS:
         seasonal_order = (0, 0, 0, 0)
         if verbose:
-            print(
+            logger.info(
                 f"⚠️ Rövid idősor ({len(monthly_series_proc)} pont) — "
                 "szezonalitás kikapcsolva."
             )
@@ -203,7 +209,7 @@ def run_short_series_pipeline(
         baseline_mae = _calc_mae(test.values, baseline_pred_arr)
         baseline_smape = _calc_smape(test.values, baseline_pred_arr)
         if verbose:
-            print(f"Walk-forward (1-step) BASELINE MSE: {baseline_mse:.3f}")
+            logger.info("Walk-forward (1-step) BASELINE MSE: %.3f", baseline_mse)
     except Exception:
         baseline_mse = None
         baseline_mae = None
@@ -218,52 +224,53 @@ def run_short_series_pipeline(
         mae_arima = None
         smape_arima = None
         if verbose:
-            print(
+            logger.info(
                 f"Walk-forward (1-step) ARIMA skipped: rövid sorozat (n={n}) "
                 "miatt túl kockázatos lenne a paraméterbecslés."
             )
     else:
         preds_arima, test_vals, mse_arima, r2_arima = walk_forward_1step(
-            monthly_series_proc, model_order=arima_order, n_test=n_test)
+            monthly_series_proc, model_order=arima_order, n_test=n_test,
+            exog=exog, exog_forecast=exog_forecast)
         arima_pred_arr = np.array(preds_arima, dtype=float) if preds_arima else np.array([])
         arima_test_arr = np.array(test_vals, dtype=float) if test_vals else np.array([])
         mae_arima = _calc_mae(arima_test_arr, arima_pred_arr)
         smape_arima = _calc_smape(arima_test_arr, arima_pred_arr)
         if verbose:
-            print(f"Walk-forward (1-step) ARIMA MSE: {mse_arima:.3f}, R2: {r2_arima:.3f}")
+            logger.info("Walk-forward (1-step) ARIMA MSE: %.3f, R2: %.3f", mse_arima, r2_arima)
 
     # SES WF
-    mse_ses, ses_preds = walk_forward_ses(monthly_series_proc, n_test=n_test)
+    mse_ses, ses_preds = walk_forward_ses(monthly_series_proc, n_test=n_test, exog=exog, exog_forecast=exog_forecast)
     ses_pred_arr = np.array(ses_preds, dtype=float) if ses_preds else np.array([])
     mae_ses = _calc_mae(test_arr, ses_pred_arr)
     smape_ses = _calc_smape(test_arr, ses_pred_arr)
     if verbose:
-        print(f"Walk-forward (1-step) SES MSE: {mse_ses:.3f}")
+        logger.info("Walk-forward (1-step) SES MSE: %.3f", mse_ses)
 
     # Holt WF
-    mse_holt, holt_preds = walk_forward_holt(monthly_series_proc, n_test=n_test)
+    mse_holt, holt_preds = walk_forward_holt(monthly_series_proc, n_test=n_test, exog=exog, exog_forecast=exog_forecast)
     holt_pred_arr = np.array(holt_preds, dtype=float) if holt_preds else np.array([])
     mae_holt = _calc_mae(test_arr, holt_pred_arr)
     smape_holt = _calc_smape(test_arr, holt_pred_arr)
     if verbose:
-        print(f"Walk-forward (1-step) HOLT MSE: {mse_holt:.3f}")
+        logger.info("Walk-forward (1-step) HOLT MSE: %.3f", mse_holt)
 
     # ETS WF
     ets_eligible = n >= ETS_MIN_POINTS
     if ets_eligible:
-        mse_ets, ets_preds = walk_forward_ets(monthly_series_proc, n_test=n_test)
+        mse_ets, ets_preds = walk_forward_ets(monthly_series_proc, n_test=n_test, exog=exog, exog_forecast=exog_forecast)
         ets_pred_arr = np.array(ets_preds, dtype=float) if ets_preds else np.array([])
         mae_ets = _calc_mae(test_arr, ets_pred_arr)
         smape_ets = _calc_smape(test_arr, ets_pred_arr)
         if verbose and np.isfinite(mse_ets):
-            print(f"Walk-forward (1-step) ETS MSE: {mse_ets:.3f}")
+            logger.info("Walk-forward (1-step) ETS MSE: %.3f", mse_ets)
     else:
         mse_ets, ets_preds = float("inf"), []
         ets_pred_arr = np.array([])
         mae_ets = None
         smape_ets = None
         if verbose:
-            print(f"Walk-forward (1-step) ETS skipped: minimum {ETS_MIN_POINTS} points required (n={n}).")
+            logger.info("Walk-forward (1-step) ETS skipped: minimum %s points required (n=%s).", ETS_MIN_POINTS, n)
 
     # AutoReg WF
     if short_series_guard:
@@ -272,18 +279,18 @@ def run_short_series_pipeline(
         mae_autoreg = None
         smape_autoreg = None
         if verbose:
-            print(
+            logger.info(
                 f"Walk-forward (1-step) AUTOREG skipped: rövid sorozat (n={n}) "
                 "miatt túl nagy lenne az overfit esélye."
             )
     else:
         mse_autoreg, ar_preds = walk_forward_autoreg(
-            monthly_series_proc, n_test=n_test, lags=autoreg_lags)
+            monthly_series_proc, n_test=n_test, lags=autoreg_lags, exog=exog, exog_forecast=exog_forecast)
         ar_pred_arr = np.array(ar_preds, dtype=float) if ar_preds else np.array([])
         mae_autoreg = _calc_mae(test_arr, ar_pred_arr)
         smape_autoreg = _calc_smape(test_arr, ar_pred_arr)
         if verbose:
-            print(f"Walk-forward (1-step) AUTOREG MSE: {mse_autoreg:.3f}")
+            logger.info("Walk-forward (1-step) AUTOREG MSE: %.3f", mse_autoreg)
 
     # Behavioral WF
     behavioral_lags = min(BEHAVIORAL_MAX_LAGS, max(2, autoreg_lags + 1))
@@ -302,7 +309,7 @@ def run_short_series_pipeline(
     vol_ratio_behavioral = _calc_volatility_ratio(test_arr, behavioral_pred_arr)
     spike_recall_behavioral = _calc_spike_recall(test_arr, behavioral_pred_arr)
     if verbose and np.isfinite(mse_behavioral):
-        print(
+        logger.info(
             "Walk-forward (1-step) BEHAVIORAL "
             f"MSE: {mse_behavioral:.3f}, turn={turning_behavioral}, vol_ratio={vol_ratio_behavioral}"
         )
@@ -377,6 +384,178 @@ def run_short_series_pipeline(
         else:
             vol_penalty = max(0.0, abs(vol_ratio - 1.0) - BEHAVIORAL_VARIANCE_TOLERANCE)
         return float(0.45 * turn_penalty + 0.35 * vol_penalty + 0.20 * spike_penalty)
+
+    def _forecast_shape_preservation_score(fc: Optional[pd.Series]) -> float:
+        """Lower is better: reward forecasts that preserve recent variability shape."""
+        if fc is None or len(fc) < 3 or len(monthly_series_proc) < 6:
+            return float("inf")
+
+        try:
+            recent = cast(pd.Series, monthly_series_proc.tail(min(6, len(monthly_series_proc))).astype(float))
+            recent_diffs = recent.diff().dropna().astype(float)
+            fc_float = cast(pd.Series, fc.astype(float))
+            fc_diffs = fc_float.diff().dropna().astype(float)
+            if len(recent_diffs) < 2 or len(fc_diffs) < 2:
+                return float("inf")
+
+            recent_diff_std = float(recent_diffs.std(ddof=0))
+            fc_diff_std = float(fc_diffs.std(ddof=0))
+            recent_range = float(recent.max() - recent.min())
+            fc_range = float(fc_float.max() - fc_float.min())
+            recent_mean = float(abs(recent.mean())) + 1e-9
+            recent_median = float(recent.median())
+            first_step_gap = abs(float(fc_float.iloc[0]) - float(recent.iloc[-1])) / recent_mean
+            floor_penalty = max(0.0, (recent_median * 0.72 - float(fc_float.min())) / max(recent_median, 1.0))
+
+            prev_recent = recent.iloc[:-1]
+            rebound_penalty = 0.0
+            if len(prev_recent) >= 2:
+                prev_anchor = float(prev_recent.median())
+                last_actual = float(recent.iloc[-1])
+                if np.isfinite(prev_anchor) and prev_anchor > 0.0 and last_actual < prev_anchor * 0.72:
+                    rebound_target = prev_anchor * 0.85
+                    rebound_penalty = max(0.0, (rebound_target - float(fc_float.mean())) / prev_anchor)
+
+            vol_ratio_penalty = abs(fc_diff_std - recent_diff_std) / max(recent_diff_std, 1.0)
+            range_ratio_penalty = abs(fc_range - recent_range) / max(recent_range, 1.0)
+            monotone_penalty = 1.0 if float(fc_diffs.std(ddof=0)) <= max(0.08 * max(recent_diff_std, 1.0), 1e-9) else 0.0
+            return float(
+                0.42 * vol_ratio_penalty
+                + 0.18 * range_ratio_penalty
+                + 0.12 * first_step_gap
+                + 0.08 * monotone_penalty
+                + 0.12 * floor_penalty
+                + 0.08 * rebound_penalty
+            )
+        except Exception:
+            return float("inf")
+
+    def _align_forecast_to_index(fc: Optional[pd.Series], target_index: pd.Index) -> Optional[pd.Series]:
+        if fc is None:
+            return None
+        try:
+            fc = cast(pd.Series, fc.astype(float))
+        except Exception:
+            return None
+
+        if len(fc) != len(target_index):
+            return None
+        if fc.index.equals(target_index):
+            return fc
+
+        try:
+            reindexed = fc.reindex(target_index)
+            if not reindexed.isna().any():
+                return cast(pd.Series, reindexed.astype(float))
+        except Exception:
+            pass
+
+        return pd.Series(fc.values, index=target_index, dtype=float)
+
+    def _slice_preview_exog(target_index: pd.Index, train_index: pd.Index) -> tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
+        if exog is None or not isinstance(exog, pd.DataFrame) or exog.empty:
+            return None, None
+        try:
+            preview_exog_train = exog.reindex(train_index).apply(pd.to_numeric, errors="coerce").ffill().fillna(0.0)
+            preview_exog_future = exog.reindex(target_index).apply(pd.to_numeric, errors="coerce").ffill().fillna(0.0)
+            return preview_exog_train, preview_exog_future
+        except Exception:
+            return None, None
+
+    def _forecast_candidate_for_preview(
+        model_name: str,
+        train_series: pd.Series,
+        horizon: int,
+        target_index: pd.Index,
+    ) -> Optional[pd.Series]:
+        preview_exog_train, preview_exog_future = _slice_preview_exog(target_index, train_series.index)
+        try:
+            if model_name == "behavioral":
+                _, fc, _ = fit_and_forecast_behavioral_boosted(
+                    train_series,
+                    lags=behavioral_lags,
+                    steps=horizon,
+                    exog=preview_exog_train,
+                    exog_forecast=preview_exog_future,
+                )
+            elif model_name == "holt":
+                fc, _ = fit_and_forecast_holt(train_series, steps=horizon, exog=preview_exog_train, exog_forecast=preview_exog_future)
+            elif model_name == "ets":
+                fc, _ = fit_and_forecast_ets(train_series,
+                                             steps=horizon,
+                                             exog=preview_exog_train,
+                                             exog_forecast=preview_exog_future)
+            elif model_name == "ses":
+                fc, _ = fit_and_forecast_ses(train_series, steps=horizon, exog=preview_exog_train, exog_forecast=preview_exog_future)
+            elif model_name == "autoreg":
+                _, fc, _ = fit_and_forecast_autoreg(
+                    train_series,
+                    lags=autoreg_lags,
+                    steps=horizon,
+                    exog=preview_exog_train,
+                    exog_forecast=preview_exog_future,
+                )
+            elif model_name == "arima":
+                preview_can_use_exog = bool(
+                    preview_exog_train is not None and len(train_series) >= SARIMAX_EXOG_MIN_POINTS
+                )
+                if preview_can_use_exog:
+                    _, fc, _ = fit_and_forecast_sarimax(
+                        train_series,
+                        order=arima_order,
+                        seasonal_order=seasonal_order,
+                        steps=horizon,
+                        use_log=False,
+                        exog=preview_exog_train,
+                        exog_forecast=preview_exog_future,
+                    )
+                else:
+                    _, fc, _ = fit_and_forecast_arima(
+                        train_series,
+                        order=arima_order,
+                        steps=horizon,
+                        use_log=False,
+                    )
+            else:
+                return None
+        except Exception:
+            return None
+
+        return _align_forecast_to_index(fc, target_index)
+
+    def _calc_preview_score(train_series: pd.Series, actual_series: pd.Series, candidate: dict[str, Any]) -> Optional[dict[str, Any]]:
+        fc = _forecast_candidate_for_preview(candidate["name"], train_series, len(actual_series), actual_series.index)
+        if fc is None or len(fc) != len(actual_series):
+            return None
+
+        y_true = actual_series.values.astype(float)
+        y_pred = fc.values.astype(float)
+        mse_val = float(np.mean((y_true - y_pred) ** 2))
+        smape_val = _calc_smape(y_true, y_pred)
+        turn_score = _calc_turning_point_score(y_true, y_pred)
+        vol_ratio = _calc_volatility_ratio(y_true, y_pred)
+        spike_recall = _calc_spike_recall(y_true, y_pred)
+        preview_primary = _metric_value(norm(mse_val), smape_val)
+        preview_shape = _shape_score(
+            {
+                "turn_score": turn_score,
+                "vol_ratio": vol_ratio,
+                "spike_recall": spike_recall,
+            }
+        )
+        preview_selection_score = float(
+            (1.0 - PREVIEW_SCORE_WEIGHT) * preview_primary
+            + PREVIEW_SCORE_WEIGHT * preview_shape
+        )
+        return {
+            "forecast": fc,
+            "mse": mse_val,
+            "smape": smape_val,
+            "turn_score": turn_score,
+            "vol_ratio": vol_ratio,
+            "spike_recall": spike_recall,
+            "selection_score": preview_selection_score,
+        }
 
     def _regularize_short_forecast(
         base_name: str,
@@ -652,13 +831,17 @@ def run_short_series_pipeline(
     )
     selected_score = candidate_by_name[chosen]["selection_score"]
     selection_reason = "best_candidate"
+    preview_horizon = min(FORECAST_STEPS, n_test)
+    preview_scores_by_name: dict[str, float] = {}
+    preview_selected_candidate: Optional[str] = None
+    preview_override_applied = False
 
     # Short, human-driven monthly series should prefer models that preserve volatility,
     # even when plain MSE is only marginally better for smoother alternatives.
     behavioral_candidate = candidate_by_name.get("behavioral")
     if short_series_guard and behavioral_candidate is not None and np.isfinite(behavioral_candidate["selection_score"]):
-        behavioral_turn = behavioral_candidate.get("turn_score")
-        behavioral_vol = behavioral_candidate.get("vol_ratio")
+        behavioral_turn = _as_opt_float(behavioral_candidate.get("turn_score"))
+        behavioral_vol = _as_opt_float(behavioral_candidate.get("vol_ratio"))
         if chosen != "behavioral" and np.isfinite(selected_score):
             is_behaviorally_close = behavioral_candidate["selection_score"] <= selected_score * 1.08
             preserves_turns = behavioral_turn is not None and behavioral_turn >= 0.50
@@ -721,10 +904,51 @@ def run_short_series_pipeline(
             selected_score = best_alternative["selection_score"]
             selection_reason = "shape_tiebreak"
 
+    if (
+        _FORCE_MODEL is None
+        and not short_series_guard
+        and preview_horizon >= PREVIEW_MIN_HORIZON
+        and len(monthly_series_proc) > preview_horizon
+    ):
+        preview_train = monthly_series_proc.iloc[:-preview_horizon].copy()
+        preview_actual = monthly_series_proc.iloc[-preview_horizon:].copy()
+        preview_candidates = [
+            c for c in eligible_candidates[:PREVIEW_TOP_K]
+            if np.isfinite(c["selection_score"])
+        ]
+        preview_ranked: list[tuple[float, str]] = []
+        for cand in preview_candidates:
+            preview_result = _calc_preview_score(preview_train, preview_actual, cand)
+            if preview_result is None:
+                continue
+            cand["preview_mse"] = preview_result["mse"]
+            cand["preview_smape"] = preview_result["smape"]
+            cand["preview_turn_score"] = preview_result["turn_score"]
+            cand["preview_vol_ratio"] = preview_result["vol_ratio"]
+            cand["preview_spike_recall"] = preview_result["spike_recall"]
+            cand["preview_selection_score"] = preview_result["selection_score"]
+            preview_scores_by_name[cand["name"]] = float(preview_result["selection_score"])
+            preview_ranked.append((float(preview_result["selection_score"]), cand["name"]))
+
+        preview_ranked.sort(key=lambda item: item[0])
+        if preview_ranked:
+            preview_selected_candidate = preview_ranked[0][1]
+            chosen_preview_score = preview_scores_by_name.get(chosen)
+            best_preview_score = preview_ranked[0][0]
+            if (
+                chosen_preview_score is not None
+                and preview_selected_candidate != chosen
+                and best_preview_score <= chosen_preview_score * (1.0 - PREVIEW_OVERRIDE_MARGIN)
+            ):
+                chosen = preview_selected_candidate
+                selected_score = candidate_by_name.get(chosen, {}).get("selection_score", selected_score)
+                selection_reason = "preview_horizon_override"
+                preview_override_applied = True
+
     # Safety: check if chosen model's normalized MSE is unstable
     chosen_norm_mse = candidate_by_name.get(chosen, {}).get("norm_mse", float("inf"))
     if not np.isfinite(chosen_norm_mse) or chosen_norm_mse > MAX_NORMALIZED_MSE:
-        print(
+        logger.warning(
             f"⚠️ A model választás bizonytalan (norm_mse={chosen_norm_mse}); "
             "választás egyszerűsítése."
         )
@@ -739,7 +963,7 @@ def run_short_series_pipeline(
     if chosen == 'arima' and not np.isfinite(r2_arima):
         pass
     elif chosen == 'arima' and r2_arima < 0:
-        print(f"⚠️ ARIMA WF R2 negatív ({r2_arima:.3f}), váltás egyszerűbb modellre.")
+        logger.warning("ARIMA WF R2 negatív (%.3f), váltás egyszerűbb modellre.", r2_arima)
         chosen = 'holt'
         selection_reason = "arima_negative_r2"
         selected_score = candidate_by_name.get(chosen, {}).get("selection_score", float("inf"))
@@ -747,11 +971,11 @@ def run_short_series_pipeline(
     # Baseline gating: only upgrade if chosen model beats seasonal-naive by a margin
     # If not beating baseline, fall back to minimal SES model instead of baseline
     if np.isfinite(baseline_selection_score) and not short_series_guard:
-        chosen_selection_score = candidate_by_name.get(chosen, {}).get("selection_score", selected_score)
+        chosen_selection_score = float(candidate_by_name.get(chosen, {}).get("selection_score", selected_score))
         improvement_threshold = baseline_selection_score * (1.0 - BASELINE_REL_IMPROVEMENT)
         if np.isfinite(chosen_selection_score) and chosen_selection_score > improvement_threshold:
             if verbose:
-                print(
+                logger.info(
                     "⚠️ A választott modell nem veri a baseline-t elég erősen; "
                     "minimális SES modellre váltás."
                 )
@@ -764,6 +988,82 @@ def run_short_series_pipeline(
     mean_forecast = None
     ci = None
     final_model_name = chosen
+
+    def _has_unjustified_first_step_cliff(
+        fc: Optional[pd.Series],
+        orig: pd.Series,
+        floor_ratio: float = 0.60,
+    ) -> bool:
+        """Flag forecasts whose first point drops implausibly far below the recent level.
+
+        We compare the first forecast point to the median of the last few confirmed
+        months, not just the final month, so a single spike does not dominate the
+        handoff check. If the latest observed month is already heavily depressed
+        versus the immediately preceding months, we allow a lower first forecast.
+        """
+        if fc is None or not isinstance(fc, pd.Series) or len(fc) == 0 or len(orig) < 4:
+            return False
+
+        try:
+            recent = cast(pd.Series, orig.tail(min(4, len(orig))).astype(float))
+            first_val = float(fc.iloc[0])
+            anchor = float(recent.median())
+            if not np.isfinite(first_val) or not np.isfinite(anchor) or anchor <= 0.0:
+                return False
+
+            severe_downside = first_val < anchor * floor_ratio
+            if not severe_downside:
+                return False
+
+            prev_recent = recent.iloc[:-1]
+            if len(prev_recent) == 0:
+                return True
+
+            prev_anchor = float(prev_recent.median())
+            last_actual = float(recent.iloc[-1])
+            latest_already_depressed = (
+                np.isfinite(prev_anchor)
+                and prev_anchor > 0.0
+                and last_actual < prev_anchor * 0.70
+            )
+            return not latest_already_depressed
+        except Exception:
+            return False
+
+    def _has_unjustified_downside_collapse(
+        fc: Optional[pd.Series],
+        orig: pd.Series,
+    ) -> bool:
+        """Flag forecasts that collapse too far below the recent baseline.
+
+        This is stricter than the first-step cliff check: it looks across the full
+        horizon and protects against candidates that are wavy but drift into an
+        implausibly deep downturn.
+        """
+        if fc is None or not isinstance(fc, pd.Series) or len(fc) == 0 or len(orig) < 4:
+            return False
+
+        try:
+            recent = cast(pd.Series, orig.tail(min(4, len(orig))).astype(float))
+            recent_median = float(recent.median())
+            fc_min = float(fc.min())
+            fc_mean = float(fc.mean())
+            if not np.isfinite(recent_median) or recent_median <= 0.0:
+                return False
+
+            if fc_min < recent_median * 0.55:
+                return True
+
+            prev_recent = recent.iloc[:-1]
+            if len(prev_recent) >= 2:
+                prev_anchor = float(prev_recent.median())
+                last_actual = float(recent.iloc[-1])
+                if np.isfinite(prev_anchor) and prev_anchor > 0.0 and last_actual < prev_anchor * 0.72:
+                    if fc_mean < prev_anchor * 0.82 or fc_min < prev_anchor * 0.68:
+                        return True
+            return False
+        except Exception:
+            return False
 
     def _forecast_is_sane(fc: Optional[pd.Series], orig: pd.Series,
                          scale_factor: float = FORECAST_SCALE_FACTOR) -> bool:
@@ -798,20 +1098,20 @@ def run_short_series_pipeline(
             if mean_forecast is not None:
                 final_model_name = "behavioral_quantile_boost"
         elif model_name == "holt":
-            mean_forecast, ci = fit_and_forecast_holt(monthly_series_proc, steps=FORECAST_STEPS)
+            mean_forecast, ci = fit_and_forecast_holt(monthly_series_proc, steps=FORECAST_STEPS, exog=exog, exog_forecast=exog_forecast)
             if short_series_guard and _FORCE_MODEL is None:
-                ses_fc, _ = fit_and_forecast_ses(monthly_series_proc, steps=FORECAST_STEPS)
+                ses_fc, _ = fit_and_forecast_ses(monthly_series_proc, steps=FORECAST_STEPS, exog=exog, exog_forecast=exog_forecast)
                 reg_fc = _regularize_short_forecast("holt", ses_fc, mean_forecast)
                 if reg_fc is not None:
                     mean_forecast = reg_fc
                     ci = None
                     final_model_name = (reg_fc.name or "short_behavioral_holt")
         elif model_name == "ets":
-            mean_forecast, ci = fit_and_forecast_ets(monthly_series_proc, steps=FORECAST_STEPS)
+            mean_forecast, ci = fit_and_forecast_ets(monthly_series_proc, steps=FORECAST_STEPS, exog=exog, exog_forecast=exog_forecast)
         elif model_name == "ses":
-            mean_forecast, ci = fit_and_forecast_ses(monthly_series_proc, steps=FORECAST_STEPS)
+            mean_forecast, ci = fit_and_forecast_ses(monthly_series_proc, steps=FORECAST_STEPS, exog=exog, exog_forecast=exog_forecast)
             if short_series_guard and _FORCE_MODEL is None:
-                holt_fc, _ = fit_and_forecast_holt(monthly_series_proc, steps=FORECAST_STEPS)
+                holt_fc, _ = fit_and_forecast_holt(monthly_series_proc, steps=FORECAST_STEPS, exog=exog, exog_forecast=exog_forecast)
                 reg_fc = _regularize_short_forecast("ses", mean_forecast, holt_fc)
                 if reg_fc is not None:
                     mean_forecast = reg_fc
@@ -841,11 +1141,26 @@ def run_short_series_pipeline(
         chosen = str(_FORCE_MODEL)
     ok = try_model(chosen)
 
-    def _best_non_baseline_fallback(label: str) -> None:
+    def _best_non_baseline_fallback(
+        label: str,
+        require_non_flat: bool = False,
+        reject_first_step_cliff: bool = False,
+    ) -> None:
         """Try every real model in ascending WF-MSE order and use the first sane result.
         The seasonal-naive baseline is NEVER chosen here — it is only kept as an
         absolute last resort inside the None-guard further below."""
         nonlocal mean_forecast, ci, final_model_name
+
+        def _candidate_is_acceptable(fc_candidate: Optional[pd.Series]) -> bool:
+            if not _forecast_is_sane(fc_candidate, monthly_series_proc, scale_factor=FORECAST_SCALE_FACTOR):
+                return False
+            if require_non_flat and is_flat(fc_candidate, rel_tol=0.01):
+                return False
+            if reject_first_step_cliff and _has_unjustified_first_step_cliff(fc_candidate, monthly_series_proc):
+                return False
+            if (require_non_flat or reject_first_step_cliff) and _has_unjustified_downside_collapse(fc_candidate, monthly_series_proc):
+                return False
+            return True
 
         # Build a ranked list of (mse, name, forecast_fn) for all real models.
         # Any model with infinite / NaN MSE goes to the back.
@@ -858,11 +1173,11 @@ def run_short_series_pipeline(
                  monthly_series_proc, lags=behavioral_lags, steps=FORECAST_STEPS,
                  exog=exog, exog_forecast=exog_forecast)),
             (_safe_mse(mse_holt), "holt",
-             lambda: (None, *fit_and_forecast_holt(monthly_series_proc, steps=FORECAST_STEPS))),
+             lambda: (None, *fit_and_forecast_holt(monthly_series_proc, steps=FORECAST_STEPS, exog=exog, exog_forecast=exog_forecast))),
             (_safe_mse(mse_ets) if ets_eligible else float("inf"), "ets",
-             lambda: (None, *fit_and_forecast_ets(monthly_series_proc, steps=FORECAST_STEPS))),
+             lambda: (None, *fit_and_forecast_ets(monthly_series_proc, steps=FORECAST_STEPS, exog=exog, exog_forecast=exog_forecast))),
             (_safe_mse(mse_ses), "ses",
-             lambda: (None, *fit_and_forecast_ses(monthly_series_proc, steps=FORECAST_STEPS))),
+             lambda: (None, *fit_and_forecast_ses(monthly_series_proc, steps=FORECAST_STEPS, exog=exog, exog_forecast=exog_forecast))),
             (_safe_mse(mse_autoreg) if not short_series_guard else float("inf"), "autoreg",
              lambda: fit_and_forecast_autoreg(
                  monthly_series_proc, lags=autoreg_lags, steps=FORECAST_STEPS,
@@ -884,7 +1199,9 @@ def run_short_series_pipeline(
                  exog=exog, exog_forecast=exog_forecast)),
         ]
 
-        for _, name, fn in ranked:
+        accepted_ranked: list[tuple[float, float, str, pd.Series, Any]] = []
+
+        for mse_score, name, fn in ranked:
             try:
                 result = fn()
                 # result may be (model_info, fc, ci_df) or (fc, ci_df) depending on wrapper
@@ -894,13 +1211,31 @@ def run_short_series_pipeline(
                     fc_candidate, ci_candidate = result
                 else:
                     continue
-                if _forecast_is_sane(fc_candidate, monthly_series_proc, scale_factor=FORECAST_SCALE_FACTOR):
-                    mean_forecast, ci = fc_candidate, ci_candidate
-                    final_model_name = f"{name}_fallback"
-                    print(f"✅ {label} → {name} fallback ok.")
-                    return
+                if _candidate_is_acceptable(fc_candidate):
+                    if require_non_flat or reject_first_step_cliff:
+                        accepted_ranked.append((
+                            float(mse_score),
+                            _forecast_shape_preservation_score(fc_candidate),
+                            name,
+                            fc_candidate,
+                            ci_candidate,
+                        ))
+                    else:
+                        mean_forecast, ci = fc_candidate, ci_candidate
+                        final_model_name = f"{name}_fallback"
+                        logger.info("%s → %s fallback ok.", label, name)
+                        return
             except Exception:
                 continue
+
+        if accepted_ranked:
+            best_mse = min(item[0] for item in accepted_ranked)
+            close_candidates = [item for item in accepted_ranked if item[0] <= best_mse * 1.25]
+            _, _, best_name, best_fc, best_ci = min(close_candidates, key=lambda item: (item[1], item[0]))
+            mean_forecast, ci = best_fc, best_ci
+            final_model_name = f"{best_name}_fallback"
+            logger.info("%s → %s fallback ok (shape-aware).", label, best_name)
+            return
 
         for extra_name, fn in extra:
             try:
@@ -911,27 +1246,40 @@ def run_short_series_pipeline(
                     fc_candidate, ci_candidate = result
                 else:
                     continue
-                if _forecast_is_sane(fc_candidate, monthly_series_proc, scale_factor=FORECAST_SCALE_FACTOR):
+                if _candidate_is_acceptable(fc_candidate):
                     mean_forecast, ci = fc_candidate, ci_candidate
                     final_model_name = extra_name
-                    print(f"✅ {label} → {extra_name} ok.")
+                    logger.info("%s → %s ok.", label, extra_name)
                     return
             except Exception:
                 continue
 
-        print(f"⚠️ {label}: minden modell sikertelenül futott, None marad.")
+        if require_non_flat:
+            logger.warning("%s: nem találtam elég stabil és nem lapos alternatívát.", label)
+        elif reject_first_step_cliff:
+            logger.warning("%s: nem találtam elég stabil, induláskor nem beszakadó alternatívát.", label)
+        else:
+            logger.warning("%s: minden modell sikertelenül futott, None marad.", label)
 
     if not ok:
-        print(f"⚠️ A választott modell ({chosen}) numerikailag gyanús vagy nem futott: {mean_forecast}")
+        logger.warning("A választott modell (%s) numerikailag gyanús vagy nem futott: %s", chosen, mean_forecast)
         _best_non_baseline_fallback("primary fallback")
 
     # Check for flat forecasts and replace with best non-baseline model
     if _FORCE_MODEL is None and mean_forecast is not None and is_flat(mean_forecast, rel_tol=0.01):
-        print("⚠️ Forecast túl lapos — legjobb nem-baseline modellre váltok.")
+        logger.warning("Forecast túl lapos — legjobb nem-baseline modellre váltok.")
         prev_fc, prev_ci, prev_name = mean_forecast, ci, final_model_name
-        _best_non_baseline_fallback("flat fallback")
+        _best_non_baseline_fallback("flat fallback", require_non_flat=True)
         # If _best helper found nothing better, keep what we had
-        if mean_forecast is None:
+        if mean_forecast is None or is_flat(mean_forecast, rel_tol=0.01):
+            mean_forecast, ci, final_model_name = prev_fc, prev_ci, prev_name
+
+    # Reject forecasts that start with an implausibly sharp cliff versus the recent months.
+    if _FORCE_MODEL is None and mean_forecast is not None and _has_unjustified_first_step_cliff(mean_forecast, monthly_series_proc):
+        logger.warning("Forecast első pontja túl nagy lefelé ugrást mutat — alternatív modellt keresek.")
+        prev_fc, prev_ci, prev_name = mean_forecast, ci, final_model_name
+        _best_non_baseline_fallback("cliff fallback", reject_first_step_cliff=True)
+        if mean_forecast is None or _has_unjustified_first_step_cliff(mean_forecast, monthly_series_proc):
             mean_forecast, ci, final_model_name = prev_fc, prev_ci, prev_name
 
     # Ensure pd.Series index
@@ -942,7 +1290,7 @@ def run_short_series_pipeline(
                                periods=len(mean_forecast), freq="ME"))
 
     if mean_forecast is None:
-        print("⚠️ Emergency: mean_forecast is None, trying best non-baseline model.")
+        logger.warning("Emergency: mean_forecast is None, trying best non-baseline model.")
         _best_non_baseline_fallback("emergency fallback")
 
     # Absolute last resort: if every model failed numerically, fall back to seasonal-naive
@@ -950,7 +1298,7 @@ def run_short_series_pipeline(
         mean_forecast = seasonal_naive(monthly_series_proc, FORECAST_STEPS)
         ci = None
         final_model_name = "baseline_emergency_fallback"
-        print("⚠️ Emergency: minden modell sikertelenül futott — seasonal-naive baseline.")
+        logger.warning("Emergency: minden modell sikertelenül futott — seasonal-naive baseline.")
 
     # Clamp negative and extremely large values
     try:
@@ -976,15 +1324,15 @@ def run_short_series_pipeline(
 
     # Print chosen model's predictions at the very end (after all processing)
     if verbose:
-        print("\n" + "="*70)
-        print(f"✅ VÁLASZTOTT MODELL: {final_model_name.upper()}")
-        print("="*70)
-        print("Előrejelzés (pontbecslés) – index, érték:")
+        logger.info("\n%s", "=" * 70)
+        logger.info("VÁLASZTOTT MODELL: %s", final_model_name.upper())
+        logger.info("%s", "=" * 70)
+        logger.info("Előrejelzés (pontbecslés) – index, érték:")
         if mean_forecast is not None and isinstance(mean_forecast, pd.Series):
             for idx, val in mean_forecast.items():
                 idx_str = idx.strftime("%Y-%m") if hasattr(idx, "strftime") else str(idx)
-                print(f"  {idx_str}: {float(val):.2f}")
-        print("="*70 + "\n")
+                logger.info("  %s: %.2f", idx_str, float(val))
+        logger.info("%s\n", "=" * 70)
 
     fc_series = pd.Series(mean_forecast.values, index=mean_forecast.index)
     fc_ci = ci
@@ -1038,6 +1386,10 @@ def run_short_series_pipeline(
         "series_skew": skew_val,
         "forecast_std": float(fc_series.std()) if len(fc_series) > 1 else 0.0,
         "forecast_cv": float(fc_series.std() / (abs(fc_series.mean()) + 1e-9)) if len(fc_series) > 1 else 0.0,
+        "preview_horizon": int(preview_horizon) if preview_horizon >= PREVIEW_MIN_HORIZON else 0,
+        "preview_selected_candidate": preview_selected_candidate,
+        "preview_override_applied": bool(preview_override_applied),
+        "preview_selection_scores": preview_scores_by_name,
         "backtest_window_size": n_test,
         "backtest_start": backtest_start.strftime("%Y-%m") if backtest_start is not None else None,
         "backtest_end": backtest_end.strftime("%Y-%m") if backtest_end is not None else None,

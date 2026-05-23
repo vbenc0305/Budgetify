@@ -9,7 +9,6 @@ import warnings
 from typing import List, Tuple
 
 from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.holtwinters import SimpleExpSmoothing, Holt
 from sklearn.metrics import mean_squared_error, r2_score
 
 from src.Generation.config import ARIMA_ORDER, MAX_TEST_SIZE
@@ -17,6 +16,9 @@ from src.Generation.models import (
     fit_and_forecast_autoreg,
     fit_and_forecast_behavioral_boosted,
     fit_and_forecast_ets,
+    fit_and_forecast_holt,
+    fit_and_forecast_sarimax,
+    fit_and_forecast_ses,
 )
 from src.Generation.utils import ensure_monthly_freq
 
@@ -24,7 +26,9 @@ from src.Generation.utils import ensure_monthly_freq
 def walk_forward_1step(
     series: pd.Series,
     model_order: Tuple[int, int, int] = ARIMA_ORDER,
-    n_test: int = MAX_TEST_SIZE
+    n_test: int = MAX_TEST_SIZE,
+    exog: pd.DataFrame | None = None,
+    exog_forecast: pd.DataFrame | None = None,
 ) -> Tuple[List[float], List[float], float, float]:
     """
     Walk-forward one-step-ahead cross-validation for ARIMA.
@@ -47,10 +51,30 @@ def walk_forward_1step(
 
     for t in range(len(test)):
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                model = ARIMA(history, order=model_order).fit()
-                yhat = float(model.forecast(steps=1).iloc[0])
+            if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty:
+                exog_hist = exog.reindex(history.index).apply(pd.to_numeric, errors="coerce").ffill().fillna(0.0)
+                future_idx = pd.date_range(start=history.index[-1] + pd.offsets.MonthEnd(1), periods=1, freq="ME")
+                exog_fc = None
+                if exog_forecast is not None and isinstance(exog_forecast, pd.DataFrame) and not exog_forecast.empty:
+                    exog_fc = exog_forecast.reindex(future_idx).apply(pd.to_numeric, errors="coerce").ffill().fillna(0.0)
+                else:
+                    exog_fc = exog.reindex(future_idx).apply(pd.to_numeric, errors="coerce").ffill().fillna(0.0)
+                _, pred_series, _ = fit_and_forecast_sarimax(
+                    history,
+                    order=model_order,
+                    steps=1,
+                    use_log=False,
+                    exog=exog_hist,
+                    exog_forecast=exog_fc,
+                )
+                if pred_series is None or len(pred_series) == 0:
+                    raise ValueError("SARIMAX forecast unavailable")
+                yhat = float(pred_series.iloc[0])
+            else:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    model = ARIMA(history, order=model_order).fit()
+                    yhat = float(model.forecast(steps=1).iloc[0])
         except Exception:
             yhat = float(history.iloc[-1])
         preds.append(yhat)
@@ -66,7 +90,9 @@ def walk_forward_1step(
 
 def walk_forward_ses(
     series: pd.Series,
-    n_test: int = MAX_TEST_SIZE
+    n_test: int = MAX_TEST_SIZE,
+    exog: pd.DataFrame | None = None,
+    exog_forecast: pd.DataFrame | None = None,
 ) -> Tuple[float, List[float]]:
     """
     Walk-forward validation for Simple Exponential Smoothing.
@@ -85,10 +111,13 @@ def walk_forward_ses(
     for t in range(len(test)):
         try:
             history_clip = history.clip(upper=history.mean() + 2 * history.std())
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                s = SimpleExpSmoothing(history_clip).fit(smoothing_level=0.2, optimized=False)
-                yhat = float(s.forecast(1).iloc[0])
+            future_idx = pd.date_range(start=history.index[-1] + pd.offsets.MonthEnd(1), periods=1, freq="ME")
+            exog_hist = exog.reindex(history.index).ffill().fillna(0.0) if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty else None
+            exog_fc = exog_forecast.reindex(future_idx).ffill().fillna(0.0) if exog_forecast is not None and isinstance(exog_forecast, pd.DataFrame) and not exog_forecast.empty else None
+            pred_series, _ = fit_and_forecast_ses(history_clip, steps=1, exog=exog_hist, exog_forecast=exog_fc)
+            if pred_series is None or len(pred_series) == 0:
+                raise ValueError("SES forecast unavailable")
+            yhat = float(pred_series.iloc[0])
         except Exception:
             yhat = float(history.iloc[-1])
         ses_preds.append(yhat)
@@ -102,7 +131,9 @@ def walk_forward_ses(
 
 def walk_forward_holt(
     series: pd.Series,
-    n_test: int = MAX_TEST_SIZE
+    n_test: int = MAX_TEST_SIZE,
+    exog: pd.DataFrame | None = None,
+    exog_forecast: pd.DataFrame | None = None,
 ) -> Tuple[float, List[float]]:
     """
     Walk-forward validation for Holt exponential smoothing.
@@ -120,10 +151,13 @@ def walk_forward_holt(
 
     for t in range(len(test)):
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                hmod = Holt(history, exponential=False, damped_trend=True).fit(optimized=True)
-                yhat = float(hmod.forecast(1).iloc[0])
+            future_idx = pd.date_range(start=history.index[-1] + pd.offsets.MonthEnd(1), periods=1, freq="ME")
+            exog_hist = exog.reindex(history.index).ffill().fillna(0.0) if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty else None
+            exog_fc = exog_forecast.reindex(future_idx).ffill().fillna(0.0) if exog_forecast is not None and isinstance(exog_forecast, pd.DataFrame) and not exog_forecast.empty else None
+            pred_series, _ = fit_and_forecast_holt(history, steps=1, exog=exog_hist, exog_forecast=exog_fc)
+            if pred_series is None or len(pred_series) == 0:
+                raise ValueError("Holt forecast unavailable")
+            yhat = float(pred_series.iloc[0])
         except Exception:
             yhat = float(history.iloc[-1])
         holt_preds.append(yhat)
@@ -138,6 +172,8 @@ def walk_forward_holt(
 def walk_forward_ets(
     series: pd.Series,
     n_test: int = MAX_TEST_SIZE,
+    exog: pd.DataFrame | None = None,
+    exog_forecast: pd.DataFrame | None = None,
 ) -> Tuple[float, List[float]]:
     """
     Walk-forward validation for ETS (ExponentialSmoothing).
@@ -154,7 +190,10 @@ def walk_forward_ets(
 
         for t in range(len(test)):
             try:
-                pred_series, _ = fit_and_forecast_ets(history, steps=1)
+                future_idx = pd.date_range(start=history.index[-1] + pd.offsets.MonthEnd(1), periods=1, freq="ME")
+                exog_hist = exog.reindex(history.index).ffill().fillna(0.0) if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty else None
+                exog_fc = exog_forecast.reindex(future_idx).ffill().fillna(0.0) if exog_forecast is not None and isinstance(exog_forecast, pd.DataFrame) and not exog_forecast.empty else None
+                pred_series, _ = fit_and_forecast_ets(history, steps=1, exog=exog_hist, exog_forecast=exog_fc)
                 if pred_series is None or len(pred_series) == 0:
                     raise ValueError("ETS forecast unavailable")
                 yhat = float(pred_series.iloc[0])
@@ -175,7 +214,9 @@ def walk_forward_ets(
 def walk_forward_autoreg(
     series: pd.Series,
     n_test: int = MAX_TEST_SIZE,
-    lags: int = 5
+    lags: int = 5,
+    exog: pd.DataFrame | None = None,
+    exog_forecast: pd.DataFrame | None = None,
 ) -> Tuple[float, List[float]]:
     """
     Walk-forward validation for AutoReg model.
@@ -198,7 +239,10 @@ def walk_forward_autoreg(
 
         for t in range(len(test)):
             try:
-                _, pred_series, _ = fit_and_forecast_autoreg(history, lags=lags, steps=1)
+                future_idx = pd.date_range(start=history.index[-1] + pd.offsets.MonthEnd(1), periods=1, freq="ME")
+                exog_hist = exog.reindex(history.index).ffill().fillna(0.0) if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty else None
+                exog_fc = exog_forecast.reindex(future_idx).ffill().fillna(0.0) if exog_forecast is not None and isinstance(exog_forecast, pd.DataFrame) and not exog_forecast.empty else None
+                _, pred_series, _ = fit_and_forecast_autoreg(history, lags=lags, steps=1, exog=exog_hist, exog_forecast=exog_fc)
                 if pred_series is None or len(pred_series) == 0:
                     raise ValueError("AutoReg forecast unavailable")
                 yhat = float(pred_series.iloc[0])

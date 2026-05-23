@@ -94,6 +94,76 @@ class TestPrepareTransactionDataRepair(unittest.TestCase):
         self.assertIsNotNone(exog)
         self.assertIsNotNone(exog_forecast)
 
+    def test_prepare_transaction_data_filters_internal_transfer_persely_rows_without_description_filter(self):
+        tx_list = [
+            {
+                "amount": 400.0,
+                "category": "Savings",
+                "date": "2024-01-03 10:00:00",
+                "description": "Tanulmányok persely",
+                "for_who": "Tanulmányok",
+                "transaction_direction": "Kimenő",
+                "tran_type": "ESETI ÁTVEZETÉS PERSELYBE",
+                "user_id": "u1",
+                "internal_transfer": "jar_in",
+            },
+            {
+                "amount": 120.0,
+                "category": "Food",
+                "date": "2024-01-12 10:00:00",
+                "description": "Tesco grocery",
+                "for_who": "TESCO",
+                "transaction_direction": "Kimenő",
+                "tran_type": "VÁSÁRLÁS KÁRTYÁVAL",
+                "user_id": "u1",
+                "internal_transfer": "none",
+            },
+        ]
+
+        monthly_series, exog, exog_forecast, used_status = prepare_transaction_data(uid="u1", tx_list=tx_list)
+
+        self.assertIsNotNone(monthly_series)
+        self.assertEqual(used_status, "from_db")
+        self.assertEqual(len(monthly_series), 1)
+        self.assertAlmostEqual(float(monthly_series.iloc[0]), 120.0)
+        self.assertIsNotNone(exog)
+        self.assertIsNotNone(exog_forecast)
+
+    def test_prepare_transaction_data_does_not_drop_description_only_persely_row_when_internal_transfer_is_none(self):
+        tx_list = [
+            {
+                "amount": 80.0,
+                "category": "Misc",
+                "date": "2024-01-08 10:00:00",
+                "description": "Persely matrica vásárlás",
+                "for_who": "Papírbolt",
+                "transaction_direction": "Kimenő",
+                "tran_type": "VÁSÁRLÁS KÁRTYÁVAL",
+                "user_id": "u1",
+                "internal_transfer": "none",
+            },
+            {
+                "amount": 50.0,
+                "category": "Food",
+                "date": "2024-02-08 10:00:00",
+                "description": "Coffee",
+                "for_who": "Cafe",
+                "transaction_direction": "Kimenő",
+                "tran_type": "VÁSÁRLÁS KÁRTYÁVAL",
+                "user_id": "u1",
+                "internal_transfer": "none",
+            },
+        ]
+
+        monthly_series, exog, exog_forecast, used_status = prepare_transaction_data(uid="u1", tx_list=tx_list)
+
+        self.assertIsNotNone(monthly_series)
+        self.assertEqual(used_status, "from_db")
+        self.assertEqual(len(monthly_series), 2)
+        self.assertAlmostEqual(float(monthly_series.sum()), 130.0)
+        self.assertIsNotNone(exog)
+        self.assertIsNotNone(exog_forecast)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -81,3 +81,10 @@ FLATNESS_TOLERANCE: float = 0.02
 MAX_TEST_SIZE: int = 5
 BACKTEST_MIN: int = 3
 BACKTEST_MAX: int = 6
+
+# --- Horizon-aware preview validation ---
+PREVIEW_MIN_HORIZON: int = 3
+PREVIEW_TOP_K: int = 3
+PREVIEW_OVERRIDE_MARGIN: float = 0.02  # require a clear multi-step preview win to override
+PREVIEW_SCORE_WEIGHT: float = 0.30  # blend preview score into the top-candidate comparison
+

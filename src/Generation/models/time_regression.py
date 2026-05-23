@@ -4,13 +4,18 @@
 Time-series regression model using Ridge regression with features.
 """
 
+import logging
+from typing import Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Optional, Tuple
 
 from sklearn.linear_model import Ridge
 
 from src.Generation.config import FORECAST_STEPS, LAGS_FOR_FEATURES, RIDGE_ALPHA
+
+
+logger = logging.getLogger(__name__)
 
 
 def fit_and_forecast_time_regression_boosted(
@@ -90,7 +95,8 @@ def fit_and_forecast_time_regression_boosted(
         X = df[feat_cols].values
         y = df["y"].values
 
-        reg = Ridge(alpha=alpha, fit_intercept=True, random_state=42).fit(X, y)
+        reg: Ridge = Ridge(alpha=alpha, fit_intercept=True, random_state=42)
+        reg.fit(X, y)
 
         # Generate forecasts
         last_vals = list(series.values[-used_lags:])
@@ -125,6 +131,6 @@ def fit_and_forecast_time_regression_boosted(
         return reg, preds, None
 
     except Exception as e:
-        print("⚠️ Time-reg (Ridge) fit error:", e)
+        logger.warning("Time-reg (Ridge) fit error: %s", e)
         return None, None, None
 

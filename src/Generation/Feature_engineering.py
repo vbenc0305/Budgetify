@@ -1,8 +1,12 @@
+import logging
 from typing import Optional, cast
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.linear_model import Ridge
+
+
+logger = logging.getLogger(__name__)
 
 
 def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -11,7 +15,6 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df['month'] = df['date'].dt.month
     df['year'] = df['date'].dt.year
     df['day_of_week'] = df['date'].dt.dayofweek
-    df['is_weekend'] = df['day_of_week'] >= 5
     df['is_weekend'] = df['day_of_week'] >= 5
     df['quarter'] = df['date'].dt.quarter
     df['is_start_of_month'] = df['date'].dt.day <= 5
@@ -33,7 +36,10 @@ def add_user_monthly_stats(df: pd.DataFrame) -> pd.DataFrame:
         before_stats_dupes = len(df)
         df = df.drop_duplicates(subset=['date'], keep='first')
         if len(df) != before_stats_dupes:
-            print(f"ℹ️ add_user_monthly_stats: removed {before_stats_dupes - len(df)} duplicate dates")
+            logger.info(
+                "add_user_monthly_stats: removed %s duplicate dates",
+                before_stats_dupes - len(df),
+            )
 
     group = df.groupby(['user_id', 'year', 'month'])
 
@@ -84,12 +90,11 @@ def add_category_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df = df[df['internal_transfer'] == 'none']
 
-    # Csoportosítás user-hónap-kategória szerint
+
     group = df.groupby(['user_id', 'year', 'month', 'category'])
     df['category_avg'] = group['amount'].transform('mean')
     df['category_count'] = group['amount'].transform('count')
 
-    # Kategória arány a havi összes költéshez képest
     monthly_group = df.groupby(['user_id', 'year', 'month'])['amount'].transform('sum')
     df['category_pct_of_month'] = df['amount'] / monthly_group
 
@@ -130,7 +135,10 @@ def build_monthly_panel_from_tx(df: pd.DataFrame, uid_local: Optional[str] = Non
     before_panel_dupes = len(df)
     df = df.drop_duplicates(subset=[date_col], keep='first')
     if len(df) != before_panel_dupes:
-        print(f"ℹ️ build_monthly_panel_from_tx: removed {before_panel_dupes - len(df)} duplicate dates before aggregation")
+        logger.info(
+            "build_monthly_panel_from_tx: removed %s duplicate dates before aggregation",
+            before_panel_dupes - len(df),
+        )
 
     # biztosítsuk a year/month oszlopokat (ha engineer_all_features generálta, ok)
     df['year'] = df[date_col].dt.year
@@ -314,7 +322,7 @@ def fit_and_forecast_time_regression_with_exog(series: pd.Series, exog_df: pd.Da
         return reg, preds, None
 
     except Exception as e:
-        print("⚠️ Time-reg (Ridge+exog) fit error:", e)
+        logger.warning("Time-reg (Ridge+exog) fit error: %s", e)
         return None, None, None
 
 def make_exog_forecast_from_last_known(exog_shifted: pd.DataFrame, steps: int = 10) -> Optional[pd.DataFrame]:
@@ -329,14 +337,18 @@ def make_exog_forecast_from_last_known(exog_shifted: pd.DataFrame, steps: int = 
     last_idx = exog_shifted.index.max()
     future_idx = pd.date_range(start=last_idx + pd.offsets.MonthEnd(1), periods=steps, freq="ME")
     fut = pd.DataFrame(index=future_idx, columns=exog_shifted.columns, dtype=float)
+    months = np.array([], dtype=int)
+    day_vals = np.array([], dtype=int)
+    days_in_month = np.array([], dtype=int)
+    is_month_end = np.array([], dtype=bool)
+    future_idx_series = pd.Series(future_idx, index=future_idx)
+    months = future_idx_series.dt.month.to_numpy()
+    day_vals = future_idx_series.dt.day.to_numpy()
+    days_in_month = future_idx_series.dt.days_in_month.to_numpy()
+    is_month_end = future_idx_series.dt.is_month_end.to_numpy()
 
     # regenerate deterministic time-based cols if present
     if 'month_sin' in exog_shifted.columns or 'month_cos' in exog_shifted.columns or 'month' in exog_shifted.columns:
-        future_idx_series = pd.Series(future_idx, index=future_idx)
-        months = future_idx_series.dt.month.to_numpy()
-        day_vals = future_idx_series.dt.day.to_numpy()
-        days_in_month = future_idx_series.dt.days_in_month.to_numpy()
-        is_month_end = future_idx_series.dt.is_month_end.to_numpy()
         if 'month_sin' in fut.columns:
             fut['month_sin'] = np.sin(2 * np.pi * (months - 1) / 12.0)
         if 'month_cos' in fut.columns:

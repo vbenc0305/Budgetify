@@ -4,12 +4,15 @@
 Exponential smoothing models (SES and Holt).
 """
 
+import logging
+from typing import Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Optional, Tuple
 
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing, Holt, ExponentialSmoothing
 
+from src.Generation.models.time_regression import fit_and_forecast_time_regression_boosted
 from src.Generation.config import (
     Z_SCORE_FOR_CI,
     FORECAST_STEPS,
@@ -18,6 +21,10 @@ from src.Generation.config import (
     ETS_SIGNATURE_MAX_REL_ADJ,
     ETS_SIGNATURE_DECAY,
 )
+from src.Generation.utils import ensure_monthly_freq
+
+
+logger = logging.getLogger(__name__)
 
 
 def _safe_lag12_autocorr(series: pd.Series) -> float:
@@ -123,9 +130,150 @@ def _apply_variability_floor(series: pd.Series, forecast: Optional[pd.Series]) -
     return adjusted
 
 
+def _prepare_exog_inputs(
+    series: pd.Series,
+    steps: int,
+    exog: Optional[pd.DataFrame],
+    exog_forecast: Optional[pd.DataFrame],
+) -> tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
+    if exog is None or not isinstance(exog, pd.DataFrame) or exog.empty:
+        return None, None
+
+    exog_hist = exog.reindex(series.index)
+    exog_hist = exog_hist.apply(pd.to_numeric, errors="coerce").ffill().fillna(0.0)
+    if exog_hist.empty:
+        return None, None
+
+    future_idx = pd.date_range(start=series.index[-1] + pd.offsets.MonthEnd(1), periods=steps, freq="ME")
+    if exog_forecast is not None and isinstance(exog_forecast, pd.DataFrame) and not exog_forecast.empty:
+        exog_future = exog_forecast.reindex(future_idx)
+        exog_future = exog_future.apply(pd.to_numeric, errors="coerce").ffill().fillna(0.0)
+        missing_cols = [c for c in exog_hist.columns if c not in exog_future.columns]
+        for col in missing_cols:
+            exog_future[col] = float(exog_hist.iloc[-1].get(col, 0.0))
+        exog_future = exog_future[exog_hist.columns]
+    else:
+        last_row = exog_hist.iloc[-1].values.reshape(1, -1)
+        exog_future = pd.DataFrame(np.tile(last_row, (steps, 1)), index=future_idx, columns=exog_hist.columns)
+
+    return exog_hist, exog_future
+
+
+def _exog_blend_weight(series: pd.Series, exog_hist: pd.DataFrame) -> float:
+    if exog_hist.empty or len(series) < 6:
+        return 0.0
+
+    corrs: list[float] = []
+    target = pd.Series(series.astype(float).values, index=series.index)
+    for col in exog_hist.columns:
+        col_vals = pd.to_numeric(exog_hist[col], errors="coerce").ffill().fillna(0.0)
+        if float(col_vals.std(ddof=0)) <= 1e-9:
+            continue
+        corr = float(abs(target.corr(col_vals)))
+        if np.isfinite(corr):
+            corrs.append(corr)
+
+    if not corrs:
+        return 0.0
+
+    signal = float(np.mean(sorted(corrs, reverse=True)[: min(3, len(corrs))]))
+    history_factor = min(1.0, len(series) / 18.0)
+    return float(np.clip((0.12 + 0.28 * signal) * history_factor, 0.10, 0.34))
+
+
+def _has_meaningful_future_exog_signal(
+    exog_hist: pd.DataFrame,
+    exog_future: pd.DataFrame,
+    atol: float = 1e-9,
+) -> bool:
+    """Return True only when future exog contains real projected signal.
+
+    If every non-deterministic future feature is effectively just the last known
+    value carried forward, exog blending is more likely to inject unstable
+    synthetic dynamics than to improve the base exponential forecast.
+    """
+    if exog_hist.empty or exog_future.empty:
+        return False
+
+    deterministic_cols = {
+        "month_sin", "month_cos", "month",
+        "is_start_of_month", "is_end_of_month",
+        "quarter", "day_of_week", "day_of_month",
+        "days_in_month", "week_of_year", "year",
+    }
+    informative_cols = [c for c in exog_hist.columns if c in exog_future.columns and c not in deterministic_cols]
+    if not informative_cols:
+        return False
+
+    try:
+        last_row = exog_hist.iloc[-1][informative_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+        future_vals = exog_future[informative_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+        if future_vals.empty:
+            return False
+
+        diff_from_last = (future_vals - last_row.values).abs()
+        has_level_change = bool((diff_from_last > atol).any().any())
+        has_internal_variation = bool((future_vals.nunique(dropna=False) > 1).any())
+        return has_level_change or has_internal_variation
+    except Exception:
+        return False
+
+
+def _apply_exog_adjustment(
+    series: pd.Series,
+    forecast: Optional[pd.Series],
+    ci: Optional[pd.DataFrame],
+    exog: Optional[pd.DataFrame],
+    exog_forecast: Optional[pd.DataFrame],
+    model_name: str,
+) -> tuple[Optional[pd.Series], Optional[pd.DataFrame]]:
+    if forecast is None or len(forecast) == 0:
+        return forecast, ci
+
+    exog_hist, exog_future = _prepare_exog_inputs(series, len(forecast), exog, exog_forecast)
+    if exog_hist is None or exog_future is None:
+        return forecast, ci
+    if not _has_meaningful_future_exog_signal(exog_hist, exog_future):
+        return forecast, ci
+
+    weight = _exog_blend_weight(series, exog_hist)
+    if weight <= 0.0:
+        return forecast, ci
+
+    try:
+        series_norm = ensure_monthly_freq(series)
+        series_for_exog = series_norm if series_norm is not None else series
+        _, exog_fc, _ = fit_and_forecast_time_regression_boosted(
+            series_for_exog,
+            steps=len(forecast),
+            exog=exog_hist,
+            exog_forecast=exog_future,
+        )
+    except Exception:
+        exog_fc = None
+
+    if exog_fc is None or len(exog_fc) != len(forecast):
+        return forecast, ci
+
+    exog_fc = pd.Series(exog_fc.values, index=forecast.index, dtype=float, name=f"{model_name}_exog_fc")
+    adjusted = forecast.astype(float) + weight * (exog_fc.astype(float) - forecast.astype(float))
+    adjusted = adjusted.clip(lower=0.0)
+
+    if ci is not None and isinstance(ci, pd.DataFrame) and {"lower", "upper"}.issubset(ci.columns):
+        shifted_ci = ci.copy()
+        shift = adjusted.values - forecast.values
+        shifted_ci["lower"] = (shifted_ci["lower"].values + shift).clip(min=0.0)
+        shifted_ci["upper"] = np.maximum(shifted_ci["upper"].values + shift, shifted_ci["lower"].values)
+        ci = shifted_ci
+
+    return adjusted, ci
+
+
 def fit_and_forecast_ses(
     series: pd.Series,
-    steps: int = FORECAST_STEPS
+    steps: int = FORECAST_STEPS,
+    exog: Optional[pd.DataFrame] = None,
+    exog_forecast: Optional[pd.DataFrame] = None,
 ) -> Tuple[Optional[pd.Series], Optional[pd.DataFrame]]:
     """
     Fit Simple Exponential Smoothing model.
@@ -151,16 +299,19 @@ def fit_and_forecast_ses(
         mean = pd.Series(mean.values, index=idx, name="ses_forecast")
         ci = pd.DataFrame({"lower": lower, "upper": upper}, index=idx)
         ci["lower"] = ci["lower"].clip(lower=0.0)
+        mean, ci = _apply_exog_adjustment(series, mean, ci, exog, exog_forecast, model_name="ses")
         return mean, ci
 
     except Exception as e:
-        print(f"⚠️ SES fit error: {e}")
+        logger.warning("SES fit error: %s", e)
         return None, None
 
 
 def fit_and_forecast_holt(
     series: pd.Series,
-    steps: int = FORECAST_STEPS
+    steps: int = FORECAST_STEPS,
+    exog: Optional[pd.DataFrame] = None,
+    exog_forecast: Optional[pd.DataFrame] = None,
 ) -> Tuple[Optional[pd.Series], Optional[pd.DataFrame]]:
     """
     Fit Holt (exponential smoothing with trend) model.
@@ -189,16 +340,19 @@ def fit_and_forecast_holt(
         shift = mean.values - raw_mean.values
         ci = pd.DataFrame({"lower": lower + shift, "upper": upper + shift}, index=idx)
         ci["lower"] = ci["lower"].clip(lower=0.0)
+        mean, ci = _apply_exog_adjustment(series, mean, ci, exog, exog_forecast, model_name="holt")
         return mean, ci
 
     except Exception as e:
-        print(f"⚠️ Holt fit error: {e}")
+        logger.warning("Holt fit error: %s", e)
         return None, None
 
 
 def fit_and_forecast_ets(
     series: pd.Series,
     steps: int = FORECAST_STEPS,
+    exog: Optional[pd.DataFrame] = None,
+    exog_forecast: Optional[pd.DataFrame] = None,
 ) -> Tuple[Optional[pd.Series], Optional[pd.DataFrame]]:
     """
     Fit ETS model (ExponentialSmoothing) with adaptive seasonal component.
@@ -238,10 +392,11 @@ def fit_and_forecast_ets(
         ci = pd.DataFrame({"lower": lower + shift, "upper": upper + shift}, index=idx)
         ci["lower"] = ci["lower"].clip(lower=0.0)
         ci["upper"] = ci[["upper", "lower"]].max(axis=1)
+        mean, ci = _apply_exog_adjustment(series, mean, ci, exog, exog_forecast, model_name="ets")
         return mean, ci
 
     except Exception as e:
-        print(f"⚠️ ETS fit error: {e}")
+        logger.warning("ETS fit error: %s", e)
         return None, None
 
 

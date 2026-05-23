@@ -7,14 +7,18 @@ This is a thin wrapper around the refactored forecasting components.
 It provides backward compatibility and a clean interface for external code.
 """
 
+import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, cast
 
 from src.Generation.config import UID_BASE, OUT_PATH
 from src.Generation.data_preparation import prepare_transaction_data
 from src.Generation.forecasting import run_short_series_pipeline
+
+
+logger = logging.getLogger(__name__)
 
 
 class ForecastPipeline:
@@ -58,7 +62,7 @@ class ForecastPipeline:
         out = []
         for ts, v in series.items():
             try:
-                date_str = pd.to_datetime(ts).strftime("%Y-%m")
+                date_str = pd.to_datetime(cast(Any, ts)).strftime("%Y-%m")
             except Exception:
                 date_str = str(ts)
 
@@ -76,7 +80,7 @@ class ForecastPipeline:
         out = []
         for idx, row in ci_df.iterrows():
             try:
-                date_str = pd.to_datetime(idx).strftime("%Y-%m")
+                date_str = pd.to_datetime(cast(Any, idx)).strftime("%Y-%m")
             except Exception:
                 date_str = str(idx)
 
@@ -118,7 +122,7 @@ class ForecastPipeline:
 
         # Step 2: Run forecasting pipeline
         if monthly_series is None or len(monthly_series) == 0:
-            print("⚠️ Nincs elegendő adat az előrejelzéshez.")
+            logger.warning("Nincs elegendő adat az előrejelzéshez.")
             return {
                 "status": "no_data",
                 "data_source": "no_data",
@@ -129,7 +133,7 @@ class ForecastPipeline:
                 "raw_arrays": {"history_arr": None, "forecast_arr": None},
             }
 
-        print("\n▶️ Lefuttatom a rövid-sorozat pipeline-t...")
+        logger.info("Lefuttatom a rövid-sorozat pipeline-t.")
         fc_series, fc_ci, metrics = run_short_series_pipeline(
             monthly_series, exog=exog, exog_forecast=exog_forecast,
             plot=plot, verbose=verbose)
@@ -159,9 +163,9 @@ class ForecastPipeline:
                 "ci_upper": ci_out["upper"] if ci_out is not None else np.nan,
             })
             df_out.to_csv(self.out_path, index_label="date")
-            print(f"\n💾 Elmentve: {self.out_path.resolve()}")
+            logger.info("Elmentve: %s", self.out_path.resolve())
         except Exception as e:
-            print(f"⚠️ Nem sikerült elmenteni a forecast-ot: {e}")
+            logger.warning("Nem sikerült elmenteni a forecast-ot: %s", e)
 
         # Step 5: Return results
         result = {

@@ -4,12 +4,17 @@
 Utility functions for data processing and inspection.
 """
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+import logging
 from typing import Optional
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
 from src.Generation.config import WINSORIZE_LOWER_Q, WINSORIZE_UPPER_Q
+
+
+logger = logging.getLogger(__name__)
 
 
 def is_flat(series: pd.Series, rel_tol: float = 0.05) -> bool:
@@ -89,7 +94,10 @@ def prepare_monthly_series_from_df(
     before_utils_dupes = len(df)
     df = df.drop_duplicates(subset=[date_col], keep='first')
     if len(df) != before_utils_dupes:
-        print(f"ℹ️ prepare_monthly_series_from_df: removed {before_utils_dupes - len(df)} duplicate dates")
+        logger.info(
+            "prepare_monthly_series_from_df: removed %s duplicate dates",
+            before_utils_dupes - len(df),
+        )
 
     df = df.set_index(date_col).sort_index()
     monthly = df[amount_col].resample("ME").sum().fillna(0)
@@ -112,15 +120,15 @@ def inspect_series(
         verbose: Whether to print statistics
     """
     if verbose:
-        print("\n--- SERIE INSPECT ---")
-        print(monthly_series.to_string())
-        print("\nLeíró statisztika:")
-        print(monthly_series.describe().to_string())
-        print("\nNullák száma:", int((monthly_series == 0).sum()), " / ", len(monthly_series))
+        logger.info("\n--- SERIE INSPECT ---\n%s", monthly_series.to_string())
+        logger.info("\nLeíró statisztika:\n%s", monthly_series.describe().to_string())
+        logger.info("\nNullák száma: %s / %s", int((monthly_series == 0).sum()), len(monthly_series))
     if plot:
         try:
-            monthly_series.plot(marker="o", figsize=(8, 4), title="Monthly series — inspect")
-            plt.grid(True)
+            _, ax = plt.subplots(figsize=(8, 4))
+            ax.plot(monthly_series.index, monthly_series.values, marker="o")
+            ax.set_title("Monthly series — inspect")
+            ax.grid(True)
             plt.show()
         except Exception:
             pass

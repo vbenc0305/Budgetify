@@ -4,9 +4,11 @@
 Data loading and preparation for forecasting pipeline.
 """
 
-import pandas as pd
-from typing import List, Dict, Any, Optional
+import logging
 import re
+from typing import Any, Dict, List, Optional, cast
+
+import pandas as pd
 
 from src.Generation.data_loader import get_all_transactions
 from src.Generation.Feature_engineering import engineer_all_features, build_monthly_panel_from_tx, \
@@ -15,24 +17,19 @@ from src.Generation.Feature_engineering import engineer_all_features, build_mont
 from src.Generation.config import TARGET, FORECAST_STEPS
 
 
+logger = logging.getLogger(__name__)
+
+
 def _log_amount_stats(df: pd.DataFrame, label: str) -> None:
     if df is None or df.empty:
-        print(f"ℹ️ {label}: empty")
+        logger.info("%s: empty", label)
         return
     if 'amount' not in df.columns:
-        print(f"ℹ️ {label}: no amount column")
+        logger.info("%s: no amount column", label)
         return
     amounts = pd.to_numeric(df['amount'], errors='coerce')
     total = amounts.sum(skipna=True)
-    print(f"ℹ️ {label}: count={len(df)} amount_sum={total:.2f}")
-
-
-def _description_is_persely(description: Any) -> bool:
-    """Return True when 'persely' appears, even if split by whitespace."""
-    if description is None:
-        return False
-    normalized = re.sub(r"\s+", "", str(description).lower())
-    return "persely" in normalized
+    logger.info("%s: count=%s amount_sum=%.2f", label, len(df), total)
 
 
 def _normalize_text(value: Any) -> str:
@@ -91,7 +88,7 @@ def prepare_transaction_data(
         try:
             tx_list = get_all_transactions(uid)
         except Exception as e:
-            print(f"❌ Hiba a tranzakciók lekérésekor: {e}")
+            logger.error("Hiba a tranzakciók lekérésekor: %s", e)
             tx_list = []
 
     # Ensure we always have a list
@@ -100,30 +97,14 @@ def prepare_transaction_data(
     # 2) Process transactions if available
     if len(tx_list) > 0:
         df_tx = pd.DataFrame(tx_list)
-        print(f"ℹ️ prepare_transaction_data: loaded {len(df_tx)} transactions")
+        logger.info("prepare_transaction_data: loaded %s transactions", len(df_tx))
         _log_amount_stats(df_tx, "loaded")
 
-        # Drop persely-related rows (internal savings transfers)
-        if 'description' in df_tx.columns:
-            before = len(df_tx)
-            df_tx = df_tx[~df_tx['description'].apply(_description_is_persely)].copy()
-            print(f"ℹ️ persely filter (description): {before} -> {len(df_tx)}")
-        elif 'Description' in df_tx.columns:
-            before = len(df_tx)
-            df_tx = df_tx[~df_tx['Description'].apply(_description_is_persely)].copy()
-            print(f"ℹ️ persely filter (Description): {before} -> {len(df_tx)}")
-        else:
-            print("ℹ️ persely filter: no description column found")
-        _log_amount_stats(df_tx, "after persely filter")
-
-        if df_tx.empty:
-            print("ℹ️ prepare_transaction_data: no transactions after persely filter")
-            return monthly_series, exog, exog_forecast, used_status
 
         # Ensure required columns exist and fill nulls
         if 'user_id' not in df_tx.columns:
             df_tx['user_id'] = uid
-            print("ℹ️ user_id missing; filled from uid")
+            logger.info("user_id missing; filled from uid")
         df_tx['user_id'] = df_tx['user_id'].fillna(uid)
 
         if 'description' in df_tx.columns:
@@ -138,36 +119,41 @@ def prepare_transaction_data(
 
         if 'date' not in df_tx.columns:
             df_tx['date'] = pd.NaT
-            print("ℹ️ date missing; filled with NaT")
+            logger.info("date missing; filled with NaT")
         df_tx['date'] = pd.to_datetime(df_tx['date'], errors='coerce')
         before_dates = len(df_tx)
         df_tx = df_tx[df_tx['date'].notna()].copy()
         if len(df_tx) != before_dates:
-            print(f"ℹ️ date filter (valid only): {before_dates} -> {len(df_tx)}")
+            logger.info("date filter (valid only): %s -> %s", before_dates, len(df_tx))
         if df_tx.empty:
-            print("ℹ️ prepare_transaction_data: no valid dates after date filter")
+            logger.info("prepare_transaction_data: no valid dates after date filter")
             return monthly_series, exog, exog_forecast, used_status
 
         # Remove duplicates based on exact date match (yyyy-mm-dd hh:mm:ss)
         before_dupes = len(df_tx)
         df_tx = df_tx.drop_duplicates(subset=['date'], keep='first').copy()
         if len(df_tx) != before_dupes:
-            print(f"ℹ️ date dedupe: {before_dupes} -> {len(df_tx)} (removed {before_dupes - len(df_tx)} duplicates)")
+            logger.info(
+                "date dedupe: %s -> %s (removed %s duplicates)",
+                before_dupes,
+                len(df_tx),
+                before_dupes - len(df_tx),
+            )
         _log_amount_stats(df_tx, "after deduplication")
 
         if 'amount' not in df_tx.columns:
             df_tx['amount'] = 0.0
-            print("ℹ️ amount missing; filled with 0.0")
+            logger.info("amount missing; filled with 0.0")
         df_tx['amount'] = pd.to_numeric(df_tx['amount'], errors='coerce').fillna(0.0)
 
         if 'category' not in df_tx.columns:
             df_tx['category'] = 'unknown'
-            print("ℹ️ category missing; filled with 'unknown'")
+            logger.info("category missing; filled with 'unknown'")
         df_tx['category'] = df_tx['category'].fillna('unknown')
 
         if 'tran_type' not in df_tx.columns:
             df_tx['tran_type'] = ''
-            print("ℹ️ tran_type missing; filled with empty string")
+            logger.info("tran_type missing; filled with empty string")
         df_tx['tran_type'] = df_tx['tran_type'].fillna('')
 
         if 'internal_transfer' not in df_tx.columns:
@@ -185,7 +171,10 @@ def prepare_transaction_data(
         invalid_internal = ~df_tx['internal_transfer'].isin(valid_internal_transfer_values)
         if invalid_internal.any():
             df_tx.loc[invalid_internal, 'internal_transfer'] = 'none'
-            print(f"ℹ️ internal_transfer normalize: reset {int(invalid_internal.sum())} invalid values to 'none'")
+            logger.info(
+                "internal_transfer normalize: reset %s invalid values to 'none'",
+                int(invalid_internal.sum()),
+            )
 
         hint_mask = df_tx.apply(
             lambda row: _has_internal_transfer_hint(
@@ -201,13 +190,16 @@ def prepare_transaction_data(
         )
         if stale_internal_mask.any():
             df_tx.loc[stale_internal_mask, 'internal_transfer'] = 'none'
-            print(f"ℹ️ internal_transfer repair: reset {int(stale_internal_mask.sum())} stale labels to 'none'")
+            logger.info(
+                "internal_transfer repair: reset %s stale labels to 'none'",
+                int(stale_internal_mask.sum()),
+            )
 
         # Apply feature engineering
         try:
             df_tx = engineer_all_features(df_tx)
         except Exception as e:
-            print(f"⚠️ engineer_all_features hibát dobott: {e} (folytatom a nyers df-fel)")
+            logger.warning("engineer_all_features hibát dobott: %s (folytatom a nyers df-fel)", e)
         _log_amount_stats(df_tx, "after feature engineering")
 
         # Normalize and filter transaction direction
@@ -221,22 +213,22 @@ def prepare_transaction_data(
         outgoing_mask = df_tx['direction_norm'].str.contains('kimen', na=False)
         before_direction = len(df_tx)
         df_tx = df_tx[outgoing_mask].copy()
-        print(f"ℹ️ direction filter (Kimenő): {before_direction} -> {len(df_tx)}")
+        logger.info("direction filter (Kimenő): %s -> %s", before_direction, len(df_tx))
         _log_amount_stats(df_tx, "after direction filter")
 
         # Filter internal transfers
         if 'internal_transfer' in df_tx.columns:
             before_internal = len(df_tx)
             df_tx = df_tx[df_tx['internal_transfer'].fillna('none') == 'none'].copy()
-            print(f"ℹ️ internal_transfer filter: {before_internal} -> {len(df_tx)}")
+            logger.info("internal_transfer filter: %s -> %s", before_internal, len(df_tx))
         _log_amount_stats(df_tx, "after internal_transfer filter")
 
         if export_filtered_csv_path:
             df_tx.to_csv(export_filtered_csv_path, index=False)
-            print(f"ℹ️ filtered CSV exported: {export_filtered_csv_path}")
+            logger.info("filtered CSV exported: %s", export_filtered_csv_path)
 
         if TARGET not in df_tx.columns:
-            print(f"❌ Figyelem: a pipeline elvárja a '{TARGET}' oszlopot az engineer_all_features kimenetében.")
+            logger.error("Figyelem: a pipeline elvárja a '%s' oszlopot az engineer_all_features kimenetében.", TARGET)
             return monthly_series, exog, exog_forecast, used_status
 
         # Build monthly panel
@@ -246,7 +238,7 @@ def prepare_transaction_data(
             if panel is None:
                 panel = pd.DataFrame()
         except Exception as e:
-            print(f"⚠️ build_monthly_panel_from_tx hibát dobott: {e}")
+            logger.warning("build_monthly_panel_from_tx hibát dobott: %s", e)
             panel = pd.DataFrame()
 
         # Filter for current user
@@ -270,23 +262,31 @@ def prepare_transaction_data(
                 TARGET if TARGET in panel_uid.columns else None)
 
             if value_col is None:
-                print("❌ Nem található aggregált érték ('y_sum' / TARGET) a panel-ben.")
+                logger.error("Nem található aggregált érték ('y_sum' / TARGET) a panel-ben.")
             else:
                 try:
                     monthly_series = pd.Series(panel_uid[value_col].values,
                                               index=pd.to_datetime(panel_uid['date']))
                     monthly_series = monthly_series.asfreq('ME', fill_value=0.0)
                     used_status = "from_db"
-                    print(f"ℹ️ monthly_series sum={monthly_series.sum():.2f} months={len(monthly_series)}")
+                    logger.info("monthly_series sum=%.2f months=%s", monthly_series.sum(), len(monthly_series))
 
                     if export_monthly_csv_path:
                         if sum_from_filtered_csv and export_filtered_csv_path:
-                            filtered_df = pd.read_csv(export_filtered_csv_path, parse_dates=['date'])
+                            filtered_csv = pd.read_csv(cast(str, export_filtered_csv_path))
+                            filtered_df = filtered_csv if isinstance(filtered_csv, pd.DataFrame) else pd.DataFrame()
+                            if 'date' in filtered_df.columns:
+                                filtered_df['date'] = pd.to_datetime(filtered_df['date'], errors='coerce')
                             # Remove duplicates by date before aggregation
                             before_csv_dupes = len(filtered_df)
                             filtered_df = filtered_df.drop_duplicates(subset=['date'], keep='first')
                             if len(filtered_df) != before_csv_dupes:
-                                print(f"ℹ️ CSV dedupe before monthly sum: {before_csv_dupes} -> {len(filtered_df)} (removed {before_csv_dupes - len(filtered_df)} duplicates)")
+                                logger.info(
+                                    "CSV dedupe before monthly sum: %s -> %s (removed %s duplicates)",
+                                    before_csv_dupes,
+                                    len(filtered_df),
+                                    before_csv_dupes - len(filtered_df),
+                                )
                             filtered_df['amount'] = pd.to_numeric(filtered_df['amount'], errors='coerce').fillna(0.0)
                             monthly_df = (
                                 filtered_df.set_index('date')['amount']
@@ -299,13 +299,14 @@ def prepare_transaction_data(
                             monthly_df = monthly_series.rename("amount_sum").reset_index()
                             monthly_df = monthly_df.rename(columns={"index": "date"})
                         monthly_df.to_csv(export_monthly_csv_path, index=False)
-                        print(f"ℹ️ monthly CSV exported: {export_monthly_csv_path}")
+                        logger.info("monthly CSV exported: %s", export_monthly_csv_path)
                 except Exception as e:
-                    print(f"⚠️ Nem sikerült monthly_series-t előállítani: {e}")
+                    logger.warning("Nem sikerült monthly_series-t előállítani: %s", e)
 
         # Prepare exogenous variables
         try:
-            exog = make_monthly_exog_no_leakage(panel_uid, uid_col='user_id', date_col='date',
+            panel_uid_for_exog = panel_uid if isinstance(panel_uid, pd.DataFrame) else pd.DataFrame()
+            exog = make_monthly_exog_no_leakage(panel_uid_for_exog, uid_col='user_id', date_col='date',
                                                shift_periods=1)
             if isinstance(exog, pd.DataFrame) and 'date' in exog.columns:
                 exog = exog.set_index(pd.to_datetime(exog['date'])).drop(columns=['date'],
@@ -314,7 +315,7 @@ def prepare_transaction_data(
                 exog = exog.sort_index().asfreq('ME')
                 exog = exog.apply(pd.to_numeric, errors='coerce').ffill().fillna(0.0)
         except Exception as e:
-            print(f"⚠️ make_monthly_exog_no_leakage hibát dobott: {e}")
+            logger.warning("make_monthly_exog_no_leakage hibát dobott: %s", e)
             exog = None
 
         # Prepare exogenous forecast
@@ -330,7 +331,7 @@ def prepare_transaction_data(
             else:
                 exog_forecast = None
         except Exception as e:
-            print(f"⚠️ make_exog_forecast_from_last_known hibát dobott: {e}")
+            logger.warning("make_exog_forecast_from_last_known hibát dobott: %s", e)
             # Fallback exog_forecast preparation
             try:
                 if exog is not None and isinstance(exog, pd.DataFrame) and not exog.empty:
